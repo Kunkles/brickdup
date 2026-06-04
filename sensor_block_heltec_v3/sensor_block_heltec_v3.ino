@@ -95,13 +95,27 @@ void drawOLED(float voltage, int status) {
   snprintf(volt, sizeof(volt), "%.2fV", voltage);
 
   oled.clear();
-  oled.setTextAlignment(TEXT_ALIGN_LEFT);
-  oled.setFont(ArialMT_Plain_16);
-  oled.drawString(0, 0, g_name.c_str());
-  oled.setFont(ArialMT_Plain_24);
-  oled.drawString(0, 20, volt);
+
+  // Top line: WiFi network name on the left (so you can always find it),
+  // status tag on the right.
   oled.setFont(ArialMT_Plain_10);
-  oled.drawString(0, 52, tag);
+  oled.setTextAlignment(TEXT_ALIGN_LEFT);
+  if (portalActive) {
+    String w = "Brickdup-" + g_permId;
+    oled.drawString(0, 0, w.c_str());
+  } else {
+    oled.drawString(0, 0, g_permId.c_str());   // WiFi off: just the device id
+  }
+  oled.setTextAlignment(TEXT_ALIGN_RIGHT);
+  oled.drawString(128, 0, tag);
+  oled.setTextAlignment(TEXT_ALIGN_LEFT);
+
+  // User name, then the big voltage readout
+  oled.setFont(ArialMT_Plain_16);
+  oled.drawString(0, 14, g_name.c_str());
+  oled.setFont(ArialMT_Plain_24);
+  oled.drawString(0, 34, volt);
+
   oled.display();
 }
 
@@ -116,19 +130,22 @@ String htmlPage() {
     "border:1px solid #444;border-radius:6px;background:#222;color:#fff}"
     "button{margin-top:20px;width:100%;padding:12px;font-size:16px;border:0;"
     "border-radius:6px;background:#2dd47a;color:#000;font-weight:bold}"
-    ".t{color:#2dd47a}.n{color:#666;font-size:12px;margin-top:24px}</style></head><body>");
+    ".t{color:#2dd47a}.n{color:#666;font-size:12px;margin-top:24px}"
+    ".wifi{margin:14px 0;padding:12px;border:1px solid #333;border-radius:6px;"
+    "color:#aaa;font-size:13px}.wifi b{color:#2dd47a;font-size:16px}"
+    "</style></head><body>");
   s += F("<h1>Brickdup <span class=t>");
   s += NODE_TYPE;
   s += F("</span> node</h1>"
-         "<label>Device (permanent)</label><input value='");
+         "<div class=wifi>WiFi network (fixed)<br><b>Brickdup-");
   s += g_permId;
-  s += F("' disabled><form action='/save' method='get'>"
+  s += F("</b></div><form action='/save' method='get'>"
          "<label>Name</label><input name='name' maxlength='16' value='");
   s += g_name;
   s += F("'><button type=submit>Save</button></form>"
-         "<p class=n>The device id is fixed in hardware and names the WiFi "
-         "network. Only the friendly name is editable; it saves to the node "
-         "and takes effect on the next transmission.</p></body></html>");
+         "<p class=n>The WiFi name above is fixed in hardware and never changes. "
+         "Only the friendly name is editable; it saves to the node and takes "
+         "effect on the next transmission.</p></body></html>");
   return s;
 }
 
