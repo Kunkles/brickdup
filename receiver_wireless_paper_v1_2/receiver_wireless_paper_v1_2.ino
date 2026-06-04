@@ -175,7 +175,7 @@ uint32_t displaySignature() {
     sig = (sig ^ (uint32_t)t) * 16777619u;
     sig = (sig ^ n.status) * 16777619u;   // also distinguishes LOST vs DEAD
     if (t == FRESH) {
-      sig = (sig ^ (uint32_t)(n.voltage * 100)) * 16777619u;
+      sig = (sig ^ (uint32_t)(n.voltage * 10)) * 16777619u;  // 0.1V = displayed res
     }
   }
   // Receiver battery (0.1V resolution) + charging flag, so the header refreshes
@@ -199,7 +199,7 @@ void updateDisplay() {
 
   // Receiver's own battery, right-aligned on the header line. "+" while charging.
   char batt[16];
-  snprintf(batt, sizeof(batt), "%s%.2fV", battCharging ? "+" : "", battVoltage);
+  snprintf(batt, sizeof(batt), "%s%.1fV", battCharging ? "+" : "", battVoltage);
   display.setFont(&FreeSans9pt7b);
   int16_t hbx, hby; uint16_t hbw, hbh;
   display.getTextBounds(batt, 0, 0, &hbx, &hby, &hbw, &hbh);
@@ -256,7 +256,7 @@ void updateDisplay() {
       snprintf(readout, sizeof(readout), isDead ? "DEAD" : "LOST");
       vfont = &FreeSansBold9pt7b;
     } else {
-      snprintf(readout, sizeof(readout), "%.2fV", n.voltage);
+      snprintf(readout, sizeof(readout), "%.1fV", n.voltage);   // e.g. "14.7V"
       vfont = &FreeSansBold12pt7b;
     }
     display.setFont(vfont);
