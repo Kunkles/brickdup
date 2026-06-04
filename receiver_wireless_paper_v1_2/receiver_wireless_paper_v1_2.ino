@@ -45,28 +45,12 @@
 // Freshness tiers
 enum Tier { FRESH = 0, STALE = 1, LOST = 2 };
 
-// ── Friendly node names ───────────────────────────────────────────────────────
-// Map a node's type + id to a readable label shown on screen. Edit freely.
-// Any node not listed here falls back to its raw tag (e.g. "OB-3").
-// Keep names short (~10 chars) so they don't collide with the voltage.
-struct NodeName {
-  const char* type;
-  uint8_t     id;
-  const char* name;
-};
-const NodeName NODE_NAMES[] = {
-  { "OB", 1, "Cam A" },
-  { "OB", 2, "Cam B" },
-  // { "BL", 1, "Floor 1" },
-};
-const int NODE_NAMES_COUNT = sizeof(NODE_NAMES) / sizeof(NODE_NAMES[0]);
-
 struct NodeState {
-  char     type[4];   // "OB" or "BL"
-  uint8_t  id;
-  char     name[20];  // name broadcast by the node (empty if none)
+  char     permId[16];  // permanent unique id from the node, e.g. "OB-7F3A" (key)
+  char     type[4];     // "OB" or "BL"
+  char     name[20];    // friendly name broadcast by the node (empty if none)
   float    voltage;
-  uint8_t  status;    // 0=OK  1=WARN  2=CRIT
+  uint8_t  status;      // 0=OK  1=WARN  2=CRIT
   int16_t  rssi;
   uint32_t lastSeen;
   bool     active;
@@ -91,14 +75,14 @@ EInkDisplay_WirelessPaperV1_2 display;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-int findOrCreateNode(uint8_t id, const char* type) {
+int findOrCreateNode(const char* permId, const char* type) {
   for (int i = 0; i < nodeCount; i++) {
-    if (nodes[i].id == id && strcmp(nodes[i].type, type) == 0) return i;
+    if (strcmp(nodes[i].permId, permId) == 0) return i;
   }
   if (nodeCount < MAX_NODES) {
     int idx = nodeCount++;
     nodes[idx] = {};
-    nodes[idx].id = id;
+    strncpy(nodes[idx].permId, permId, sizeof(nodes[idx].permId) - 1);
     strncpy(nodes[idx].type, type, sizeof(nodes[idx].type) - 1);
     nodes[idx].active = true;
     return idx;
@@ -106,38 +90,29 @@ int findOrCreateNode(uint8_t id, const char* type) {
   return -1;
 }
 
-bool parsePacket(const char* buf, char* type, uint8_t* id, float* voltage,
-                 uint8_t* status, char* name, size_t nameLen) {
-  // Format: T:<type>,N:<id>,V:<voltage>,S:<status>[,M:<name>]
+bool parsePacket(const char* buf, char* type, char* permId, size_t permLen,
+                 float* voltage, uint8_t* status, char* name, size_t nameLen) {
+  // Format: T:<type>,I:<permId>,V:<voltage>,S:<status>[,M:<name>]
   char tmp[128];
   strncpy(tmp, buf, sizeof(tmp) - 1);
-  name[0] = '\0';
+  permId[0] = '\0';
+  name[0]   = '\0';
 
   char* p = strtok(tmp, ",");
   while (p) {
     if (strncmp(p, "T:", 2) == 0) strncpy(type, p + 2, 3);
-    else if (strncmp(p, "N:", 2) == 0) *id      = atoi(p + 2);
-    else if (strncmp(p, "V:", 2) == 0) *voltage  = atof(p + 2);
-    else if (strncmp(p, "S:", 2) == 0) *status   = atoi(p + 2);
+    else if (strncmp(p, "I:", 2) == 0) strncpy(permId, p + 2, permLen - 1);
+    else if (strncmp(p, "V:", 2) == 0) *voltage = atof(p + 2);
+    else if (strncmp(p, "S:", 2) == 0) *status  = atoi(p + 2);
     else if (strncmp(p, "M:", 2) == 0) strncpy(name, p + 2, nameLen - 1);
     p = strtok(nullptr, ",");
   }
-  return (*id > 0 && *id < 100);
+  return (permId[0] != '\0');
 }
 
 const char* friendlyName(const NodeState& n) {
-  // 1. Name the node broadcast for itself
-  if (n.name[0]) return n.name;
-  // 2. Local override table
-  for (int i = 0; i < NODE_NAMES_COUNT; i++) {
-    if (NODE_NAMES[i].id == n.id && strcmp(NODE_NAMES[i].type, n.type) == 0) {
-      return NODE_NAMES[i].name;
-    }
-  }
-  // 3. Raw tag
-  static char fallback[12];
-  snprintf(fallback, sizeof(fallback), "%s-%d", n.type, n.id);
-  return fallback;
+  // The node's own friendly name, or its permanent id if it hasn't been named.
+  return n.name[0] ? n.name : n.permId;
 }
 
 Tier tierOf(const NodeState& n) {
@@ -155,10 +130,9 @@ uint32_t displaySignature() {
   for (int i = 0; i < nodeCount; i++) {
     NodeState& n = nodes[i];
     Tier t = tierOf(n);
-    sig = (sig ^ n.id) * 16777619u;
-    sig = (sig ^ n.type[0]) * 16777619u;
+    for (const char* c = n.permId; *c; c++) sig = (sig ^ (uint8_t)*c) * 16777619u;
+    for (const char* c = n.name;   *c; c++) sig = (sig ^ (uint8_t)*c) * 16777619u;
     sig = (sig ^ (uint32_t)t) * 16777619u;
-    for (const char* c = n.name; *c; c++) sig = (sig ^ (uint8_t)*c) * 16777619u;
     if (t == FRESH) {
       sig = (sig ^ n.status) * 16777619u;
       sig = (sig ^ (uint32_t)(n.voltage * 100)) * 16777619u;
@@ -281,13 +255,14 @@ void handlePacket() {
     Serial.printf("[RX] %s  RSSI=%d\n", received.c_str(), rssi);
 
     char type[4] = {};
-    uint8_t id = 0;
+    char permId[16] = {};
     float voltage = 0;
     uint8_t status = 0;
     char name[20] = {};
 
-    if (parsePacket(received.c_str(), type, &id, &voltage, &status, name, sizeof(name))) {
-      int idx = findOrCreateNode(id, type);
+    if (parsePacket(received.c_str(), type, permId, sizeof(permId),
+                    &voltage, &status, name, sizeof(name))) {
+      int idx = findOrCreateNode(permId, type);
       if (idx >= 0) {
         nodes[idx].voltage  = voltage;
         nodes[idx].status   = status;

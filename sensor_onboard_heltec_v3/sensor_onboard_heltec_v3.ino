@@ -1,5 +1,6 @@
-// Brickwatch — Onboard battery sensor node (4S Li-Ion, up to 16.8V)
-// Flash each unit with a unique NODE_ID (1–99).
+// Brickdup — Onboard battery sensor node (4S Li-Ion, up to 16.8V)
+// Flash the SAME firmware to every onboard node — each self-assigns a unique
+// permanent id from its chip MAC, and you name it over WiFi. No per-unit edits.
 // Hardware: Heltec WiFi LoRa 32 V3 (ESP32-S3 + SX1262, 915 MHz)
 // Voltage divider: R1=100kΩ, R2=22kΩ on GPIO7
 
@@ -10,15 +11,21 @@
 #include <Preferences.h>
 
 // ── Identity ─────────────────────────────────────────────────────────────────
-// NODE_ID / name below are just *defaults*. Once a node has been named through
-// its web page, the saved value (in flash) wins — so you can flash identical
-// firmware to every onboard node and name each one over WiFi.
-#define NODE_ID    1       // default id; override via web page
+// Two names per node:
+//   • PERMANENT id  — derived from the chip's unique MAC at boot, e.g. "OB-7F3A".
+//     Never changes, guaranteed unique, and is the WiFi network name. This means
+//     you flash the SAME firmware to every node — no per-unit edits, ever.
+//   • USER name     — friendly label you assign over WiFi ("Cam A"). Defaults to
+//     the permanent id until you set one. Shown on screens + broadcast.
 #define NODE_TYPE  "OB"    // fixed by hardware (which divider is fitted)
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
-#define AP_PASSWORD  "brickdup"   // join the node's "Brickdup-OB-x" network
-#define NAME_MAXLEN  16
+#define AP_PASSWORD     "brickdup"  // password for the node's WiFi network
+#define NAME_MAXLEN     16
+// 1 = portal always available. 0 = portal only comes up if the PRG button is
+// held during boot (saves ~80mA on battery). Flip to 0 once deep sleep lands.
+#define WIFI_ALWAYS_ON  1
+#define PRG_BUTTON      0           // Heltec V3 onboard USER/PRG button (GPIO0)
 
 // ── TEMPORARY: USB-C bench-test mode ──────────────────────────────────────────
 // 1 = transmit the Heltec V3's onboard battery/supply voltage (~4V on USB-C)
@@ -84,12 +91,21 @@ SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY);
 
 SSD1306Wire oled(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RST_OLED);
 
-// ── Runtime config (loaded from / saved to flash) ────────────────────────────
+// ── Runtime config ────────────────────────────────────────────────────────────
 Preferences prefs;
 WebServer   server(80);
-String      g_name;                 // editable node name (shown + broadcast)
-uint8_t     g_id   = NODE_ID;       // editable node id
+String      g_permId;               // permanent unique id from chip MAC (SSID)
+String      g_name;                 // editable user name (shown + broadcast)
+bool        portalActive = false;   // is the WiFi portal running?
 uint32_t    lastTx = 0;
+
+// Build the permanent id from the chip's MAC: e.g. "OB-7F3A". Unique per board.
+String makePermId() {
+  uint16_t suffix = (uint16_t)(ESP.getEfuseMac() & 0xFFFF);
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%s-%04X", NODE_TYPE, suffix);
+  return String(buf);
+}
 
 void drawOLED(float voltage, int status) {
   const char* tag = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
@@ -124,15 +140,16 @@ String htmlPage() {
     ".t{color:#2dd47a}.n{color:#666;font-size:12px;margin-top:24px}</style></head><body>");
   s += F("<h1>Brickdup <span class=t>");
   s += NODE_TYPE;
-  s += F("</span> node</h1><form action='/save' method='get'>"
+  s += F("</span> node</h1>"
+         "<label>Device (permanent)</label><input value='");
+  s += g_permId;
+  s += F("' disabled><form action='/save' method='get'>"
          "<label>Name</label><input name='name' maxlength='16' value='");
   s += g_name;
-  s += F("'><label>Node ID (1-99)</label>"
-         "<input name='id' type='number' min='1' max='99' value='");
-  s += String(g_id);
   s += F("'><button type=submit>Save</button></form>"
-         "<p class=n>Type is fixed by hardware. Changes save to the node and "
-         "take effect on the next transmission.</p></body></html>");
+         "<p class=n>The device id is fixed in hardware and names the WiFi "
+         "network. Only the friendly name is editable; it saves to the node "
+         "and takes effect on the next transmission.</p></body></html>");
   return s;
 }
 
@@ -149,13 +166,6 @@ void handleSave() {
       prefs.putString("name", g_name);
     }
   }
-  if (server.hasArg("id")) {
-    int id = server.arg("id").toInt();
-    if (id >= 1 && id <= 99) {
-      g_id = (uint8_t)id;
-      prefs.putUChar("id", g_id);
-    }
-  }
   server.sendHeader("Location", "/");
   server.send(303);                       // redirect back to the form
 }
@@ -167,10 +177,10 @@ void setup() {
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
 
-  // Load saved name / id (fall back to compile-time defaults)
+  // Permanent id from the chip MAC, and the saved user name (defaults to it)
+  g_permId = makePermId();
   prefs.begin("brickdup", false);
-  g_id   = prefs.getUChar("id", NODE_ID);
-  g_name = prefs.getString("name", String(NODE_TYPE) + "-" + String(g_id));
+  g_name = prefs.getString("name", g_permId);
 
   // Power and start the onboard OLED
   pinMode(VEXT_PIN, OUTPUT);
@@ -180,23 +190,34 @@ void setup() {
   oled.clear();
   oled.setFont(ArialMT_Plain_10);
   oled.drawString(0, 0, "Brickdup booting...");
+  oled.drawString(0, 14, g_permId.c_str());
   oled.display();
 
-  // WiFi config portal — always on for now. Once deep sleep lands this should
-  // be gated behind a boot button so it doesn't drain the pack.
-  String ssid = "Brickdup-" + String(NODE_TYPE) + "-" + String(g_id);
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid.c_str(), AP_PASSWORD);
-  server.on("/", handleRoot);
-  server.on("/save", handleSave);
-  server.begin();
-  Serial.printf("[CFG] AP '%s' (pw %s)  http://%s\n",
-                ssid.c_str(), AP_PASSWORD, WiFi.softAPIP().toString().c_str());
+  // WiFi config portal. The permanent id IS the network name.
+  bool startPortal = true;
+#if !WIFI_ALWAYS_ON
+  pinMode(PRG_BUTTON, INPUT_PULLUP);
+  startPortal = (digitalRead(PRG_BUTTON) == LOW);   // hold PRG at boot = enable
+#endif
+  if (startPortal) {
+    String ssid = "Brickdup-" + g_permId;
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(ssid.c_str(), AP_PASSWORD);
+    server.on("/", handleRoot);
+    server.on("/save", handleSave);
+    server.begin();
+    portalActive = true;
+    Serial.printf("[CFG] AP '%s' (pw %s)  http://%s\n",
+                  ssid.c_str(), AP_PASSWORD, WiFi.softAPIP().toString().c_str());
+  } else {
+    WiFi.mode(WIFI_OFF);
+    Serial.println("[CFG] WiFi portal off (hold PRG at boot to enable)");
+  }
 
 #if USB_TEST_MODE
-  Serial.printf("[BOOT] Brickdup OB node %d  (USB-C TEST MODE)\n", g_id);
+  Serial.printf("[BOOT] Brickdup %s '%s'  (USB-C TEST MODE)\n", g_permId.c_str(), g_name.c_str());
 #else
-  Serial.printf("[BOOT] Brickdup OB node %d\n", g_id);
+  Serial.printf("[BOOT] Brickdup %s '%s'\n", g_permId.c_str(), g_name.c_str());
 #endif
 
   int state = radio.begin(FREQ_MHZ, BW_KHZ, SF, CR, SYNC_WORD, TX_PWR, PREAMBLE);
@@ -239,7 +260,7 @@ int voltageStatus(float v) {
 }
 
 void loop() {
-  server.handleClient();        // keep the config portal responsive
+  if (portalActive) server.handleClient();   // keep the config portal responsive
 
   uint32_t now = millis();
   if (now - lastTx >= TX_INTERVAL_MS) {
@@ -250,8 +271,8 @@ void loop() {
     drawOLED(voltage, status);
 
     char packet[96];
-    snprintf(packet, sizeof(packet), "T:%s,N:%d,V:%.2f,S:%d,M:%s",
-             NODE_TYPE, g_id, voltage, status, g_name.c_str());
+    snprintf(packet, sizeof(packet), "T:%s,I:%s,V:%.2f,S:%d,M:%s",
+             NODE_TYPE, g_permId.c_str(), voltage, status, g_name.c_str());
 
     Serial.printf("[TX] %s\n", packet);
 

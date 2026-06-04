@@ -40,31 +40,46 @@ E-ink (receiver):     CS=5, DC=4, RST=3, BUSY=2 | SCK=6, MOSI=1
 
 Before flashing each sensor, set `NODE_ID` at the top of the file (1–99, unique per unit). `NODE_TYPE` is fixed per sketch — don't change it.
 
+## Node identity
+
+Every node has two names:
+
+- **Permanent id** — auto-derived from the chip's unique MAC at boot, e.g.
+  `OB-7F3A`. Never changes, guaranteed unique, and is the WiFi network name.
+  This is the key the receiver tracks nodes by.
+- **User name** — the friendly label you assign over WiFi (`Cam A`). Defaults to
+  the permanent id until set. Shown on the OLED + handheld and broadcast.
+
+Because the permanent id comes from the silicon, you flash the **same firmware to
+every node** — no `NODE_ID` edits, no per-unit builds. The only compile-time
+choice is which sketch (OB vs BL = which divider is fitted).
+
 ## Packet format
 
 ```
-T:<type>,N:<id>,V:<voltage>,S:<status>[,M:<name>]
+T:<type>,I:<permId>,V:<voltage>,S:<status>[,M:<name>]
 ```
 
-Example: `T:OB,N:1,V:14.73,S:0,M:Cam A`
+Example: `T:OB,I:OB-7F3A,V:14.73,S:0,M:Cam A`
 
 - `type` — `OB` or `BL`
-- `id` — 1–99
+- `permId` — permanent unique id (chip-derived), receiver's tracking key
 - `voltage` — float, 2 decimal places
 - `status` — 0=OK, 1=WARN, 2=CRIT
-- `name` — optional, set via the node's WiFi config page (no commas)
+- `name` — optional friendly name (no commas)
 
 ## Naming nodes (WiFi config portal)
 
 Each node hosts a WiFi access point you can join to rename it — no reflashing:
 
-1. Power the node and join WiFi **`Brickdup-OB-<id>`** (password `brickdup`)
+1. Power the node and join WiFi **`Brickdup-OB-7F3A`** (password `brickdup`) —
+   the suffix is unique per board, printed on the OLED at boot
 2. Open **http://192.168.4.1**
-3. Set the **name** (and optionally **node ID**), tap Save
+3. Type a **name**, tap Save
 
 The name persists in flash (survives reboot/reflash) and rides along in every
-packet, so the handheld shows it automatically. The receiver's `NODE_NAMES`
-table is now just a fallback for nodes that haven't been named.
+packet, so the handheld shows it automatically. The permanent id (and WiFi can
+be gated behind the PRG button at boot via `WIFI_ALWAYS_ON 0`).
 
 Thresholds — Onboard: WARN=13.5V, CRIT=12.8V | Block: WARN=21.0V, CRIT=20.0V
 
