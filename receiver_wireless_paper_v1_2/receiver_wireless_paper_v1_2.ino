@@ -34,9 +34,15 @@
 #define PREAMBLE   8
 
 // ── Node tracking ─────────────────────────────────────────────────────────────
+// Nodes transmit every ~10s. Tiers below are in missed check-ins:
 #define MAX_NODES    12
-#define STALE_MS     30000UL
+#define STALE_MS     30000UL   // missed ~3 → STALE (last reading shown, flagged)
+#define LOST_MS      60000UL   // missed ~6 → LOST  (signal gone)
+#define CHECK_MS     2000UL    // how often to re-evaluate freshness for redraw
 #define DISPLAY_ROWS 5
+
+// Freshness tiers
+enum Tier { FRESH = 0, STALE = 1, LOST = 2 };
 
 struct NodeState {
   char     type[4];   // "OB" or "BL"
@@ -52,6 +58,14 @@ NodeState nodes[MAX_NODES];
 int nodeCount = 0;
 
 SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY);
+
+// Set by the DIO1 ISR when a packet lands; loop() drains it.
+volatile bool packetFlag = false;
+void IRAM_ATTR onPacket() { packetFlag = true; }
+
+// Tracks what's currently on the e-ink so we only refresh on real change.
+uint32_t lastSig    = 0xFFFFFFFF;
+uint32_t lastCheck  = 0;
 
 // Display — Wireless Paper V1.2
 // Library powers GPIO45 automatically; landscape() sets 250×122 orientation
@@ -90,6 +104,32 @@ bool parsePacket(const char* buf, char* type, uint8_t* id, float* voltage, uint8
   return (*id > 0 && *id < 100);
 }
 
+Tier tierOf(const NodeState& n) {
+  uint32_t age = millis() - n.lastSeen;
+  if (age > LOST_MS)  return LOST;
+  if (age > STALE_MS) return STALE;
+  return FRESH;
+}
+
+// Compact signature of everything visible. If it hasn't changed, the e-ink
+// doesn't need a (slow, panel-wearing) refresh.
+uint32_t displaySignature() {
+  uint32_t sig = 2166136261u;             // FNV-1a basis
+  sig = (sig ^ (uint32_t)nodeCount) * 16777619u;
+  for (int i = 0; i < nodeCount; i++) {
+    NodeState& n = nodes[i];
+    Tier t = tierOf(n);
+    sig = (sig ^ n.id) * 16777619u;
+    sig = (sig ^ n.type[0]) * 16777619u;
+    sig = (sig ^ (uint32_t)t) * 16777619u;
+    if (t == FRESH) {
+      sig = (sig ^ n.status) * 16777619u;
+      sig = (sig ^ (uint32_t)(n.voltage * 100)) * 16777619u;
+    }
+  }
+  return sig;
+}
+
 void updateDisplay() {
   display.landscape();
   display.clearMemory();
@@ -102,17 +142,16 @@ void updateDisplay() {
 
   display.drawLine(0, 18, 249, 18, BLACK);   // header underline
 
-  uint32_t now = millis();
   int row = 0;
 
   for (int i = 0; i < nodeCount && row < DISPLAY_ROWS; i++) {
     NodeState& n = nodes[i];
-    bool stale = (now - n.lastSeen) > STALE_MS;
+    Tier t = tierOf(n);
 
     int y = 34 + row * 20;
 
-    // Status indicator box (left edge)
-    if (!stale) {
+    // Status indicator box (left edge) — only meaningful when fresh
+    if (t == FRESH) {
       if (n.status == 2) {
         display.fillRect(0, y - 12, 6, 14, BLACK);   // CRIT: solid black
       } else if (n.status == 1) {
@@ -124,9 +163,12 @@ void updateDisplay() {
     display.setFont(&FreeSans9pt7b);
     display.setCursor(10, y);
 
-    char label[32];
-    if (stale) {
-      snprintf(label, sizeof(label), "%s-%d  --.-  STALE", n.type, n.id);
+    char label[40];
+    if (t == LOST) {
+      snprintf(label, sizeof(label), "%s-%d  *** LOST ***", n.type, n.id);
+    } else if (t == STALE) {
+      // Last good reading is still useful context, flagged as stale
+      snprintf(label, sizeof(label), "%s-%d  %5.2fV  STALE", n.type, n.id, n.voltage);
     } else {
       const char* tag = (n.status == 2) ? "CRIT" : (n.status == 1) ? "WARN" : "OK";
       snprintf(label, sizeof(label), "%s-%d  %5.2fV  %s", n.type, n.id, n.voltage, tag);
@@ -145,6 +187,15 @@ void updateDisplay() {
   display.update();
 }
 
+// Redraw only when the visible state actually changed.
+void maybeRefresh() {
+  uint32_t sig = displaySignature();
+  if (sig != lastSig) {
+    lastSig = sig;
+    updateDisplay();
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
@@ -160,12 +211,16 @@ void setup() {
     Serial.printf("[ERR] Radio init failed: %d\n", state);
     while (true) delay(1000);
   }
+
+  // Interrupt-driven RX so the loop stays free to run timeout checks
+  radio.setDio1Action(onPacket);
+  radio.startReceive();
   Serial.println("[RADIO] Listening...");
 }
 
-void loop() {
+void handlePacket() {
   String received;
-  int state = radio.receive(received);
+  int state = radio.readData(received);
 
   if (state == RADIOLIB_ERR_NONE) {
     int16_t rssi = radio.getRSSI();
@@ -185,9 +240,25 @@ void loop() {
         nodes[idx].lastSeen = millis();
         nodes[idx].active   = true;
       }
-      updateDisplay();
     }
-  } else if (state != RADIOLIB_ERR_RX_TIMEOUT) {
+  } else {
     Serial.printf("[ERR] RX: %d\n", state);
+  }
+
+  radio.startReceive();   // re-arm for the next packet
+}
+
+void loop() {
+  // 1. Drain any received packet
+  if (packetFlag) {
+    packetFlag = false;
+    handlePacket();
+    maybeRefresh();       // show new data promptly
+  }
+
+  // 2. Periodically re-check freshness so STALE/LOST surface without traffic
+  if (millis() - lastCheck > CHECK_MS) {
+    lastCheck = millis();
+    maybeRefresh();
   }
 }
