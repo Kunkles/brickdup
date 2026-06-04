@@ -9,6 +9,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Preferences.h>
+#include "brickdup_logo.h"    // embedded logo served from /logo.jpg
 
 // ── Identity ─────────────────────────────────────────────────────────────────
 // Two names per node:
@@ -154,8 +155,9 @@ String htmlPage() {
   String s = F("<!doctype html><html><head>"
     "<meta name=viewport content='width=device-width,initial-scale=1'>"
     "<title>Brickdup Node</title><style>"
-    "body{font-family:sans-serif;background:#111;color:#eee;margin:0;padding:24px}"
+    "body{font-family:sans-serif;background:#000;color:#eee;margin:0;padding:24px}"
     "h1{font-size:20px}label{display:block;margin:14px 0 4px;font-size:14px;color:#aaa}"
+    "img.logo{display:block;width:240px;max-width:100%;margin:0 auto 8px}"
     "input{width:100%;box-sizing:border-box;padding:10px;font-size:16px;"
     "border:1px solid #444;border-radius:6px;background:#222;color:#fff}"
     "button{margin-top:20px;width:100%;padding:12px;font-size:16px;border:0;"
@@ -165,6 +167,7 @@ String htmlPage() {
     ".wifi{margin:14px 0;padding:12px;border:1px solid #333;border-radius:6px;"
     "color:#aaa;font-size:13px}.wifi b{color:#2dd47a;font-size:16px}"
     "</style></head><body>");
+  s += F("<img class=logo src='/logo.jpg'>");
   s += F("<h1>Brickdup <span class=t>");
   s += NODE_TYPE;
   s += F("</span> node</h1>"
@@ -184,6 +187,11 @@ String htmlPage() {
 }
 
 void handleRoot() { server.send(200, "text/html", htmlPage()); }
+
+void handleLogo() {
+  server.sendHeader("Cache-Control", "max-age=86400");
+  server.send_P(200, "image/jpeg", (const char*)logo_jpg, logo_jpg_len);
+}
 
 void handleSave() {
   if (server.hasArg("name")) {
@@ -271,6 +279,7 @@ void setup() {
   // or from the web page. The permanent id is the network name.
   pinMode(PRG_BUTTON, INPUT_PULLUP);
   server.on("/", handleRoot);
+  server.on("/logo.jpg", handleLogo);
   server.on("/save", handleSave);
   server.on("/wifioff", handleWifiOff);
   // Restore the saved WiFi state (off stays off across reboots)

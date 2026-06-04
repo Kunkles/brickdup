@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/brickdup-logo.png" width="360" alt="brickdup"></p>
+
 # brickdup
 
 Wireless battery voltage monitor for film/video sets. LoRa sensor nodes tap into camera batteries and broadcast readings to a handheld receiver with an e-ink display.
