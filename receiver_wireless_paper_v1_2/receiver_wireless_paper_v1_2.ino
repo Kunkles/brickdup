@@ -25,6 +25,14 @@
 // ── E-ink pins (internal wiring on Wireless Paper, for reference only) ───────
 // RST=6, DC=5, CS=4, BUSY=7, SCK=3, MOSI=2 — handled by library, do not redefine
 
+// ── Receiver's own battery sense (Wireless Paper) ─────────────────────────────
+// From the Meshtastic variant: ADC_CTRL=19 (enable LOW), VBAT on GPIO20 (ADC2),
+// divider is ~1:2 so multiply the pin voltage by 2. ADC2 is OK — no WiFi here.
+#define VBAT_CTRL     19
+#define VBAT_ADC      20
+#define VBAT_MULT     2.0f
+#define BATT_SAMPLE_MS 30000UL   // battery changes slowly; sample every 30s
+
 // ── Radio config (must match all nodes) ──────────────────────────────────────
 #define FREQ_MHZ   915.0
 #define BW_KHZ     125.0
@@ -76,6 +84,12 @@ bool     flashState = false;   // current flash phase
 bool     flashing   = false;   // are we in fast-refresh flashing mode?
 uint32_t lastFlash  = 0;
 
+// Receiver's own battery
+float    battVoltage  = 0;     // last reading (volts)
+float    battEMA      = 0;     // slow average, for charging-trend detection
+bool     battCharging = false; // inferred from a rising trend
+uint32_t lastBatt     = 0;
+
 // Display — Wireless Paper V1.2
 // Library powers GPIO45 automatically; landscape() sets 250×122 orientation
 EInkDisplay_WirelessPaperV1_2 display;
@@ -122,6 +136,25 @@ const char* friendlyName(const NodeState& n) {
   return n.name[0] ? n.name : n.permId;
 }
 
+// Read the receiver's own LiPo voltage (enable divider via ADC_CTRL, then ADC2).
+float readReceiverBattery() {
+  pinMode(VBAT_CTRL, OUTPUT);
+  digitalWrite(VBAT_CTRL, LOW);          // enable the battery divider
+  delay(5);
+  uint32_t mv = 0;
+  for (int i = 0; i < 8; i++) { mv += analogReadMilliVolts(VBAT_ADC); delay(2); }
+  pinMode(VBAT_CTRL, INPUT);             // release (high-Z) to save power
+  return (mv / 8.0f) * VBAT_MULT / 1000.0f;
+}
+
+// Sample periodically; infer "charging" from a rising trend vs the slow average.
+void updateBattery() {
+  battVoltage = readReceiverBattery();
+  if (battEMA == 0) battEMA = battVoltage;        // seed
+  battCharging = (battVoltage > battEMA + 0.03f); // rising ⇒ on charge
+  battEMA = battEMA * 0.8f + battVoltage * 0.2f;
+}
+
 Tier tierOf(const NodeState& n) {
   uint32_t age = millis() - n.lastSeen;
   if (age > LOST_MS)  return LOST;
@@ -145,6 +178,10 @@ uint32_t displaySignature() {
       sig = (sig ^ (uint32_t)(n.voltage * 100)) * 16777619u;
     }
   }
+  // Receiver battery (0.1V resolution) + charging flag, so the header refreshes
+  // only when the displayed value actually changes.
+  sig = (sig ^ (uint32_t)(battVoltage * 10)) * 16777619u;
+  sig = (sig ^ (uint32_t)battCharging) * 16777619u;
   return sig;
 }
 
@@ -152,15 +189,26 @@ void updateDisplay() {
   display.landscape();
   display.clearMemory();
 
+  const int RIGHT = 248;   // right edge for readouts
+
   // Header
   display.setFont(&FreeSansBold9pt7b);
   display.setTextColor(BLACK);
   display.setCursor(2, 14);
   display.print("BRICKDUP");
 
+  // Receiver's own battery, right-aligned on the header line. "+" while charging.
+  char batt[16];
+  snprintf(batt, sizeof(batt), "%s%.2fV", battCharging ? "+" : "", battVoltage);
+  display.setFont(&FreeSans9pt7b);
+  int16_t hbx, hby; uint16_t hbw, hbh;
+  display.getTextBounds(batt, 0, 0, &hbx, &hby, &hbw, &hbh);
+  display.setCursor(RIGHT - hbw - hbx, 14);
+  display.print(batt);
+
   display.drawLine(0, 18, 249, 18, BLACK);   // header underline
 
-  const int RIGHT = 248;   // right edge for the voltage readout
+  int row = 0;
   int row = 0;
 
   for (int i = 0; i < nodeCount && row < DISPLAY_ROWS; i++) {
@@ -241,6 +289,12 @@ void setup() {
   delay(500);
   Serial.println("[BOOT] Brickdup receiver");
 
+  // ADC for the receiver's own battery (high divider output → 12dB attenuation)
+  analogReadResolution(12);
+  analogSetAttenuation(ADC_11db);
+  updateBattery();
+  lastBatt = millis();
+
   // Display init — library handles Vext (GPIO45) automatically
   updateDisplay();
 
@@ -297,6 +351,12 @@ void loop() {
     packetFlag = false;
     handlePacket();
     maybeRefresh();       // show new data promptly
+  }
+
+  // Sample the receiver's own battery now and then
+  if (millis() - lastBatt > BATT_SAMPLE_MS) {
+    lastBatt = millis();
+    updateBattery();
   }
 
   // 2. Is any node currently LOST? Those rows flash.
