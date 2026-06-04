@@ -11,6 +11,7 @@
 
 #include <RadioLib.h>
 #include <heltec-eink-modules.h>
+#include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
 
@@ -142,6 +143,7 @@ void updateDisplay() {
 
   display.drawLine(0, 18, 249, 18, BLACK);   // header underline
 
+  const int RIGHT = 248;   // right edge for the voltage readout
   int row = 0;
 
   for (int i = 0; i < nodeCount && row < DISPLAY_ROWS; i++) {
@@ -150,7 +152,7 @@ void updateDisplay() {
 
     int y = 34 + row * 20;
 
-    // Status indicator box (left edge) — only meaningful when fresh
+    // Status marker box (left edge) — only meaningful when fresh
     if (t == FRESH) {
       if (n.status == 2) {
         display.fillRect(0, y - 12, 6, 14, BLACK);   // CRIT: solid black
@@ -160,20 +162,33 @@ void updateDisplay() {
       // OK: blank
     }
 
+    // Node label on the left, e.g. "OB-1"
+    char label[12];
+    snprintf(label, sizeof(label), "%s-%d", n.type, n.id);
     display.setFont(&FreeSans9pt7b);
     display.setCursor(10, y);
-
-    char label[40];
-    if (t == LOST) {
-      snprintf(label, sizeof(label), "%s-%d  *** LOST ***", n.type, n.id);
-    } else if (t == STALE) {
-      // Last good reading is still useful context, flagged as stale
-      snprintf(label, sizeof(label), "%s-%d  %5.2fV  STALE", n.type, n.id, n.voltage);
-    } else {
-      const char* tag = (n.status == 2) ? "CRIT" : (n.status == 1) ? "WARN" : "OK";
-      snprintf(label, sizeof(label), "%s-%d  %5.2fV  %s", n.type, n.id, n.voltage, tag);
-    }
     display.print(label);
+
+    // Big voltage readout, right-aligned. STALE keeps the last value;
+    // LOST replaces it with the word.
+    char readout[12];
+    if (t == LOST) {
+      snprintf(readout, sizeof(readout), "LOST");
+    } else {
+      snprintf(readout, sizeof(readout), "%.2fV", n.voltage);
+    }
+    display.setFont(&FreeSansBold12pt7b);
+    int16_t bx, by; uint16_t bw, bh;
+    display.getTextBounds(readout, 0, 0, &bx, &by, &bw, &bh);
+    display.setCursor(RIGHT - bw, y);
+    display.print(readout);
+
+    // Small "stale" flag in the gap when the reading is going cold
+    if (t == STALE) {
+      display.setFont(&FreeSans9pt7b);
+      display.setCursor(60, y);
+      display.print("stale");
+    }
 
     row++;
   }
