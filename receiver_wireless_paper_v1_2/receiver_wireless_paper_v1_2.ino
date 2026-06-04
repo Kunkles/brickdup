@@ -25,6 +25,9 @@
 // ── E-ink pins (internal wiring on Wireless Paper, for reference only) ───────
 // RST=6, DC=5, CS=4, BUSY=7, SCK=3, MOSI=2 — handled by library, do not redefine
 
+// ── Controls ──────────────────────────────────────────────────────────────────
+#define BTN_PIN  0          // Wireless Paper onboard USER button (GPIO0)
+
 // ── Receiver's own battery sense (Wireless Paper) ─────────────────────────────
 // From the Meshtastic variant: ADC_CTRL=19 (enable LOW), VBAT on GPIO20 (ADC2),
 // divider is ~1:2 so multiply the pin voltage by 2. ADC2 is OK — no WiFi here.
@@ -89,6 +92,11 @@ float    battVoltage  = 0;     // last reading (volts)
 float    battEMA      = 0;     // slow average, for charging-trend detection
 bool     battCharging = false; // inferred from a rising trend
 uint32_t lastBatt     = 0;
+
+// Paging through nodes (5 rows per page)
+int      page       = 0;
+bool     lastPgBtn  = HIGH;
+uint32_t lastPgBtnMs = 0;
 
 // Display — Wireless Paper V1.2
 // Library powers GPIO45 automatically; landscape() sets 250×122 orientation
@@ -182,6 +190,7 @@ uint32_t displaySignature() {
   // only when the displayed value actually changes.
   sig = (sig ^ (uint32_t)(battVoltage * 10)) * 16777619u;
   sig = (sig ^ (uint32_t)battCharging) * 16777619u;
+  sig = (sig ^ (uint32_t)page) * 16777619u;   // redraw when the page changes
   return sig;
 }
 
@@ -191,11 +200,26 @@ void updateDisplay() {
 
   const int RIGHT = 248;   // right edge for readouts
 
+  // Paging: clamp the current page to the node count (5 rows per page)
+  int totalPages = (nodeCount + DISPLAY_ROWS - 1) / DISPLAY_ROWS;
+  if (totalPages < 1) totalPages = 1;
+  if (page >= totalPages) page = 0;
+  int startIdx = page * DISPLAY_ROWS;
+
   // Header
   display.setFont(&FreeSansBold9pt7b);
   display.setTextColor(BLACK);
   display.setCursor(2, 14);
   display.print("BRICKDUP");
+
+  // Page indicator (only when there's more than one page)
+  if (totalPages > 1) {
+    char pg[8];
+    snprintf(pg, sizeof(pg), "%d/%d", page + 1, totalPages);
+    display.setFont(&FreeSans9pt7b);
+    display.setCursor(92, 14);
+    display.print(pg);
+  }
 
   // Receiver's own battery, right-aligned on the header line. "+" while charging.
   char batt[16];
@@ -210,7 +234,7 @@ void updateDisplay() {
 
   int row = 0;
 
-  for (int i = 0; i < nodeCount && row < DISPLAY_ROWS; i++) {
+  for (int i = startIdx; i < nodeCount && row < DISPLAY_ROWS; i++) {
     NodeState& n = nodes[i];
     Tier t = tierOf(n);
 
@@ -288,10 +312,25 @@ void maybeRefresh() {
   }
 }
 
+// Tap the USER button to page through nodes (when more than 5 are connected).
+void pollPageButton() {
+  bool b = digitalRead(BTN_PIN);
+  if (b == LOW && lastPgBtn == HIGH && (millis() - lastPgBtnMs) > 250) {
+    lastPgBtnMs = millis();
+    int totalPages = (nodeCount + DISPLAY_ROWS - 1) / DISPLAY_ROWS;
+    if (totalPages < 1) totalPages = 1;
+    page = (page + 1) % totalPages;
+    maybeRefresh();   // page is in the signature, so this redraws
+  }
+  lastPgBtn = b;
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println("[BOOT] Brickdup receiver");
+
+  pinMode(BTN_PIN, INPUT_PULLUP);   // USER button for paging
 
   // ADC for the receiver's own battery (high divider output → 12dB attenuation)
   analogReadResolution(12);
@@ -350,6 +389,8 @@ void handlePacket() {
 }
 
 void loop() {
+  pollPageButton();       // USER button cycles pages
+
   // 1. Drain any received packet
   if (packetFlag) {
     packetFlag = false;

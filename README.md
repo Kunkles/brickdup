@@ -131,9 +131,9 @@ Settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600
 ## Roadmap
 
 - [x] Bench ping test (verify radio link before analog wiring)
+- [x] Receiver paging (USER button cycles pages when >5 nodes)
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)
 - [ ] Calibration mode (NVS-stored offset, set via button on boot)
-- [ ] Receiver paging (button to scroll past 5 nodes)
 - [ ] RSSI bars per node on display
 - [ ] CRIT buzzer alert on receiver
 - [ ] Receiver battery indicator
