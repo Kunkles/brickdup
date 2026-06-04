@@ -20,12 +20,14 @@
 #define NODE_TYPE  "BL"    // fixed by hardware (which divider is fitted)
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
-#define AP_PASSWORD     "brickdup"  // password for the node's WiFi network
-#define NAME_MAXLEN     16
-// 1 = portal always available. 0 = portal only comes up if the PRG button is
-// held during boot (saves ~80mA on battery). Flip to 0 once deep sleep lands.
-#define WIFI_ALWAYS_ON  1
-#define PRG_BUTTON      0           // Heltec V3 onboard USER/PRG button (GPIO0)
+#define AP_PASSWORD      "brickdup" // password for the node's WiFi network
+#define NAME_MAXLEN      16
+// WiFi draws ~80mA, so it can be toggled off to save power — no extra hardware:
+//   • Tap the onboard PRG button (GPIO0) any time to toggle WiFi on/off.
+//   • Or hit "Turn off WiFi" on the config page when you're done naming.
+// WIFI_ON_AT_BOOT sets the power-up state (1 = on, 0 = off until you press PRG).
+#define WIFI_ON_AT_BOOT  1
+#define PRG_BUTTON       0          // Heltec V3 onboard USER/PRG button (GPIO0)
 
 // ── Thresholds (volts) ────────────────────────────────────────────────────────
 #define WARN_V  21.0f
@@ -79,6 +81,9 @@ WebServer   server(80);
 String      g_permId;               // permanent unique id from chip MAC (SSID)
 String      g_name;                 // editable user name (shown + broadcast)
 bool        portalActive = false;   // is the WiFi portal running?
+bool        pendingWifiOff = false; // request to drop WiFi after a web response
+bool        lastBtn = HIGH;         // PRG button edge tracking
+uint32_t    lastBtnMs = 0;
 uint32_t    lastTx = 0;
 
 // Build the permanent id from the chip's MAC: e.g. "BL-7F3A". Unique per board.
@@ -130,6 +135,7 @@ String htmlPage() {
     "border:1px solid #444;border-radius:6px;background:#222;color:#fff}"
     "button{margin-top:20px;width:100%;padding:12px;font-size:16px;border:0;"
     "border-radius:6px;background:#2dd47a;color:#000;font-weight:bold}"
+    ".off{background:#444;color:#fff;margin-top:10px}"
     ".t{color:#2dd47a}.n{color:#666;font-size:12px;margin-top:24px}"
     ".wifi{margin:14px 0;padding:12px;border:1px solid #333;border-radius:6px;"
     "color:#aaa;font-size:13px}.wifi b{color:#2dd47a;font-size:16px}"
@@ -143,9 +149,12 @@ String htmlPage() {
          "<label>Name</label><input name='name' maxlength='16' value='");
   s += g_name;
   s += F("'><button type=submit>Save</button></form>"
+         "<form action='/wifioff'><button class=off type=submit>"
+         "Turn off WiFi</button></form>"
          "<p class=n>The WiFi name above is fixed in hardware and never changes. "
          "Only the friendly name is editable; it saves to the node and takes "
-         "effect on the next transmission.</p></body></html>");
+         "effect on the next transmission. Press the node's PRG button to turn "
+         "WiFi back on.</p></body></html>");
   return s;
 }
 
@@ -164,6 +173,44 @@ void handleSave() {
   }
   server.sendHeader("Location", "/");
   server.send(303);                       // redirect back to the form
+}
+
+// ── WiFi on/off (no extra hardware) ───────────────────────────────────────────
+void wifiStart() {
+  String ssid = "Brickdup-" + g_permId;
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(ssid.c_str(), AP_PASSWORD);
+  server.begin();
+  portalActive = true;
+  Serial.printf("[CFG] WiFi ON: '%s'  http://%s\n",
+                ssid.c_str(), WiFi.softAPIP().toString().c_str());
+}
+
+void wifiStop() {
+  server.stop();
+  WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_OFF);
+  portalActive = false;
+  Serial.println("[CFG] WiFi OFF (press PRG to re-enable)");
+}
+
+void handleWifiOff() {
+  server.send(200, "text/html",
+    "<meta name=viewport content='width=device-width,initial-scale=1'>"
+    "<body style='font-family:sans-serif;background:#111;color:#eee;padding:24px'>"
+    "WiFi is turning off to save power.<br><br>"
+    "Press the <b>PRG</b> button on the node to turn it back on.</body>");
+  pendingWifiOff = true;   // drop the AP after this response is sent
+}
+
+// Tap the onboard PRG button to toggle WiFi on/off (debounced edge detect).
+void pollButton() {
+  bool b = digitalRead(PRG_BUTTON);
+  if (b == LOW && lastBtn == HIGH && (millis() - lastBtnMs) > 300) {
+    lastBtnMs = millis();
+    if (portalActive) wifiStop(); else wifiStart();
+  }
+  lastBtn = b;
 }
 
 void setup() {
@@ -189,26 +236,18 @@ void setup() {
   oled.drawString(0, 14, g_permId.c_str());
   oled.display();
 
-  // WiFi config portal. The permanent id IS the network name.
-  bool startPortal = true;
-#if !WIFI_ALWAYS_ON
+  // WiFi config portal. Toggle any time with the PRG button (no extra hardware)
+  // or from the web page. The permanent id is the network name.
   pinMode(PRG_BUTTON, INPUT_PULLUP);
-  startPortal = (digitalRead(PRG_BUTTON) == LOW);   // hold PRG at boot = enable
+  server.on("/", handleRoot);
+  server.on("/save", handleSave);
+  server.on("/wifioff", handleWifiOff);
+#if WIFI_ON_AT_BOOT
+  wifiStart();
+#else
+  WiFi.mode(WIFI_OFF);
+  Serial.println("[CFG] WiFi off at boot — press PRG to enable");
 #endif
-  if (startPortal) {
-    String ssid = "Brickdup-" + g_permId;
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(ssid.c_str(), AP_PASSWORD);
-    server.on("/", handleRoot);
-    server.on("/save", handleSave);
-    server.begin();
-    portalActive = true;
-    Serial.printf("[CFG] AP '%s' (pw %s)  http://%s\n",
-                  ssid.c_str(), AP_PASSWORD, WiFi.softAPIP().toString().c_str());
-  } else {
-    WiFi.mode(WIFI_OFF);
-    Serial.println("[CFG] WiFi portal off (hold PRG at boot to enable)");
-  }
 
   Serial.printf("[BOOT] Brickdup %s '%s'\n", g_permId.c_str(), g_name.c_str());
 
@@ -238,7 +277,9 @@ int voltageStatus(float v) {
 }
 
 void loop() {
-  if (portalActive) server.handleClient();   // keep the config portal responsive
+  pollButton();                               // PRG toggles WiFi on/off
+  if (pendingWifiOff) { pendingWifiOff = false; delay(150); wifiStop(); }
+  if (portalActive) server.handleClient();    // keep the config portal responsive
 
   uint32_t now = millis();
   if (now - lastTx >= TX_INTERVAL_MS) {

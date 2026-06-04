@@ -78,8 +78,15 @@ Each node hosts a WiFi access point you can join to rename it — no reflashing:
 3. Type a **name**, tap Save
 
 The name persists in flash (survives reboot/reflash) and rides along in every
-packet, so the handheld shows it automatically. The permanent id (and WiFi can
-be gated behind the PRG button at boot via `WIFI_ALWAYS_ON 0`).
+packet, so the handheld shows it automatically.
+
+**Turning WiFi off (saves ~80mA):** no extra hardware needed —
+
+- Tap the node's onboard **PRG button** any time to toggle WiFi on/off, or
+- Hit **Turn off WiFi** on the config page when you're done naming.
+
+Press PRG again to bring it back. Set `WIFI_ON_AT_BOOT 0` to have nodes power up
+with WiFi off until you press PRG.
 
 Thresholds — Onboard: WARN=13.5V, CRIT=12.8V | Block: WARN=21.0V, CRIT=20.0V
 
