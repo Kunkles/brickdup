@@ -100,7 +100,7 @@ void updateDisplay() {
   display.setCursor(2, 14);
   display.print("BRICKDUP");
 
-  display.drawFastHLine(0, 18, 250, BLACK);
+  display.drawLine(0, 18, 249, 18, BLACK);   // header underline
 
   uint32_t now = millis();
   int row = 0;
