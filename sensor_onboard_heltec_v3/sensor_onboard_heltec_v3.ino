@@ -5,10 +5,20 @@
 
 #include <RadioLib.h>
 #include "HT_SSD1306Wire.h"   // bundled with the Heltec ESP32 board package
+#include <WiFi.h>
+#include <WebServer.h>
+#include <Preferences.h>
 
 // ── Identity ─────────────────────────────────────────────────────────────────
-#define NODE_ID    2       // CHANGE before flashing each unit
-#define NODE_TYPE  "OB"
+// NODE_ID / name below are just *defaults*. Once a node has been named through
+// its web page, the saved value (in flash) wins — so you can flash identical
+// firmware to every onboard node and name each one over WiFi.
+#define NODE_ID    1       // default id; override via web page
+#define NODE_TYPE  "OB"    // fixed by hardware (which divider is fitted)
+
+// ── WiFi config portal ────────────────────────────────────────────────────────
+#define AP_PASSWORD  "brickdup"   // join the node's "Brickdup-OB-x" network
+#define NAME_MAXLEN  16
 
 // ── TEMPORARY: USB-C bench-test mode ──────────────────────────────────────────
 // 1 = transmit the Heltec V3's onboard battery/supply voltage (~4V on USB-C)
@@ -74,16 +84,22 @@ SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY);
 
 SSD1306Wire oled(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RST_OLED);
 
+// ── Runtime config (loaded from / saved to flash) ────────────────────────────
+Preferences prefs;
+WebServer   server(80);
+String      g_name;                 // editable node name (shown + broadcast)
+uint8_t     g_id   = NODE_ID;       // editable node id
+uint32_t    lastTx = 0;
+
 void drawOLED(float voltage, int status) {
   const char* tag = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
-  char name[12], volt[12];
-  snprintf(name, sizeof(name), "%s-%d", NODE_TYPE, NODE_ID);
+  char volt[12];
   snprintf(volt, sizeof(volt), "%.2fV", voltage);
 
   oled.clear();
   oled.setTextAlignment(TEXT_ALIGN_LEFT);
   oled.setFont(ArialMT_Plain_16);
-  oled.drawString(0, 0, name);
+  oled.drawString(0, 0, g_name.c_str());
   oled.setFont(ArialMT_Plain_24);
   oled.drawString(0, 20, volt);
   oled.setFont(ArialMT_Plain_10);
@@ -94,12 +110,67 @@ void drawOLED(float voltage, int status) {
   oled.display();
 }
 
+// ── Web config portal ─────────────────────────────────────────────────────────
+String htmlPage() {
+  String s = F("<!doctype html><html><head>"
+    "<meta name=viewport content='width=device-width,initial-scale=1'>"
+    "<title>Brickdup Node</title><style>"
+    "body{font-family:sans-serif;background:#111;color:#eee;margin:0;padding:24px}"
+    "h1{font-size:20px}label{display:block;margin:14px 0 4px;font-size:14px;color:#aaa}"
+    "input{width:100%;box-sizing:border-box;padding:10px;font-size:16px;"
+    "border:1px solid #444;border-radius:6px;background:#222;color:#fff}"
+    "button{margin-top:20px;width:100%;padding:12px;font-size:16px;border:0;"
+    "border-radius:6px;background:#2dd47a;color:#000;font-weight:bold}"
+    ".t{color:#2dd47a}.n{color:#666;font-size:12px;margin-top:24px}</style></head><body>");
+  s += F("<h1>Brickdup <span class=t>");
+  s += NODE_TYPE;
+  s += F("</span> node</h1><form action='/save' method='get'>"
+         "<label>Name</label><input name='name' maxlength='16' value='");
+  s += g_name;
+  s += F("'><label>Node ID (1-99)</label>"
+         "<input name='id' type='number' min='1' max='99' value='");
+  s += String(g_id);
+  s += F("'><button type=submit>Save</button></form>"
+         "<p class=n>Type is fixed by hardware. Changes save to the node and "
+         "take effect on the next transmission.</p></body></html>");
+  return s;
+}
+
+void handleRoot() { server.send(200, "text/html", htmlPage()); }
+
+void handleSave() {
+  if (server.hasArg("name")) {
+    String n = server.arg("name");
+    n.replace(",", " ");                 // commas would break the packet format
+    n.trim();
+    if (n.length() > NAME_MAXLEN) n = n.substring(0, NAME_MAXLEN);
+    if (n.length() > 0) {
+      g_name = n;
+      prefs.putString("name", g_name);
+    }
+  }
+  if (server.hasArg("id")) {
+    int id = server.arg("id").toInt();
+    if (id >= 1 && id <= 99) {
+      g_id = (uint8_t)id;
+      prefs.putUChar("id", g_id);
+    }
+  }
+  server.sendHeader("Location", "/");
+  server.send(303);                       // redirect back to the form
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
 
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
+
+  // Load saved name / id (fall back to compile-time defaults)
+  prefs.begin("brickdup", false);
+  g_id   = prefs.getUChar("id", NODE_ID);
+  g_name = prefs.getString("name", String(NODE_TYPE) + "-" + String(g_id));
 
   // Power and start the onboard OLED
   pinMode(VEXT_PIN, OUTPUT);
@@ -111,10 +182,21 @@ void setup() {
   oled.drawString(0, 0, "Brickdup booting...");
   oled.display();
 
+  // WiFi config portal — always on for now. Once deep sleep lands this should
+  // be gated behind a boot button so it doesn't drain the pack.
+  String ssid = "Brickdup-" + String(NODE_TYPE) + "-" + String(g_id);
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(ssid.c_str(), AP_PASSWORD);
+  server.on("/", handleRoot);
+  server.on("/save", handleSave);
+  server.begin();
+  Serial.printf("[CFG] AP '%s' (pw %s)  http://%s\n",
+                ssid.c_str(), AP_PASSWORD, WiFi.softAPIP().toString().c_str());
+
 #if USB_TEST_MODE
-  Serial.printf("[BOOT] Brickdup OB node %d  (USB-C TEST MODE)\n", NODE_ID);
+  Serial.printf("[BOOT] Brickdup OB node %d  (USB-C TEST MODE)\n", g_id);
 #else
-  Serial.printf("[BOOT] Brickdup OB node %d\n", NODE_ID);
+  Serial.printf("[BOOT] Brickdup OB node %d\n", g_id);
 #endif
 
   int state = radio.begin(FREQ_MHZ, BW_KHZ, SF, CR, SYNC_WORD, TX_PWR, PREAMBLE);
@@ -123,6 +205,8 @@ void setup() {
     while (true) delay(1000);
   }
   Serial.println("[RADIO] OK");
+
+  lastTx = millis() - TX_INTERVAL_MS + 1500;  // first transmit ~1.5s after boot
 }
 
 float readVoltage() {
@@ -155,21 +239,25 @@ int voltageStatus(float v) {
 }
 
 void loop() {
-  float voltage = readVoltage();
-  int status = voltageStatus(voltage);
+  server.handleClient();        // keep the config portal responsive
 
-  drawOLED(voltage, status);
+  uint32_t now = millis();
+  if (now - lastTx >= TX_INTERVAL_MS) {
+    lastTx = now;
 
-  char packet[64];
-  snprintf(packet, sizeof(packet), "T:%s,N:%d,V:%.2f,S:%d",
-           NODE_TYPE, NODE_ID, voltage, status);
+    float voltage = readVoltage();
+    int status = voltageStatus(voltage);
+    drawOLED(voltage, status);
 
-  Serial.printf("[TX] %s\n", packet);
+    char packet[96];
+    snprintf(packet, sizeof(packet), "T:%s,N:%d,V:%.2f,S:%d,M:%s",
+             NODE_TYPE, g_id, voltage, status, g_name.c_str());
 
-  int state = radio.transmit(packet);
-  if (state != RADIOLIB_ERR_NONE) {
-    Serial.printf("[ERR] TX failed: %d\n", state);
+    Serial.printf("[TX] %s\n", packet);
+
+    int state = radio.transmit(packet);
+    if (state != RADIOLIB_ERR_NONE) {
+      Serial.printf("[ERR] TX failed: %d\n", state);
+    }
   }
-
-  delay(TX_INTERVAL_MS);
 }

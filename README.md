@@ -43,15 +43,28 @@ Before flashing each sensor, set `NODE_ID` at the top of the file (1–99, uniqu
 ## Packet format
 
 ```
-T:<type>,N:<id>,V:<voltage>,S:<status>
+T:<type>,N:<id>,V:<voltage>,S:<status>[,M:<name>]
 ```
 
-Example: `T:OB,N:1,V:14.73,S:0`
+Example: `T:OB,N:1,V:14.73,S:0,M:Cam A`
 
 - `type` — `OB` or `BL`
 - `id` — 1–99
 - `voltage` — float, 2 decimal places
 - `status` — 0=OK, 1=WARN, 2=CRIT
+- `name` — optional, set via the node's WiFi config page (no commas)
+
+## Naming nodes (WiFi config portal)
+
+Each node hosts a WiFi access point you can join to rename it — no reflashing:
+
+1. Power the node and join WiFi **`Brickdup-OB-<id>`** (password `brickdup`)
+2. Open **http://192.168.4.1**
+3. Set the **name** (and optionally **node ID**), tap Save
+
+The name persists in flash (survives reboot/reflash) and rides along in every
+packet, so the handheld shows it automatically. The receiver's `NODE_NAMES`
+table is now just a fallback for nodes that haven't been named.
 
 Thresholds — Onboard: WARN=13.5V, CRIT=12.8V | Block: WARN=21.0V, CRIT=20.0V
 

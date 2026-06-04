@@ -64,6 +64,7 @@ const int NODE_NAMES_COUNT = sizeof(NODE_NAMES) / sizeof(NODE_NAMES[0]);
 struct NodeState {
   char     type[4];   // "OB" or "BL"
   uint8_t  id;
+  char     name[20];  // name broadcast by the node (empty if none)
   float    voltage;
   uint8_t  status;    // 0=OK  1=WARN  2=CRIT
   int16_t  rssi;
@@ -105,10 +106,12 @@ int findOrCreateNode(uint8_t id, const char* type) {
   return -1;
 }
 
-bool parsePacket(const char* buf, char* type, uint8_t* id, float* voltage, uint8_t* status) {
-  // Format: T:<type>,N:<id>,V:<voltage>,S:<status>
+bool parsePacket(const char* buf, char* type, uint8_t* id, float* voltage,
+                 uint8_t* status, char* name, size_t nameLen) {
+  // Format: T:<type>,N:<id>,V:<voltage>,S:<status>[,M:<name>]
   char tmp[128];
   strncpy(tmp, buf, sizeof(tmp) - 1);
+  name[0] = '\0';
 
   char* p = strtok(tmp, ",");
   while (p) {
@@ -116,17 +119,22 @@ bool parsePacket(const char* buf, char* type, uint8_t* id, float* voltage, uint8
     else if (strncmp(p, "N:", 2) == 0) *id      = atoi(p + 2);
     else if (strncmp(p, "V:", 2) == 0) *voltage  = atof(p + 2);
     else if (strncmp(p, "S:", 2) == 0) *status   = atoi(p + 2);
+    else if (strncmp(p, "M:", 2) == 0) strncpy(name, p + 2, nameLen - 1);
     p = strtok(nullptr, ",");
   }
   return (*id > 0 && *id < 100);
 }
 
 const char* friendlyName(const NodeState& n) {
+  // 1. Name the node broadcast for itself
+  if (n.name[0]) return n.name;
+  // 2. Local override table
   for (int i = 0; i < NODE_NAMES_COUNT; i++) {
     if (NODE_NAMES[i].id == n.id && strcmp(NODE_NAMES[i].type, n.type) == 0) {
       return NODE_NAMES[i].name;
     }
   }
+  // 3. Raw tag
   static char fallback[12];
   snprintf(fallback, sizeof(fallback), "%s-%d", n.type, n.id);
   return fallback;
@@ -150,6 +158,7 @@ uint32_t displaySignature() {
     sig = (sig ^ n.id) * 16777619u;
     sig = (sig ^ n.type[0]) * 16777619u;
     sig = (sig ^ (uint32_t)t) * 16777619u;
+    for (const char* c = n.name; *c; c++) sig = (sig ^ (uint8_t)*c) * 16777619u;
     if (t == FRESH) {
       sig = (sig ^ n.status) * 16777619u;
       sig = (sig ^ (uint32_t)(n.voltage * 100)) * 16777619u;
@@ -275,8 +284,9 @@ void handlePacket() {
     uint8_t id = 0;
     float voltage = 0;
     uint8_t status = 0;
+    char name[20] = {};
 
-    if (parsePacket(received.c_str(), type, &id, &voltage, &status)) {
+    if (parsePacket(received.c_str(), type, &id, &voltage, &status, name, sizeof(name))) {
       int idx = findOrCreateNode(id, type);
       if (idx >= 0) {
         nodes[idx].voltage  = voltage;
@@ -284,6 +294,7 @@ void handlePacket() {
         nodes[idx].rssi     = rssi;
         nodes[idx].lastSeen = millis();
         nodes[idx].active   = true;
+        if (name[0]) strncpy(nodes[idx].name, name, sizeof(nodes[idx].name) - 1);
       }
     }
   } else {
