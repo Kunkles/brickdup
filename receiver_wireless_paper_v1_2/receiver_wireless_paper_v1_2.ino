@@ -70,6 +70,12 @@ void IRAM_ATTR onPacket() { packetFlag = true; }
 uint32_t lastSig    = 0xFFFFFFFF;
 uint32_t lastCheck  = 0;
 
+// LOST rows flash by inverting every ~500ms (uses the panel's fast refresh mode).
+#define FLASH_MS  500
+bool     flashState = false;   // current flash phase
+bool     flashing   = false;   // are we in fast-refresh flashing mode?
+uint32_t lastFlash  = 0;
+
 // Display — Wireless Paper V1.2
 // Library powers GPIO45 automatically; landscape() sets 250×122 orientation
 EInkDisplay_WirelessPaperV1_2 display;
@@ -163,9 +169,10 @@ void updateDisplay() {
 
     int y = 34 + row * 20;
 
-    // Alert rows (CRIT or LOST) get an inverted bar so they read across a room.
-    bool alert = (t == LOST) || (t == FRESH && n.status == 2);
-    if (alert) {
+    // Alert rows invert to read across a room. CRIT is a steady inverted bar;
+    // LOST flashes (invert only on alternate phases).
+    bool invert = (t == LOST) ? flashState : (t == FRESH && n.status == 2);
+    if (invert) {
       display.fillRect(0, y - 14, 250, 18, BLACK);
       display.setTextColor(WHITE);
     } else {
@@ -190,17 +197,21 @@ void updateDisplay() {
       display.print("stale");
     }
 
-    // Big voltage readout, right-aligned. LOST replaces it with the word.
+    // Right-aligned readout. LOST uses a smaller bold font so it never clips.
     char readout[12];
+    const GFXfont* vfont;
     if (t == LOST) {
       snprintf(readout, sizeof(readout), "LOST");
+      vfont = &FreeSansBold9pt7b;
     } else {
       snprintf(readout, sizeof(readout), "%.2fV", n.voltage);
+      vfont = &FreeSansBold12pt7b;
     }
-    display.setFont(&FreeSansBold12pt7b);
+    display.setFont(vfont);
     int16_t bx, by; uint16_t bw, bh;
     display.getTextBounds(readout, 0, 0, &bx, &by, &bw, &bh);
-    display.setCursor(RIGHT - bw, y);
+    // Account for the glyph's left-bearing (bx) so the right edge lands at RIGHT
+    display.setCursor(RIGHT - bw - bx, y);
     display.print(readout);
 
     display.setTextColor(BLACK);   // reset for next row
@@ -288,9 +299,31 @@ void loop() {
     maybeRefresh();       // show new data promptly
   }
 
-  // 2. Periodically re-check freshness so STALE/LOST surface without traffic
-  if (millis() - lastCheck > CHECK_MS) {
-    lastCheck = millis();
-    maybeRefresh();
+  // 2. Is any node currently LOST? Those rows flash.
+  bool anyLost = false;
+  for (int i = 0; i < nodeCount; i++) {
+    if (tierOf(nodes[i]) == LOST) { anyLost = true; break; }
+  }
+
+  if (anyLost) {
+    // Flash the LOST row(s) by inverting every FLASH_MS, using fast refresh.
+    if (!flashing) { flashing = true; display.fastmodeOn(); }
+    if (millis() - lastFlash >= FLASH_MS) {
+      lastFlash  = millis();
+      flashState = !flashState;
+      updateDisplay();
+    }
+  } else {
+    // Nothing lost — leave fast mode and return to change-only full refreshes.
+    if (flashing) {
+      flashing   = false;
+      flashState = false;
+      display.fastmodeOff();
+      lastSig = 0xFFFFFFFF;     // force one clean redraw
+    }
+    if (millis() - lastCheck > CHECK_MS) {
+      lastCheck = millis();
+      maybeRefresh();
+    }
   }
 }
