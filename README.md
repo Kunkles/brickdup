@@ -29,9 +29,14 @@ E-ink (receiver):     CS=5, DC=4, RST=3, BUSY=2 | SCK=6, MOSI=1
 
 | File | Flash to |
 |---|---|
+| `bench_ping_test/` | Both V3s, to verify the radio link (set `ROLE_PINGER` per board) |
 | `sensor_onboard_heltec_v3/` | Each onboard (4S) sensor node |
 | `sensor_block_heltec_v3/` | Each block/floor (6S) sensor node |
 | `receiver_wireless_paper_v1_2/` | The handheld receiver (Heltec Wireless Paper V1.2) |
+
+> **Test modes:** `sensor_onboard_heltec_v3` has `USB_TEST_MODE` (default `1`) that
+> transmits the board's onboard supply voltage so the TX → RX → e-ink chain can be
+> validated over USB-C with no divider wired. Set to `0` for real 4S monitoring.
 
 Before flashing each sensor, set `NODE_ID` at the top of the file (1–99, unique per unit). `NODE_TYPE` is fixed per sketch — don't change it.
 
@@ -89,7 +94,7 @@ Settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600
 
 ## Roadmap
 
-- [ ] Bench ping test (verify radio link before analog wiring)
+- [x] Bench ping test (verify radio link before analog wiring)
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)
 - [ ] Calibration mode (NVS-stored offset, set via button on boot)
 - [ ] Receiver paging (button to scroll past 5 nodes)
