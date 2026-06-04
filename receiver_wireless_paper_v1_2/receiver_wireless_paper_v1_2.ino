@@ -209,7 +209,6 @@ void updateDisplay() {
   display.drawLine(0, 18, 249, 18, BLACK);   // header underline
 
   int row = 0;
-  int row = 0;
 
   for (int i = 0; i < nodeCount && row < DISPLAY_ROWS; i++) {
     NodeState& n = nodes[i];

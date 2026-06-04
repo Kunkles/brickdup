@@ -116,7 +116,7 @@ String makePermId() {
 void drawOLED(float voltage, int status) {
   const char* tag = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
   char volt[12];
-  snprintf(volt, sizeof(volt), "%.2fV", voltage);
+  snprintf(volt, sizeof(volt), "%.1fV", voltage);   // e.g. "14.7V"
 
   oled.clear();
 
