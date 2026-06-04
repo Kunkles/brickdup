@@ -31,7 +31,7 @@ E-ink (receiver):     CS=5, DC=4, RST=3, BUSY=2 | SCK=6, MOSI=1
 |---|---|
 | `sensor_onboard_heltec_v3/` | Each onboard (4S) sensor node |
 | `sensor_block_heltec_v3/` | Each block/floor (6S) sensor node |
-| `receiver_heltec_v3/` | The handheld receiver |
+| `receiver_wireless_paper_v1_2/` | The handheld receiver (Heltec Wireless Paper V1.2) |
 
 Before flashing each sensor, set `NODE_ID` at the top of the file (1–99, unique per unit). `NODE_TYPE` is fixed per sketch — don't change it.
 
