@@ -4,9 +4,10 @@
 // Voltage divider: R1=100kΩ, R2=22kΩ on GPIO7
 
 #include <RadioLib.h>
+#include "HT_SSD1306Wire.h"   // bundled with the Heltec ESP32 board package
 
 // ── Identity ─────────────────────────────────────────────────────────────────
-#define NODE_ID    1       // CHANGE before flashing each unit
+#define NODE_ID    2       // CHANGE before flashing each unit
 #define NODE_TYPE  "OB"
 
 // ── TEMPORARY: USB-C bench-test mode ──────────────────────────────────────────
@@ -38,6 +39,19 @@
 #define VBAT_ADC    1       // onboard battery ADC pin
 #define VBAT_CAL    0.0041f // nominal V3 divider factor (calibrate later)
 
+// ── OLED (Heltec V3 onboard 128×64, I2C) ──────────────────────────────────────
+// These macros are defined by the Heltec V3 board variant; fall back if not.
+#ifndef SDA_OLED
+  #define SDA_OLED 17
+#endif
+#ifndef SCL_OLED
+  #define SCL_OLED 18
+#endif
+#ifndef RST_OLED
+  #define RST_OLED 21
+#endif
+#define VEXT_PIN 36          // powers the OLED rail; LOW = on
+
 // ── LoRa pins (Heltec V3 HSPI) ───────────────────────────────────────────────
 #define LORA_CS    8
 #define LORA_DIO1  14
@@ -58,12 +72,44 @@
 
 SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY);
 
+SSD1306Wire oled(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RST_OLED);
+
+void drawOLED(float voltage, int status) {
+  const char* tag = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
+  char name[12], volt[12];
+  snprintf(name, sizeof(name), "%s-%d", NODE_TYPE, NODE_ID);
+  snprintf(volt, sizeof(volt), "%.2fV", voltage);
+
+  oled.clear();
+  oled.setTextAlignment(TEXT_ALIGN_LEFT);
+  oled.setFont(ArialMT_Plain_16);
+  oled.drawString(0, 0, name);
+  oled.setFont(ArialMT_Plain_24);
+  oled.drawString(0, 20, volt);
+  oled.setFont(ArialMT_Plain_10);
+  oled.drawString(0, 52, tag);
+#if USB_TEST_MODE
+  oled.drawString(60, 52, "USB TEST");
+#endif
+  oled.display();
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
 
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
+
+  // Power and start the onboard OLED
+  pinMode(VEXT_PIN, OUTPUT);
+  digitalWrite(VEXT_PIN, LOW);   // enable OLED power rail
+  delay(50);
+  oled.init();
+  oled.clear();
+  oled.setFont(ArialMT_Plain_10);
+  oled.drawString(0, 0, "Brickdup booting...");
+  oled.display();
 
 #if USB_TEST_MODE
   Serial.printf("[BOOT] Brickdup OB node %d  (USB-C TEST MODE)\n", NODE_ID);
@@ -111,6 +157,8 @@ int voltageStatus(float v) {
 void loop() {
   float voltage = readVoltage();
   int status = voltageStatus(voltage);
+
+  drawOLED(voltage, status);
 
   char packet[64];
   snprintf(packet, sizeof(packet), "T:%s,N:%d,V:%.2f,S:%d",
