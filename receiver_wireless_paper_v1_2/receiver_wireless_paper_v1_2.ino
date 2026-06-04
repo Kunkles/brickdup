@@ -35,11 +35,12 @@
 #define PREAMBLE   8
 
 // ── Node tracking ─────────────────────────────────────────────────────────────
-// Nodes transmit every ~10s. Tiers below are in missed check-ins:
+// Nodes transmit every ~10s. Tiers are timed to ride out a single dropped
+// packet (a ~20s gap) without false alarms, but flag a real loss quickly:
 #define MAX_NODES    12
-#define STALE_MS     30000UL   // missed ~3 → STALE (last reading shown, flagged)
-#define LOST_MS      60000UL   // missed ~6 → LOST  (signal gone)
-#define CHECK_MS     2000UL    // how often to re-evaluate freshness for redraw
+#define STALE_MS     15000UL   // ~1-2 missed → STALE (last reading shown, flagged)
+#define LOST_MS      28000UL   // ~3 missed   → LOST  (signal gone)
+#define CHECK_MS     1000UL    // re-evaluate freshness every 1s for a prompt redraw
 #define DISPLAY_ROWS 5
 
 // Freshness tiers
