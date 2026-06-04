@@ -25,7 +25,8 @@
 // WiFi draws ~80mA, so it can be toggled off to save power — no extra hardware:
 //   • Tap the onboard PRG button (GPIO0) any time to toggle WiFi on/off.
 //   • Or hit "Turn off WiFi" on the config page when you're done naming.
-// WIFI_ON_AT_BOOT sets the power-up state (1 = on, 0 = off until you press PRG).
+// The on/off choice is remembered across reboots — a node switched off stays
+// off after a power cycle. WIFI_ON_AT_BOOT is only the first-ever-boot default.
 #define WIFI_ON_AT_BOOT  1
 #define PRG_BUTTON       0          // Heltec V3 onboard USER/PRG button (GPIO0)
 
@@ -218,6 +219,12 @@ void wifiStop() {
   Serial.println("[CFG] WiFi OFF (press PRG to re-enable)");
 }
 
+// Toggle WiFi and remember the choice across reboots.
+void setWifi(bool on) {
+  if (on) wifiStart(); else wifiStop();
+  prefs.putBool("wifi", on);
+}
+
 void handleWifiOff() {
   server.send(200, "text/html",
     "<meta name=viewport content='width=device-width,initial-scale=1'>"
@@ -232,7 +239,7 @@ void pollButton() {
   bool b = digitalRead(PRG_BUTTON);
   if (b == LOW && lastBtn == HIGH && (millis() - lastBtnMs) > 300) {
     lastBtnMs = millis();
-    if (portalActive) wifiStop(); else wifiStart();
+    setWifi(!portalActive);
   }
   lastBtn = b;
 }
@@ -266,12 +273,13 @@ void setup() {
   server.on("/", handleRoot);
   server.on("/save", handleSave);
   server.on("/wifioff", handleWifiOff);
-#if WIFI_ON_AT_BOOT
-  wifiStart();
-#else
-  WiFi.mode(WIFI_OFF);
-  Serial.println("[CFG] WiFi off at boot — press PRG to enable");
-#endif
+  // Restore the saved WiFi state (off stays off across reboots)
+  if (prefs.getBool("wifi", WIFI_ON_AT_BOOT)) {
+    wifiStart();
+  } else {
+    WiFi.mode(WIFI_OFF);
+    Serial.println("[CFG] WiFi off (saved) — press PRG to enable");
+  }
 
 #if USB_TEST_MODE
   Serial.printf("[BOOT] Brickdup %s '%s'  (USB-C TEST MODE)\n", g_permId.c_str(), g_name.c_str());
@@ -320,7 +328,7 @@ int voltageStatus(float v) {
 
 void loop() {
   pollButton();                               // PRG toggles WiFi on/off
-  if (pendingWifiOff) { pendingWifiOff = false; delay(150); wifiStop(); }
+  if (pendingWifiOff) { pendingWifiOff = false; delay(150); setWifi(false); }
   if (portalActive) server.handleClient();    // keep the config portal responsive
 
   uint32_t now = millis();

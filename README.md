@@ -85,8 +85,9 @@ packet, so the handheld shows it automatically.
 - Tap the node's onboard **PRG button** any time to toggle WiFi on/off, or
 - Hit **Turn off WiFi** on the config page when you're done naming.
 
-Press PRG again to bring it back. Set `WIFI_ON_AT_BOOT 0` to have nodes power up
-with WiFi off until you press PRG.
+Press PRG again to bring it back. The on/off choice is **remembered across
+reboots** — a node switched off stays off after a power cycle. `WIFI_ON_AT_BOOT`
+is only the first-ever-boot default.
 
 Thresholds — Onboard: WARN=13.5V, CRIT=12.8V | Block: WARN=21.0V, CRIT=20.0V
 
