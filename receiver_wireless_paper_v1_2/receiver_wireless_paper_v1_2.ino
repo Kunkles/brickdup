@@ -45,6 +45,22 @@
 // Freshness tiers
 enum Tier { FRESH = 0, STALE = 1, LOST = 2 };
 
+// ── Friendly node names ───────────────────────────────────────────────────────
+// Map a node's type + id to a readable label shown on screen. Edit freely.
+// Any node not listed here falls back to its raw tag (e.g. "OB-3").
+// Keep names short (~10 chars) so they don't collide with the voltage.
+struct NodeName {
+  const char* type;
+  uint8_t     id;
+  const char* name;
+};
+const NodeName NODE_NAMES[] = {
+  { "OB", 1, "Cam A" },
+  { "OB", 2, "Cam B" },
+  // { "BL", 1, "Floor 1" },
+};
+const int NODE_NAMES_COUNT = sizeof(NODE_NAMES) / sizeof(NODE_NAMES[0]);
+
 struct NodeState {
   char     type[4];   // "OB" or "BL"
   uint8_t  id;
@@ -105,6 +121,17 @@ bool parsePacket(const char* buf, char* type, uint8_t* id, float* voltage, uint8
   return (*id > 0 && *id < 100);
 }
 
+const char* friendlyName(const NodeState& n) {
+  for (int i = 0; i < NODE_NAMES_COUNT; i++) {
+    if (NODE_NAMES[i].id == n.id && strcmp(NODE_NAMES[i].type, n.type) == 0) {
+      return NODE_NAMES[i].name;
+    }
+  }
+  static char fallback[12];
+  snprintf(fallback, sizeof(fallback), "%s-%d", n.type, n.id);
+  return fallback;
+}
+
 Tier tierOf(const NodeState& n) {
   uint32_t age = millis() - n.lastSeen;
   if (age > LOST_MS)  return LOST;
@@ -152,25 +179,34 @@ void updateDisplay() {
 
     int y = 34 + row * 20;
 
-    // Status marker box (left edge) — only meaningful when fresh
-    if (t == FRESH) {
-      if (n.status == 2) {
-        display.fillRect(0, y - 12, 6, 14, BLACK);   // CRIT: solid black
-      } else if (n.status == 1) {
-        display.drawRect(0, y - 12, 6, 14, BLACK);   // WARN: outline
+    // Alert rows (CRIT or LOST) get an inverted bar so they read across a room.
+    bool alert = (t == LOST) || (t == FRESH && n.status == 2);
+    if (alert) {
+      display.fillRect(0, y - 14, 250, 18, BLACK);
+      display.setTextColor(WHITE);
+    } else {
+      display.setTextColor(BLACK);
+      // WARN gets a small outline marker; OK stays blank
+      if (t == FRESH && n.status == 1) {
+        display.drawRect(0, y - 12, 6, 14, BLACK);
       }
-      // OK: blank
     }
 
-    // Node label on the left, e.g. "OB-1"
-    char label[12];
-    snprintf(label, sizeof(label), "%s-%d", n.type, n.id);
+    // Friendly node name on the left
+    const char* nm = friendlyName(n);
     display.setFont(&FreeSans9pt7b);
     display.setCursor(10, y);
-    display.print(label);
+    display.print(nm);
 
-    // Big voltage readout, right-aligned. STALE keeps the last value;
-    // LOST replaces it with the word.
+    // Small "stale" flag just after the name when the reading is going cold
+    if (t == STALE) {
+      int16_t bx, by; uint16_t bw, bh;
+      display.getTextBounds(nm, 0, 0, &bx, &by, &bw, &bh);
+      display.setCursor(10 + bw + 8, y);
+      display.print("stale");
+    }
+
+    // Big voltage readout, right-aligned. LOST replaces it with the word.
     char readout[12];
     if (t == LOST) {
       snprintf(readout, sizeof(readout), "LOST");
@@ -183,13 +219,7 @@ void updateDisplay() {
     display.setCursor(RIGHT - bw, y);
     display.print(readout);
 
-    // Small "stale" flag in the gap when the reading is going cold
-    if (t == STALE) {
-      display.setFont(&FreeSans9pt7b);
-      display.setCursor(60, y);
-      display.print("stale");
-    }
-
+    display.setTextColor(BLACK);   // reset for next row
     row++;
   }
 
