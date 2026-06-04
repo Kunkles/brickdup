@@ -173,8 +173,8 @@ uint32_t displaySignature() {
     for (const char* c = n.permId; *c; c++) sig = (sig ^ (uint8_t)*c) * 16777619u;
     for (const char* c = n.name;   *c; c++) sig = (sig ^ (uint8_t)*c) * 16777619u;
     sig = (sig ^ (uint32_t)t) * 16777619u;
+    sig = (sig ^ n.status) * 16777619u;   // also distinguishes LOST vs DEAD
     if (t == FRESH) {
-      sig = (sig ^ n.status) * 16777619u;
       sig = (sig ^ (uint32_t)(n.voltage * 100)) * 16777619u;
     }
   }
@@ -217,9 +217,14 @@ void updateDisplay() {
 
     int y = 34 + row * 20;
 
-    // Alert rows invert to read across a room. CRIT is a steady inverted bar;
-    // LOST flashes (invert only on alternate phases).
-    bool invert = (t == LOST) ? flashState : (t == FRESH && n.status == 2);
+    // A node gone silent right after a CRIT reading = its battery died (it was
+    // powered by that battery). Otherwise it's a genuine connection loss.
+    bool isDead = (t == LOST && n.status == 2);
+
+    // Alert rows invert to read across a room. CRIT and DEAD are steady inverted
+    // bars; a true LOST flashes (invert only on alternate phases) to stand out.
+    bool invert = (t == LOST) ? (isDead ? true : flashState)
+                              : (t == FRESH && n.status == 2);
     if (invert) {
       display.fillRect(0, y - 14, 250, 18, BLACK);
       display.setTextColor(WHITE);
@@ -245,11 +250,11 @@ void updateDisplay() {
       display.print("stale");
     }
 
-    // Right-aligned readout. LOST uses a smaller bold font so it never clips.
+    // Right-aligned readout. LOST/DEAD use a smaller bold font so they don't clip.
     char readout[12];
     const GFXfont* vfont;
     if (t == LOST) {
-      snprintf(readout, sizeof(readout), "LOST");
+      snprintf(readout, sizeof(readout), isDead ? "DEAD" : "LOST");
       vfont = &FreeSansBold9pt7b;
     } else {
       snprintf(readout, sizeof(readout), "%.2fV", n.voltage);
@@ -359,10 +364,11 @@ void loop() {
     updateBattery();
   }
 
-  // 2. Is any node currently LOST? Those rows flash.
+  // 2. Any node in a *true* LOST state (gone silent while still healthy)?
+  // Those rows flash. A DEAD node (silent after CRIT) renders steady instead.
   bool anyLost = false;
   for (int i = 0; i < nodeCount; i++) {
-    if (tierOf(nodes[i]) == LOST) { anyLost = true; break; }
+    if (tierOf(nodes[i]) == LOST && nodes[i].status != 2) { anyLost = true; break; }
   }
 
   if (anyLost) {
