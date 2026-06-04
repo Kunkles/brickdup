@@ -1,10 +1,9 @@
 // Brickdup — Handheld receiver
 // Hardware: Heltec Wireless Paper (ESP32-S3 + SX1262 + built-in 2.13" e-ink)
 //
-// Board version note: this targets V1.1 (display: LCMEN2R13EFC1).
-// If you have V1.0 swap EInkDisplay_WirelessPaperV1_1 → EInkDisplay_WirelessPaperV1
-// If you have V1.1.1 swap → EInkDisplay_WirelessPaperV1_1_1
-// Check the version number silkscreened on the PCB.
+// Board version: V1.2 (confirmed from PCB silkscreen).
+// If you ever swap boards: V1.0 → EInkDisplay_WirelessPaperV1,
+// V1.1 → EInkDisplay_WirelessPaperV1_1, V1.1.1 → EInkDisplay_WirelessPaperV1_1_1
 //
 // Libraries needed (Library Manager):
 //   - RadioLib by Jan Gromeš
@@ -54,9 +53,9 @@ int nodeCount = 0;
 
 SX1262 radio = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY);
 
-// Display — Wireless Paper V1.1
+// Display — Wireless Paper V1.2
 // Library powers GPIO45 automatically; landscape() sets 250×122 orientation
-EInkDisplay_WirelessPaperV1_1 display;
+EInkDisplay_WirelessPaperV1_2 display;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
