@@ -19,6 +19,8 @@ Receiver also has: **Waveshare 2.13" e-Paper HAT V4** (250×122, GDEY0213B74)
 
 Voltage divider feeds GPIO7. A 100nF ceramic cap between GPIO7 and GND filters ADC noise. Power the MCU through a buck converter (Pololu D24V10F5 — 36V max input, 5V out) tapped off VBAT. **Do not feed VBAT directly to the Heltec USB or VIN pin.**
 
+📐 **Full wiring (both variants, with diagrams): [WIRING.md](WIRING.md)**
+
 ### Pin map
 
 ```
