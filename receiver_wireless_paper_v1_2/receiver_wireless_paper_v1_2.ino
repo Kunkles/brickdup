@@ -46,7 +46,7 @@
 #define VBAT_CTRL     19
 #define VBAT_ADC      20
 #define VBAT_MULT     2.0f
-#define BATT_SAMPLE_MS 30000UL   // battery changes slowly; sample every 30s
+#define BATT_SAMPLE_MS 15000UL   // sample every 15s (so "+" clears promptly)
 
 // ── Radio config (must match all nodes) ──────────────────────────────────────
 #define FREQ_MHZ   915.0
@@ -287,11 +287,12 @@ void updateBattery() {
 
   battVoltage = readReceiverBattery();
   if (battEMA == 0) battEMA = battVoltage;        // seed
-  // Charging if the cell is rising vs its slow average (even a slow CC charge),
-  // or pinned high (held at ~4.2V on the charger). No hardware charge pin exists
-  // on this board, so this is the best signal available.
-  battCharging = (battVoltage > battEMA + 0.015f) || (battVoltage > 4.15f);
-  battEMA = battEMA * 0.85f + battVoltage * 0.15f;
+  // Pure trend: "+" only while the cell is actually rising. No absolute-voltage
+  // clause, because a full battery reads ~4.2V whether on the charger or just
+  // unplugged — so the only honest signal is whether it's climbing. This board
+  // has no hardware charge/USB-present pin.
+  battCharging = (battVoltage > battEMA + 0.012f);
+  battEMA = battEMA * 0.8f + battVoltage * 0.2f;
 }
 
 Tier tierOf(const NodeState& n) {
