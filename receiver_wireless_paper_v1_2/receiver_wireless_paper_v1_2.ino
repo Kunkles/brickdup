@@ -127,6 +127,9 @@ int etaMinutes(const NodeState& n) {
   return -1;
 }
 
+// Battery rising (charge increasing) ⇒ the node's battery is on a charger.
+bool nodeCharging(const NodeState& n) { return n.socRate > 0.05f; }
+
 // Signal strength → 0..3 bars (SX1262 @ SF9 is usable down to roughly -120 dBm).
 int signalLevel(int16_t rssi) {
   if (rssi >= -95)  return 3;
@@ -316,6 +319,7 @@ uint32_t displaySignature() {
       int eta = etaMinutes(n);                               // 10-min buckets
       sig = (sig ^ (uint32_t)((eta < 0 ? 9999 : eta) / 10 + 1)) * 16777619u;
       sig = (sig ^ (uint32_t)signalLevel(n.rssi)) * 16777619u;
+      sig = (sig ^ (uint32_t)nodeCharging(n)) * 16777619u;
     }
   }
   // Receiver battery (0.1V resolution) + charging flag, so the header refreshes
@@ -442,7 +446,8 @@ void updateDisplay() {
       snprintf(readout, sizeof(readout), isDead ? "DEAD" : "LOST");
       vfont = &FreeSansBold9pt7b;
     } else {
-      snprintf(readout, sizeof(readout), "%.1fV", n.voltage);   // e.g. "14.7V"
+      const char* plus = (t == FRESH && nodeCharging(n)) ? "+" : "";
+      snprintf(readout, sizeof(readout), "%s%.1fV", plus, n.voltage);  // "+14.7V" charging
       vfont = &FreeSansBold12pt7b;
     }
     display.setFont(vfont);
@@ -527,7 +532,7 @@ let h='';if(!j.nodes.length)h='<tr><td colspan=6 class=empty>Waiting for nodes�
 for(let d of j.nodes){let[t,c]=stat(d);
 let tm=d.eta<0?'':(d.eta>=100?'~'+(d.eta/60).toFixed(1)+'h':'~'+d.eta+'m');
 let pct=d.tier==0?d.soc+'%':'';
-let v=d.tier==2?(d.dead?'DEAD':'LOST'):d.v.toFixed(1)+'V';
+let v=d.tier==2?(d.dead?'DEAD':'LOST'):(d.nchg?'+':'')+d.v.toFixed(1)+'V';
 h+=`<tr><td>${d.name}</td><td class="v ${c}">${v}</td><td>${pct}</td><td>${tm}</td><td>${bars(d.bars)}</td><td class="${c}">${t}</td></tr>`}
 document.getElementById('rows').innerHTML=h;}catch(e){document.getElementById('sub').textContent='disconnected'}}
 tick();setInterval(tick,2000);
@@ -568,6 +573,7 @@ void handleData() {
     j += ",\"rssi\":"  + String(n.rssi);
     j += ",\"tier\":"  + String((int)t);
     j += ",\"dead\":"  + String(dead ? "true" : "false");
+    j += ",\"nchg\":"  + String(nodeCharging(n) ? "true" : "false");
     j += "}";
   }
   j += "]}";

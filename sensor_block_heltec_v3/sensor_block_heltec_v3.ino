@@ -93,6 +93,8 @@ uint32_t    lastBtnMs = 0;
 uint8_t     tapCount = 0;           // triple-tap power-off
 uint32_t    lastTapMs = 0;
 uint32_t    lastTx = 0;
+float       vEMA = 0;               // slow voltage average (charging detection)
+bool        charging = false;       // battery rising ⇒ on a charger
 
 // Build the permanent id from the chip's MAC: e.g. "BL-7F3A". Unique per board.
 String makePermId() {
@@ -105,7 +107,7 @@ String makePermId() {
 void drawOLED(float voltage, int status) {
   const char* tag = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
   char volt[12];
-  snprintf(volt, sizeof(volt), "%.1fV", voltage);   // e.g. "14.7V"
+  snprintf(volt, sizeof(volt), "%s%.1fV", charging ? "+" : "", voltage);   // "+24.7V" while charging
 
   oled.clear();
 
@@ -435,6 +437,12 @@ void loop() {
 
     float voltage = readVoltage();
     int status = voltageStatus(voltage);
+
+    // Charging detection: voltage rising vs its slow average ⇒ on a charger
+    if (vEMA == 0) vEMA = voltage;
+    charging = (voltage > vEMA + 0.12f);
+    vEMA = vEMA * 0.85f + voltage * 0.15f;
+
     drawOLED(voltage, status);
 
     char packet[96];
