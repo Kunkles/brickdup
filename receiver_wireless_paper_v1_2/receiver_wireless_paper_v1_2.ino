@@ -66,7 +66,54 @@ struct NodeState {
   int16_t  rssi;
   uint32_t lastSeen;
   bool     active;
+  // Fuel-gauge estimate (computed on the receiver)
+  float    soc;         // state of charge %, 100=full … 0=CRIT (practical dead)
+  float    socRate;     // %/min, smoothed; negative = depleting (0 = unknown)
+  float    socAtCalc;   // soc at the last rate calculation
+  uint32_t lastRateMs;  // when the rate was last recomputed
 };
+
+// ── Battery fuel gauge ────────────────────────────────────────────────────────
+// Per-cell Li-ion discharge curve (volts → raw % of cell charge). Roughly S-
+// shaped: most of the charge lives in the upper voltages, then a knee.
+struct VP { float v; float p; };
+const VP CELL_CURVE[] = {
+  {3.00, 0}, {3.30, 5}, {3.45, 10}, {3.58, 20}, {3.68, 30}, {3.74, 40},
+  {3.79, 50}, {3.86, 60}, {3.92, 70}, {4.00, 80}, {4.10, 90}, {4.20, 100},
+};
+const int CELL_CURVE_N = sizeof(CELL_CURVE) / sizeof(CELL_CURVE[0]);
+
+int   cellsFor(const char* t) { return strcmp(t, "BL") == 0 ? 6 : 4; }
+float fullFor (const char* t) { return strcmp(t, "BL") == 0 ? 25.2f : 16.8f; }
+float critFor (const char* t) { return strcmp(t, "BL") == 0 ? 20.0f : 12.8f; }
+
+float rawCellSoc(float vcell) {
+  if (vcell <= CELL_CURVE[0].v)             return CELL_CURVE[0].p;
+  if (vcell >= CELL_CURVE[CELL_CURVE_N-1].v) return CELL_CURVE[CELL_CURVE_N-1].p;
+  for (int i = 1; i < CELL_CURVE_N; i++) {
+    if (vcell < CELL_CURVE[i].v) {
+      float f = (vcell - CELL_CURVE[i-1].v) / (CELL_CURVE[i].v - CELL_CURVE[i-1].v);
+      return CELL_CURVE[i-1].p + f * (CELL_CURVE[i].p - CELL_CURVE[i-1].p);
+    }
+  }
+  return 100;
+}
+
+// Pack voltage → usable %, rescaled so 100% = full and 0% = CRIT (the swap point).
+float socFor(const char* type, float packV) {
+  int cells   = cellsFor(type);
+  float raw   = rawCellSoc(packV / cells);
+  float rawC  = rawCellSoc(critFor(type) / cells);
+  float rawF  = rawCellSoc(fullFor(type) / cells);
+  float pct   = (raw - rawC) / (rawF - rawC) * 100.0f;
+  return pct < 0 ? 0 : pct > 100 ? 100 : pct;
+}
+
+// Rough minutes until 0% (CRIT / swap point), or -1 if not clearly depleting.
+int etaMinutes(const NodeState& n) {
+  if (n.socRate < -0.02f) return (int)(n.soc / (-n.socRate));
+  return -1;
+}
 
 NodeState nodes[MAX_NODES];
 int nodeCount = 0;
@@ -184,6 +231,9 @@ uint32_t displaySignature() {
     sig = (sig ^ n.status) * 16777619u;   // also distinguishes LOST vs DEAD
     if (t == FRESH) {
       sig = (sig ^ (uint32_t)(n.voltage * 10)) * 16777619u;  // 0.1V = displayed res
+      sig = (sig ^ (uint32_t)(n.soc / 5)) * 16777619u;       // 5% buckets
+      int eta = etaMinutes(n);                               // 10-min buckets
+      sig = (sig ^ (uint32_t)((eta < 0 ? 9999 : eta) / 10 + 1)) * 16777619u;
     }
   }
   // Receiver battery (0.1V resolution) + charging flag, so the header refreshes
@@ -265,12 +315,22 @@ void updateDisplay() {
     display.setCursor(10, y);
     display.print(nm);
 
-    // Small "stale" flag just after the name when the reading is going cold
+    // Middle slot: % + rough time-to-empty when fresh, or a "stale" flag
+    int16_t nbx, nby; uint16_t nbw, nbh;
+    display.getTextBounds(nm, 0, 0, &nbx, &nby, &nbw, &nbh);
+    int infoX = 10 + nbw + 10;
     if (t == STALE) {
-      int16_t bx, by; uint16_t bw, bh;
-      display.getTextBounds(nm, 0, 0, &bx, &by, &bw, &bh);
-      display.setCursor(10 + bw + 8, y);
+      display.setCursor(infoX, y);
       display.print("stale");
+    } else if (t == FRESH) {
+      char info[20];
+      int eta = etaMinutes(n);
+      if      (eta < 0)     snprintf(info, sizeof(info), "%.0f%%", n.soc);
+      else if (eta >= 600)  snprintf(info, sizeof(info), "%.0f%% >9h", n.soc);
+      else if (eta >= 100)  snprintf(info, sizeof(info), "%.0f%% ~%.1fh", n.soc, eta / 60.0);
+      else                  snprintf(info, sizeof(info), "%.0f%% ~%dm", n.soc, eta);
+      display.setCursor(infoX, y);
+      display.print(info);
     }
 
     // Right-aligned readout. LOST/DEAD use a smaller bold font so they don't clip.
@@ -373,12 +433,28 @@ void handlePacket() {
                     &voltage, &status, name, sizeof(name))) {
       int idx = findOrCreateNode(permId, type);
       if (idx >= 0) {
-        nodes[idx].voltage  = voltage;
-        nodes[idx].status   = status;
-        nodes[idx].rssi     = rssi;
-        nodes[idx].lastSeen = millis();
-        nodes[idx].active   = true;
-        if (name[0]) strncpy(nodes[idx].name, name, sizeof(nodes[idx].name) - 1);
+        NodeState& nd = nodes[idx];
+        nd.voltage  = voltage;
+        nd.status   = status;
+        nd.rssi     = rssi;
+        nd.lastSeen = millis();
+        nd.active   = true;
+        if (name[0]) strncpy(nd.name, name, sizeof(nd.name) - 1);
+
+        // Fuel gauge: state of charge, and a smoothed depletion rate (%/min).
+        nd.soc = socFor(nd.type, voltage);
+        uint32_t now = millis();
+        if (nd.lastRateMs == 0) {               // first sample: seed
+          nd.socAtCalc = nd.soc;
+          nd.lastRateMs = now;
+        } else if (now - nd.lastRateMs >= 60000UL) {   // recompute ~once a minute
+          float dtMin = (now - nd.lastRateMs) / 60000.0f;
+          float rate  = (nd.soc - nd.socAtCalc) / dtMin;        // %/min
+          nd.socRate  = (nd.socRate == 0) ? rate
+                                          : nd.socRate * 0.6f + rate * 0.4f;
+          nd.socAtCalc  = nd.soc;
+          nd.lastRateMs = now;
+        }
       }
     }
   } else {
