@@ -9,6 +9,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Preferences.h>
+#include <Update.h>           // built-in OTA (web firmware update)
 #include "brickdup_logo.h"    // embedded logo served from /logo.jpg
 
 // ── Identity ─────────────────────────────────────────────────────────────────
@@ -181,7 +182,8 @@ String htmlPage() {
          "<p class=n>The WiFi name above is fixed in hardware and never changes. "
          "To calibrate, enter the true voltage from a multimeter and the node "
          "trims its reading to match. Press the node's PRG button to turn WiFi "
-         "back on.</p></body></html>");
+         "back on.</p><p class=n><a href='/update' style='color:#2dd47a'>"
+         "Firmware update &rarr;</a></p></body></html>");
   return s;
 }
 
@@ -276,6 +278,59 @@ void pollButton() {
   lastBtn = b;
 }
 
+// ── OTA firmware update (web) ─────────────────────────────────────────────────
+String updatePage() {
+  String s = F("<!doctype html><html><head>"
+    "<meta name=viewport content='width=device-width,initial-scale=1'>"
+    "<title>Brickdup Update</title><style>"
+    "body{font-family:sans-serif;background:#000;color:#eee;margin:0;padding:24px}"
+    "h1{font-size:20px}a{color:#2dd47a}input{margin-top:10px}"
+    "button{margin-top:12px;padding:10px 16px;font-size:16px;border:0;border-radius:6px;"
+    "background:#2dd47a;color:#000;font-weight:bold}"
+    "progress{width:100%;height:18px;margin-top:14px}.n{color:#777;font-size:12px;margin-top:18px}"
+    "</style></head><body><h1>Firmware Update</h1>"
+    "<p class=n>This unit: <b>");
+  s += NODE_TYPE; s += F(" &middot; v"); s += FW_VERSION;
+  s += F("</b><br>Upload the matching .bin (Sketch -&gt; Export Compiled Binary).</p>"
+    "<form id=f method=POST action=/update enctype=multipart/form-data>"
+    "<input type=file name=update accept=.bin required><br>"
+    "<button type=submit>Flash</button></form>"
+    "<progress id=p value=0 max=100 hidden></progress><div id=s></div>"
+    "<p class=n><a href=/>&larr; back</a></p>"
+    "<script>var f=document.getElementById('f');"
+    "f.onsubmit=function(e){e.preventDefault();"
+    "var x=new XMLHttpRequest(),d=new FormData(f),p=document.getElementById('p'),s=document.getElementById('s');"
+    "p.hidden=false;"
+    "x.upload.onprogress=function(ev){var v=Math.round(ev.loaded/ev.total*100);p.value=v;s.textContent=v+'%';};"
+    "x.onload=function(){s.textContent=(x.responseText=='OK')?'Done - rebooting...':'Update failed';};"
+    "x.onerror=function(){s.textContent='Upload error';};"
+    "x.open('POST','/update');x.send(d);};</script></body></html>");
+  return s;
+}
+
+void handleUpdatePage() { server.send(200, "text/html", updatePage()); }
+
+void handleUpdateDone() {
+  bool ok = !Update.hasError();
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/plain", ok ? "OK" : "FAIL");
+  delay(300);
+  if (ok) ESP.restart();
+}
+
+void handleUpdateUpload() {
+  HTTPUpload& up = server.upload();
+  if (up.status == UPLOAD_FILE_START) {
+    Serial.printf("[OTA] %s\n", up.filename.c_str());
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN)) Update.printError(Serial);
+  } else if (up.status == UPLOAD_FILE_WRITE) {
+    if (Update.write(up.buf, up.currentSize) != up.currentSize) Update.printError(Serial);
+  } else if (up.status == UPLOAD_FILE_END) {
+    if (Update.end(true)) Serial.printf("[OTA] done: %u bytes\n", up.totalSize);
+    else Update.printError(Serial);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
@@ -309,6 +364,8 @@ void setup() {
   server.on("/cal", handleCal);
   server.on("/calreset", handleCalReset);
   server.on("/wifioff", handleWifiOff);
+  server.on("/update", HTTP_GET, handleUpdatePage);
+  server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
   // Restore the saved WiFi state (off stays off across reboots)
   if (prefs.getBool("wifi", WIFI_ON_AT_BOOT)) {
     wifiStart();

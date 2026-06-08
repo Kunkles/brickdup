@@ -14,6 +14,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Preferences.h>
+#include <Update.h>          // built-in OTA (web firmware update)
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
@@ -464,6 +465,7 @@ td.v{font-weight:700;font-size:18px}
 <h1>BRICKDUP</h1><div class=sub id=sub>connecting…</div>
 <table><thead><tr><th>Name</th><th>Voltage</th><th>%</th><th>Time</th><th>Sig</th><th>Status</th></tr></thead>
 <tbody id=rows></tbody></table>
+<p style="margin-top:18px"><a href="/update" style="color:#2dd47a;font-size:13px">firmware update &rarr;</a></p>
 <script>
 function bars(n){let s='';for(let i=0;i<3;i++){let h=4+i*4;s+=`<span class="${i<n?'':'off'}" style="height:${h}px"></span>`}return `<span class=bars>${s}</span>`}
 function stat(d){if(d.tier==2)return d.dead?['DEAD','lost']:['LOST','lost'];if(d.tier==1)return['STALE','stale'];return[['OK','WARN','CRIT'][d.st],['ok','warn','crit'][d.st]]}
@@ -534,6 +536,59 @@ void rxWifiStop() {
   Serial.println("[CFG] Dashboard OFF");
 }
 
+// ── OTA firmware update (web) ─────────────────────────────────────────────────
+String updatePage() {
+  String s = F("<!doctype html><html><head>"
+    "<meta name=viewport content='width=device-width,initial-scale=1'>"
+    "<title>Brickdup Update</title><style>"
+    "body{font-family:sans-serif;background:#000;color:#eee;margin:0;padding:24px}"
+    "h1{font-size:20px}a{color:#2dd47a}input{margin-top:10px}"
+    "button{margin-top:12px;padding:10px 16px;font-size:16px;border:0;border-radius:6px;"
+    "background:#2dd47a;color:#000;font-weight:bold}"
+    "progress{width:100%;height:18px;margin-top:14px}.n{color:#777;font-size:12px;margin-top:18px}"
+    "</style></head><body><h1>Firmware Update</h1>"
+    "<p class=n>This unit: <b>Receiver &middot; v");
+  s += FW_VERSION;
+  s += F("</b><br>Upload the receiver .bin (Sketch -&gt; Export Compiled Binary).</p>"
+    "<form id=f method=POST action=/update enctype=multipart/form-data>"
+    "<input type=file name=update accept=.bin required><br>"
+    "<button type=submit>Flash</button></form>"
+    "<progress id=p value=0 max=100 hidden></progress><div id=s></div>"
+    "<p class=n><a href=/>&larr; back</a></p>"
+    "<script>var f=document.getElementById('f');"
+    "f.onsubmit=function(e){e.preventDefault();"
+    "var x=new XMLHttpRequest(),d=new FormData(f),p=document.getElementById('p'),s=document.getElementById('s');"
+    "p.hidden=false;"
+    "x.upload.onprogress=function(ev){var v=Math.round(ev.loaded/ev.total*100);p.value=v;s.textContent=v+'%';};"
+    "x.onload=function(){s.textContent=(x.responseText=='OK')?'Done - rebooting...':'Update failed';};"
+    "x.onerror=function(){s.textContent='Upload error';};"
+    "x.open('POST','/update');x.send(d);};</script></body></html>");
+  return s;
+}
+
+void handleUpdatePage() { server.send(200, "text/html", updatePage()); }
+
+void handleUpdateDone() {
+  bool ok = !Update.hasError();
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/plain", ok ? "OK" : "FAIL");
+  delay(300);
+  if (ok) ESP.restart();
+}
+
+void handleUpdateUpload() {
+  HTTPUpload& up = server.upload();
+  if (up.status == UPLOAD_FILE_START) {
+    Serial.printf("[OTA] %s\n", up.filename.c_str());
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN)) Update.printError(Serial);
+  } else if (up.status == UPLOAD_FILE_WRITE) {
+    if (Update.write(up.buf, up.currentSize) != up.currentSize) Update.printError(Serial);
+  } else if (up.status == UPLOAD_FILE_END) {
+    if (Update.end(true)) Serial.printf("[OTA] done: %u bytes\n", up.totalSize);
+    else Update.printError(Serial);
+  }
+}
+
 // Short press pages the e-ink; long press toggles the web dashboard.
 void pollButton() {
   bool down = (digitalRead(BTN_PIN) == LOW);
@@ -568,6 +623,8 @@ void setup() {
     apSsid = buf; }
   server.on("/", handleDash);
   server.on("/data", handleData);
+  server.on("/update", HTTP_GET, handleUpdatePage);
+  server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
 
   // ADC for the receiver's own battery (high divider output → 12dB attenuation)
   analogReadResolution(12);

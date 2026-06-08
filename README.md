@@ -120,7 +120,16 @@ board, or it errors with "Wrong build env"):
 | `sensor_onboard_heltec_v3` | Heltec WiFi LoRa 32(V3) |
 | `sensor_block_heltec_v3` | Heltec WiFi LoRa 32(V3) |
 
-Common settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600
+Common settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600 |
+**Partition Scheme → one with OTA** (e.g. "Minimal SPIFFS (... with OTA)") so the
+web firmware update works.
+
+**OTA updates (no USB after the first flash):** every unit's web portal has a
+`/update` page. Build a `.bin` via **Sketch → Export Compiled Binary**, join the
+unit's WiFi, open its `/update` page (linked from the config page / dashboard),
+and upload the matching `.bin` — it flashes the spare partition, verifies, and
+reboots. Upload the OB `.bin` to onboard nodes, BL to block nodes, receiver to
+the receiver (the page shows which it expects).
 
 **Libraries (Library Manager):**
 - `RadioLib` by Jan Gromeš — all three sketches
@@ -147,6 +156,7 @@ Common settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600
 - [x] Calibration (enter true voltage on the web page; gain factor saved to NVS)
 - [x] RSSI signal bars per node on the receiver
 - [x] Receiver web dashboard (live node table on your phone; long-press USER)
+- [x] OTA firmware update via the web portal on all units (/update page)
 - [ ] Channel/group selection — separate networks via distinct frequency +
       sync word per channel, set on the node web page and on the receiver,
       NVS-stored. Lets multiple brickdup systems coexist (e.g. 1st/2nd unit)
