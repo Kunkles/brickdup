@@ -93,6 +93,16 @@ Press PRG again to bring it back. The on/off choice is **remembered across
 reboots** — a node switched off stays off after a power cycle. `WIFI_ON_AT_BOOT`
 is only the first-ever-boot default.
 
+## Button controls
+
+| Unit | Single tap | Long press | Triple tap |
+|---|---|---|---|
+| Node (PRG) | toggle WiFi | — | **power off** |
+| Receiver (USER) | page nodes | toggle dashboard | **power off** |
+
+"Power off" is deep sleep (~10–20µA); **press the button again to wake** (the
+unit reboots). The receiver e-ink keeps showing "OFF" while asleep.
+
 Thresholds — Onboard: WARN=13.5V, CRIT=12.8V | Block: WARN=21.0V, CRIT=20.0V
 
 ## Radio config

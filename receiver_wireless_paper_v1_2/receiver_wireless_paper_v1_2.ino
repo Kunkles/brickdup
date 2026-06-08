@@ -15,6 +15,7 @@
 #include <WebServer.h>
 #include <Preferences.h>
 #include <Update.h>          // built-in OTA (web firmware update)
+#include <esp_sleep.h>       // deep sleep (triple-tap power off)
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
@@ -159,11 +160,13 @@ float    battEMA      = 0;     // slow average, for charging-trend detection
 bool     battCharging = false; // inferred from a rising trend
 uint32_t lastBatt     = 0;
 
-// Paging + button state (short press = page, long press = toggle dashboard)
+// Paging + button state (short = page, long = dashboard, triple-tap = off)
 int      page         = 0;
 bool     btnDown      = false;
 uint32_t btnPressedAt = 0;
 bool     btnLongFired = false;
+uint8_t  tapCount     = 0;
+uint32_t lastTapMs    = 0;
 
 // Web dashboard
 Preferences prefs;
@@ -646,7 +649,26 @@ void handleUpdateUpload() {
   }
 }
 
-// Short press pages the e-ink; long press toggles the web dashboard.
+// Deep sleep ("off"). The e-ink keeps the OFF screen while asleep; a button
+// press wakes it and the receiver reboots fresh.
+void powerOff() {
+  display.landscape();
+  display.clearMemory();
+  display.setTextColor(BLACK);
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(102, 58);
+  display.print("OFF");
+  display.setFont(&FreeSans9pt7b);
+  display.setCursor(58, 80);
+  display.print("press button to wake");
+  display.update();
+  while (digitalRead(BTN_PIN) == LOW) delay(10);   // wait for release
+  delay(50);
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN_PIN, 0);   // wake on next press (low)
+  esp_deep_sleep_start();
+}
+
+// Short press pages; long press toggles the dashboard; 3 quick taps power off.
 void pollButton() {
   bool down = (digitalRead(BTN_PIN) == LOW);
   uint32_t now = millis();
@@ -657,7 +679,10 @@ void pollButton() {
     portalActive ? rxWifiStop() : rxWifiStart();
   } else if (!down && btnDown) {           // release
     btnDown = false;
-    if (!btnLongFired && now - btnPressedAt >= 40) {   // short press = page
+    if (!btnLongFired && now - btnPressedAt >= 40) {   // short press
+      tapCount = (now - lastTapMs < 600) ? tapCount + 1 : 1;
+      lastTapMs = now;
+      if (tapCount >= 3) { powerOff(); return; }
       int totalPages = (nodeCount + DISPLAY_ROWS - 1) / DISPLAY_ROWS;
       if (totalPages < 1) totalPages = 1;
       page = (page + 1) % totalPages;

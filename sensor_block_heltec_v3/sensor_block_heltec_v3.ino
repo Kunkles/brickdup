@@ -10,6 +10,7 @@
 #include <WebServer.h>
 #include <Preferences.h>
 #include <Update.h>           // built-in OTA (web firmware update)
+#include <esp_sleep.h>        // deep sleep (triple-tap power off)
 #include "brickdup_logo.h"    // embedded logo served from /logo.jpg
 
 // ── Identity ─────────────────────────────────────────────────────────────────
@@ -89,6 +90,8 @@ bool        portalActive = false;   // is the WiFi portal running?
 bool        pendingWifiOff = false; // request to drop WiFi after a web response
 bool        lastBtn = HIGH;         // PRG button edge tracking
 uint32_t    lastBtnMs = 0;
+uint8_t     tapCount = 0;           // triple-tap power-off
+uint32_t    lastTapMs = 0;
 uint32_t    lastTx = 0;
 
 // Build the permanent id from the chip's MAC: e.g. "BL-7F3A". Unique per board.
@@ -268,12 +271,34 @@ void handleWifiOff() {
   pendingWifiOff = true;   // drop the AP after this response is sent
 }
 
-// Tap the onboard PRG button to toggle WiFi on/off (debounced edge detect).
+// Deep sleep ("off"). Wakes on a button press; the node reboots fresh.
+void powerOff() {
+  oled.clear();
+  oled.setTextAlignment(TEXT_ALIGN_CENTER);
+  oled.setFont(ArialMT_Plain_24);
+  oled.drawString(64, 6, "OFF");
+  oled.setFont(ArialMT_Plain_10);
+  oled.drawString(64, 42, "press btn to wake");
+  oled.setTextAlignment(TEXT_ALIGN_LEFT);
+  oled.display();
+  delay(80);
+  digitalWrite(VEXT_PIN, HIGH);                 // cut the OLED rail
+  while (digitalRead(PRG_BUTTON) == LOW) delay(10);   // wait for release
+  delay(50);
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)PRG_BUTTON, 0);  // wake on next press (low)
+  esp_deep_sleep_start();
+}
+
+// PRG button: single tap toggles WiFi, three quick taps power the unit off.
 void pollButton() {
   bool b = digitalRead(PRG_BUTTON);
-  if (b == LOW && lastBtn == HIGH && (millis() - lastBtnMs) > 300) {
-    lastBtnMs = millis();
-    setWifi(!portalActive);
+  if (b == LOW && lastBtn == HIGH && (millis() - lastBtnMs) > 80) {
+    uint32_t now = millis();
+    lastBtnMs = now;
+    tapCount = (now - lastTapMs < 600) ? tapCount + 1 : 1;
+    lastTapMs = now;
+    if (tapCount >= 3) powerOff();
+    else setWifi(!portalActive);
   }
   lastBtn = b;
 }
