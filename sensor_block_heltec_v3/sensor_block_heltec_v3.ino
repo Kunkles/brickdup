@@ -19,6 +19,7 @@
 //   • USER name     — friendly label you assign over WiFi ("Floor 1"). Defaults
 //     to the permanent id until you set one. Shown on screens + broadcast.
 #define NODE_TYPE  "BL"    // fixed by hardware (which divider is fitted)
+#define FW_VERSION "0.1.0" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -122,6 +123,12 @@ void drawOLED(float voltage, int status) {
   oled.drawString(0, 14, g_name.c_str());
   oled.setFont(ArialMT_Plain_24);
   oled.drawString(0, 34, volt);
+
+  // Firmware version, tiny in the bottom-right corner
+  oled.setFont(ArialMT_Plain_10);
+  oled.setTextAlignment(TEXT_ALIGN_RIGHT);
+  oled.drawString(128, 53, "v" FW_VERSION);
+  oled.setTextAlignment(TEXT_ALIGN_LEFT);
 
   oled.display();
 }

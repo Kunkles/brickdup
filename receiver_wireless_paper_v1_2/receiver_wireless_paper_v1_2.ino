@@ -14,6 +14,9 @@
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
+
+#define FW_VERSION "0.1.0"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
@@ -358,6 +361,16 @@ void updateDisplay() {
     display.setFont(&FreeSans9pt7b);
     display.setCursor(10, 55);
     display.print("Waiting for nodes...");
+  }
+
+  // Firmware version, tiny in the bottom-right corner
+  display.setFont(&TomThumb);
+  display.setTextColor(BLACK);
+  {
+    int16_t vbx, vby; uint16_t vbw, vbh;
+    display.getTextBounds("v" FW_VERSION, 0, 0, &vbx, &vby, &vbw, &vbh);
+    display.setCursor(249 - vbw - vbx, 121);
+    display.print("v" FW_VERSION);
   }
 
   display.update();
