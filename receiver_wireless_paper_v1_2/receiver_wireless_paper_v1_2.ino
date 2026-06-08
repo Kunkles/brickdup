@@ -229,6 +229,11 @@ float readReceiverBattery() {
 
 // Sample periodically; infer "charging" from a rising trend vs the slow average.
 void updateBattery() {
+  // The battery is on GPIO20 = ADC2, which can't be read reliably while WiFi is
+  // up (ADC2 is shared with the radio on ESP32-S3). Hold the last good value
+  // while the dashboard is active; the battery moves slowly so this is fine.
+  if (portalActive) return;
+
   battVoltage = readReceiverBattery();
   if (battEMA == 0) battEMA = battVoltage;        // seed
   battCharging = (battVoltage > battEMA + 0.03f); // rising ⇒ on charge
@@ -524,6 +529,7 @@ void rxWifiStop() {
   WiFi.mode(WIFI_OFF);
   portalActive = false;
   prefs.putBool("rxwifi", false);
+  lastBatt = 0;            // re-sample the battery now that ADC2 is free
   lastSig = 0xFFFFFFFF;
   Serial.println("[CFG] Dashboard OFF");
 }
