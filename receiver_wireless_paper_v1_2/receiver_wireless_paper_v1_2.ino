@@ -11,6 +11,9 @@
 
 #include <RadioLib.h>
 #include <heltec-eink-modules.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <Preferences.h>
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
@@ -29,7 +32,11 @@
 // RST=6, DC=5, CS=4, BUSY=7, SCK=3, MOSI=2 — handled by library, do not redefine
 
 // ── Controls ──────────────────────────────────────────────────────────────────
-#define BTN_PIN  0          // Wireless Paper onboard USER button (GPIO0)
+#define BTN_PIN      0          // Wireless Paper onboard USER button (GPIO0)
+#define LONGPRESS_MS 1200       // hold this long to toggle the web dashboard
+
+// ── Web dashboard ─────────────────────────────────────────────────────────────
+#define AP_PASSWORD  "brickdup" // password for the receiver's WiFi network
 
 // ── Receiver's own battery sense (Wireless Paper) ─────────────────────────────
 // From the Meshtastic variant: ADC_CTRL=19 (enable LOW), VBAT on GPIO20 (ADC2),
@@ -151,10 +158,17 @@ float    battEMA      = 0;     // slow average, for charging-trend detection
 bool     battCharging = false; // inferred from a rising trend
 uint32_t lastBatt     = 0;
 
-// Paging through nodes (5 rows per page)
-int      page       = 0;
-bool     lastPgBtn  = HIGH;
-uint32_t lastPgBtnMs = 0;
+// Paging + button state (short press = page, long press = toggle dashboard)
+int      page         = 0;
+bool     btnDown      = false;
+uint32_t btnPressedAt = 0;
+bool     btnLongFired = false;
+
+// Web dashboard
+Preferences prefs;
+WebServer   server(80);
+bool        portalActive = false;
+String      apSsid;
 
 // Display — Wireless Paper V1.2
 // Library powers GPIO45 automatically; landscape() sets 250×122 orientation
@@ -252,7 +266,8 @@ uint32_t displaySignature() {
   // only when the displayed value actually changes.
   sig = (sig ^ (uint32_t)(battVoltage * 10)) * 16777619u;
   sig = (sig ^ (uint32_t)battCharging) * 16777619u;
-  sig = (sig ^ (uint32_t)page) * 16777619u;   // redraw when the page changes
+  sig = (sig ^ (uint32_t)page) * 16777619u;          // redraw when the page changes
+  sig = (sig ^ (uint32_t)portalActive) * 16777619u;  // show/hide WiFi indicator
   return sig;
 }
 
@@ -406,6 +421,13 @@ void updateDisplay() {
     display.print("v" FW_VERSION);
   }
 
+  // Dashboard / WiFi indicator, tiny in the bottom-left corner when active
+  if (portalActive) {
+    display.setFont(&TomThumb);
+    display.setCursor(1, 121);
+    display.print(("WiFi: " + apSsid).c_str());
+  }
+
   display.update();
 }
 
@@ -418,17 +440,112 @@ void maybeRefresh() {
   }
 }
 
-// Tap the USER button to page through nodes (when more than 5 are connected).
-void pollPageButton() {
-  bool b = digitalRead(BTN_PIN);
-  if (b == LOW && lastPgBtn == HIGH && (millis() - lastPgBtnMs) > 250) {
-    lastPgBtnMs = millis();
-    int totalPages = (nodeCount + DISPLAY_ROWS - 1) / DISPLAY_ROWS;
-    if (totalPages < 1) totalPages = 1;
-    page = (page + 1) % totalPages;
-    maybeRefresh();   // page is in the signature, so this redraws
+// ── Web dashboard ─────────────────────────────────────────────────────────────
+// Single-page live view: polls /data (JSON) every 2s and redraws the table.
+const char DASH_HTML[] PROGMEM = R"HTML(<!doctype html><html><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>brickdup</title><style>
+body{font-family:system-ui,sans-serif;background:#000;color:#eee;margin:0;padding:16px}
+h1{color:#2dd47a;font-size:22px;margin:0 0 2px;letter-spacing:1px}
+.sub{color:#777;font-size:12px;margin-bottom:14px}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #1c1c1c}
+th{color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+td.v{font-weight:700;font-size:18px}
+.ok{color:#2dd47a}.warn{color:#fc3}.crit{color:#f55}.stale{color:#888}.lost{color:#f55}
+.bars span{display:inline-block;width:4px;margin-right:1px;background:#2dd47a;vertical-align:bottom}
+.bars span.off{background:#333}
+.empty{color:#666;text-align:center;padding:32px}
+</style></head><body>
+<h1>BRICKDUP</h1><div class=sub id=sub>connecting…</div>
+<table><thead><tr><th>Name</th><th>Voltage</th><th>%</th><th>Time</th><th>Sig</th><th>Status</th></tr></thead>
+<tbody id=rows></tbody></table>
+<script>
+function bars(n){let s='';for(let i=0;i<3;i++){let h=4+i*4;s+=`<span class="${i<n?'':'off'}" style="height:${h}px"></span>`}return `<span class=bars>${s}</span>`}
+function stat(d){if(d.tier==2)return d.dead?['DEAD','lost']:['LOST','lost'];if(d.tier==1)return['STALE','stale'];return[['OK','WARN','CRIT'][d.st],['ok','warn','crit'][d.st]]}
+async function tick(){try{let j=await(await fetch('/data')).json();
+document.getElementById('sub').textContent=`${j.nodes.length} node(s) · receiver ${j.batt.toFixed(1)}V${j.chg?' (charging)':''}`;
+let h='';if(!j.nodes.length)h='<tr><td colspan=6 class=empty>Waiting for nodes…</td></tr>';
+for(let d of j.nodes){let[t,c]=stat(d);
+let tm=d.eta<0?'':(d.eta>=100?'~'+(d.eta/60).toFixed(1)+'h':'~'+d.eta+'m');
+let pct=d.tier==0?d.soc+'%':'';
+let v=d.tier==2?(d.dead?'DEAD':'LOST'):d.v.toFixed(1)+'V';
+h+=`<tr><td>${d.name}</td><td class="v ${c}">${v}</td><td>${pct}</td><td>${tm}</td><td>${bars(d.bars)}</td><td class="${c}">${t}</td></tr>`}
+document.getElementById('rows').innerHTML=h;}catch(e){document.getElementById('sub').textContent='disconnected'}}
+tick();setInterval(tick,2000);
+</script></body></html>)HTML";
+
+void jsonEsc(String& out, const char* s) {
+  for (const char* p = s; *p; p++) {
+    if (*p == '"' || *p == '\\') out += '\\';
+    out += *p;
   }
-  lastPgBtn = b;
+}
+
+void handleDash() { server.send_P(200, "text/html", DASH_HTML); }
+
+void handleData() {
+  String j = "{\"batt\":" + String(battVoltage, 2)
+           + ",\"chg\":" + (battCharging ? "true" : "false")
+           + ",\"nodes\":[";
+  for (int i = 0; i < nodeCount; i++) {
+    NodeState& n = nodes[i];
+    Tier t = tierOf(n);
+    bool dead = (t == LOST && n.status == 2);
+    if (i) j += ',';
+    j += "{\"name\":\"";  jsonEsc(j, friendlyName(n));
+    j += "\",\"v\":"   + String(n.voltage, 2);
+    j += ",\"st\":"    + String(n.status);
+    j += ",\"soc\":"   + String((int)n.soc);
+    j += ",\"eta\":"   + String(etaMinutes(n));
+    j += ",\"bars\":"  + String(signalLevel(n.rssi));
+    j += ",\"rssi\":"  + String(n.rssi);
+    j += ",\"tier\":"  + String((int)t);
+    j += ",\"dead\":"  + String(dead ? "true" : "false");
+    j += "}";
+  }
+  j += "]}";
+  server.send(200, "application/json", j);
+}
+
+void rxWifiStart() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(apSsid.c_str(), AP_PASSWORD);
+  server.begin();
+  portalActive = true;
+  prefs.putBool("rxwifi", true);
+  lastSig = 0xFFFFFFFF;   // force a redraw to show the WiFi indicator
+  Serial.printf("[CFG] Dashboard ON: '%s'  http://%s\n",
+                apSsid.c_str(), WiFi.softAPIP().toString().c_str());
+}
+
+void rxWifiStop() {
+  server.stop();
+  WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_OFF);
+  portalActive = false;
+  prefs.putBool("rxwifi", false);
+  lastSig = 0xFFFFFFFF;
+  Serial.println("[CFG] Dashboard OFF");
+}
+
+// Short press pages the e-ink; long press toggles the web dashboard.
+void pollButton() {
+  bool down = (digitalRead(BTN_PIN) == LOW);
+  uint32_t now = millis();
+  if (down && !btnDown) {                 // press
+    btnDown = true; btnPressedAt = now; btnLongFired = false;
+  } else if (down && btnDown && !btnLongFired && now - btnPressedAt >= LONGPRESS_MS) {
+    btnLongFired = true;                   // long press fires once, while held
+    portalActive ? rxWifiStop() : rxWifiStart();
+  } else if (!down && btnDown) {           // release
+    btnDown = false;
+    if (!btnLongFired && now - btnPressedAt >= 40) {   // short press = page
+      int totalPages = (nodeCount + DISPLAY_ROWS - 1) / DISPLAY_ROWS;
+      if (totalPages < 1) totalPages = 1;
+      page = (page + 1) % totalPages;
+      maybeRefresh();
+    }
+  }
 }
 
 void setup() {
@@ -436,7 +553,15 @@ void setup() {
   delay(500);
   Serial.println("[BOOT] Brickdup receiver");
 
-  pinMode(BTN_PIN, INPUT_PULLUP);   // USER button for paging
+  pinMode(BTN_PIN, INPUT_PULLUP);   // USER button (short=page, long=dashboard)
+
+  // Unique AP name from the chip MAC, e.g. "Brickdup-RX-7F3A"
+  prefs.begin("brickdup", false);
+  { char buf[20];
+    snprintf(buf, sizeof(buf), "Brickdup-RX-%04X", (uint16_t)(ESP.getEfuseMac() & 0xFFFF));
+    apSsid = buf; }
+  server.on("/", handleDash);
+  server.on("/data", handleData);
 
   // ADC for the receiver's own battery (high divider output → 12dB attenuation)
   analogReadResolution(12);
@@ -459,6 +584,9 @@ void setup() {
   radio.setDio1Action(onPacket);
   radio.startReceive();
   Serial.println("[RADIO] Listening...");
+
+  // Restore the dashboard's saved on/off state (default off to save power)
+  if (prefs.getBool("rxwifi", false)) rxWifiStart();
 }
 
 void handlePacket() {
@@ -511,7 +639,8 @@ void handlePacket() {
 }
 
 void loop() {
-  pollPageButton();       // USER button cycles pages
+  pollButton();                              // short=page, long=toggle dashboard
+  if (portalActive) server.handleClient();   // serve the live dashboard
 
   // 1. Drain any received packet
   if (packetFlag) {

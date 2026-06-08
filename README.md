@@ -139,6 +139,7 @@ Settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600
 - [x] Fuel gauge: SoC % + rough time-to-empty per node (voltage-based)
 - [x] Calibration (enter true voltage on the web page; gain factor saved to NVS)
 - [x] RSSI signal bars per node on the receiver
+- [x] Receiver web dashboard (live node table on your phone; long-press USER)
 - [ ] Channel/group selection — separate networks via distinct frequency +
       sync word per channel, set on the node web page and on the receiver,
       NVS-stored. Lets multiple brickdup systems coexist (e.g. 1st/2nd unit)
