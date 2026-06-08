@@ -333,8 +333,15 @@ void updateDisplay() {
       }
     }
 
-    // Friendly node name on the left
-    const char* nm = friendlyName(n);
+    // Friendly node name on the left (truncated with "..." if over 10 chars —
+    // names are capped at 10 at entry, but older firmware could send longer)
+    char nm[16];
+    const char* nmRaw = friendlyName(n);
+    if (strlen(nmRaw) > 10) {
+      strncpy(nm, nmRaw, 9); nm[9] = '\0'; strcat(nm, "...");
+    } else {
+      strncpy(nm, nmRaw, sizeof(nm) - 1); nm[sizeof(nm) - 1] = '\0';
+    }
     display.setFont(&FreeSans9pt7b);
     display.setCursor(10, y);
     display.print(nm);

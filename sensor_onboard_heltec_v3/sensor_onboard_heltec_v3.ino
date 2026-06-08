@@ -23,7 +23,7 @@
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
-#define NAME_MAXLEN      16
+#define NAME_MAXLEN      10
 // WiFi draws ~80mA, so it can be toggled off to save power — no extra hardware:
 //   • Tap the onboard PRG button (GPIO0) any time to toggle WiFi on/off.
 //   • Or hit "Turn off WiFi" on the config page when you're done naming.
@@ -181,7 +181,7 @@ String htmlPage() {
          "<div class=wifi>WiFi network (fixed)<br><b>Brickdup-");
   s += g_permId;
   s += F("</b></div><form action='/save' method='get'>"
-         "<label>Name</label><input name='name' maxlength='16' value='");
+         "<label>Name</label><input name='name' maxlength='10' value='");
   s += g_name;
   s += F("'><button type=submit>Save</button></form>");
 
