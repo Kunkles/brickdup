@@ -83,6 +83,7 @@ Preferences prefs;
 WebServer   server(80);
 String      g_permId;               // permanent unique id from chip MAC (SSID)
 String      g_name;                 // editable user name (shown + broadcast)
+float       g_cal   = 1.0f;         // calibration gain factor (1.0 = uncalibrated)
 bool        portalActive = false;   // is the WiFi portal running?
 bool        pendingWifiOff = false; // request to drop WiFi after a web response
 bool        lastBtn = HIGH;         // PRG button edge tracking
@@ -159,13 +160,26 @@ String htmlPage() {
   s += F("</b></div><form action='/save' method='get'>"
          "<label>Name</label><input name='name' maxlength='16' value='");
   s += g_name;
-  s += F("'><button type=submit>Save</button></form>"
-         "<form action='/wifioff'><button class=off type=submit>"
+  s += F("'><button type=submit>Save</button></form>");
+
+  // Calibration section
+  s += F("<label>Calibration</label><p class=n>Reading now: <b>");
+  s += String(readVoltage(), 2);
+  s += F(" V</b> &nbsp;·&nbsp; factor ");
+  s += String(g_cal, 3);
+  s += F("</p><form action='/cal' method='get'>"
+         "<input name='v' type='number' step='0.01' "
+         "placeholder='Actual volts from meter'>"
+         "<button type=submit>Calibrate</button></form>"
+         "<form action='/calreset'><button class=off type=submit>"
+         "Reset calibration</button></form>");
+
+  s += F("<form action='/wifioff'><button class=off type=submit>"
          "Turn off WiFi</button></form>"
          "<p class=n>The WiFi name above is fixed in hardware and never changes. "
-         "Only the friendly name is editable; it saves to the node and takes "
-         "effect on the next transmission. Press the node's PRG button to turn "
-         "WiFi back on.</p></body></html>");
+         "To calibrate, enter the true voltage from a multimeter and the node "
+         "trims its reading to match. Press the node's PRG button to turn WiFi "
+         "back on.</p></body></html>");
   return s;
 }
 
@@ -189,6 +203,33 @@ void handleSave() {
   }
   server.sendHeader("Location", "/");
   server.send(303);                       // redirect back to the form
+}
+
+float readVoltage();   // fwd decl
+
+// Single-point gain calibration: enter the true voltage from a meter; the node
+// trims its reading to match. Stored in flash so it survives reboots.
+void handleCal() {
+  if (server.hasArg("v")) {
+    float actual  = server.arg("v").toFloat();
+    float reading = readVoltage();                 // current (calibrated) reading
+    if (actual > 0.5f && reading > 0.5f) {
+      float f = g_cal * (actual / reading);        // fold into the existing factor
+      if (f > 0.5f && f < 2.0f) {                  // sanity clamp
+        g_cal = f;
+        prefs.putFloat("cal", g_cal);
+      }
+    }
+  }
+  server.sendHeader("Location", "/");
+  server.send(303);
+}
+
+void handleCalReset() {
+  g_cal = 1.0f;
+  prefs.putFloat("cal", g_cal);
+  server.sendHeader("Location", "/");
+  server.send(303);
 }
 
 // ── WiFi on/off (no extra hardware) ───────────────────────────────────────────
@@ -246,6 +287,7 @@ void setup() {
   g_permId = makePermId();
   prefs.begin("brickdup", false);
   g_name = prefs.getString("name", g_permId);
+  g_cal  = prefs.getFloat("cal", 1.0f);
 
   // Power and start the onboard OLED
   pinMode(VEXT_PIN, OUTPUT);
@@ -264,6 +306,8 @@ void setup() {
   server.on("/", handleRoot);
   server.on("/logo.jpg", handleLogo);
   server.on("/save", handleSave);
+  server.on("/cal", handleCal);
+  server.on("/calreset", handleCalReset);
   server.on("/wifioff", handleWifiOff);
   // Restore the saved WiFi state (off stays off across reboots)
   if (prefs.getBool("wifi", WIFI_ON_AT_BOOT)) {
@@ -291,7 +335,7 @@ float readVoltage() {
     sum += analogRead(VBAT_PIN);
     delayMicroseconds(200);
   }
-  return (float)(sum / ADC_SAMPLES) * ADC_SCALE;
+  return (float)(sum / ADC_SAMPLES) * ADC_SCALE * g_cal;
 }
 
 int voltageStatus(float v) {
