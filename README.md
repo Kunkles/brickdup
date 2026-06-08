@@ -163,6 +163,11 @@ the receiver (the page shows which it expects).
 - [ ] Channel/group selection — separate networks via distinct frequency +
       sync word per channel, set on the node web page and on the receiver,
       NVS-stored. Lets multiple brickdup systems coexist (e.g. 1st/2nd unit)
+- [ ] WiFi client (STA) mode — units optionally join a local network (DHCP or
+      static IP) instead of hosting their own AP, each reachable at a unique
+      mDNS host like `brickdup-ob-7f3a.local` (same chip-serial as the AP name).
+      Credentials set via the AP config page, stored in NVS. Reach/OTA any unit
+      from one device on the production WiFi
 - [ ] CRIT buzzer alert on receiver
 - [x] NVS persistence — receiver remembers nodes across reboots (clear on dashboard)
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)
