@@ -48,6 +48,12 @@
 #define VBAT_MULT     2.0f
 #define BATT_SAMPLE_MS 15000UL   // sample every 15s (so "+" clears promptly)
 
+// Optional definitive USB detection. Wire the board's 5V/VBUS pin through a
+// divider (e.g. 100k/220k → ~3.3V) to a spare GPIO and set VBUS_PIN to it; the
+// pin reads HIGH whenever USB is plugged in. Leave at -1 to use the voltage
+// trend instead (which only catches an actively-rising charge).
+#define VBUS_PIN      -1
+
 // ── Radio config (must match all nodes) ──────────────────────────────────────
 #define FREQ_MHZ   915.0
 #define BW_KHZ     125.0
@@ -285,13 +291,22 @@ void updateBattery() {
   // while the dashboard is active; the battery moves slowly so this is fine.
   if (portalActive) return;
 
+#if VBUS_PIN >= 0
+  // Definitive: a divider off VBUS reads HIGH whenever USB is plugged in.
+  // This is a plain GPIO, so it works even while WiFi is up.
+  battCharging = (digitalRead(VBUS_PIN) == HIGH);
+#endif
+
+  // The battery ADC (GPIO20 = ADC2) can't be read reliably while WiFi is up.
+  if (portalActive) return;
   battVoltage = readReceiverBattery();
   if (battEMA == 0) battEMA = battVoltage;        // seed
-  // Pure trend: "+" only while the cell is actually rising. No absolute-voltage
-  // clause, because a full battery reads ~4.2V whether on the charger or just
-  // unplugged — so the only honest signal is whether it's climbing. This board
-  // has no hardware charge/USB-present pin.
+#if VBUS_PIN < 0
+  // No VBUS pin wired: "+" only while the cell is actually rising. No absolute-
+  // voltage clause, because a full battery reads ~4.2V whether on the charger or
+  // just unplugged — so the only honest signal is whether it's climbing.
   battCharging = (battVoltage > battEMA + 0.012f);
+#endif
   battEMA = battEMA * 0.8f + battVoltage * 0.2f;
 }
 
@@ -701,6 +716,9 @@ void setup() {
   Serial.println("[BOOT] Brickdup receiver");
 
   pinMode(BTN_PIN, INPUT_PULLUP);   // USER button (short=page, long=dashboard)
+#if VBUS_PIN >= 0
+  pinMode(VBUS_PIN, INPUT);         // USB-present detection (divider off VBUS)
+#endif
 
   // Unique AP name from the chip MAC, e.g. "Brickdup-RX-7F3A"
   prefs.begin("brickdup", false);
