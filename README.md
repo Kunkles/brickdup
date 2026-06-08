@@ -106,19 +106,26 @@ All nodes must use identical settings. SF9 gives 50–100m range with obstacles.
 
 ## Build environment
 
-**Arduino IDE 2.x**, board: `Heltec WiFi LoRa 32(V3)`
-
-Additional board URL:
+**Arduino IDE 2.x** with the **Heltec ESP32 board package** (Board Manager URL):
 ```
-https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+https://resource.heltec.cn/download/package_heltec_esp32_index.json
 ```
 
-Settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600
+**Board selection differs per sketch** (the e-ink library requires the exact
+board, or it errors with "Wrong build env"):
+
+| Sketch | Tools → Board |
+|---|---|
+| `receiver_wireless_paper_v1_2` | **Wireless Paper** (search "paper") |
+| `sensor_onboard_heltec_v3` | Heltec WiFi LoRa 32(V3) |
+| `sensor_block_heltec_v3` | Heltec WiFi LoRa 32(V3) |
+
+Common settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600
 
 **Libraries (Library Manager):**
-- `RadioLib` by Jan Gromeš
-- `GxEPD2` by ZinggJM
-- `Adafruit GFX Library`
+- `RadioLib` by Jan Gromeš — all three sketches
+- `Heltec ESP32 Dev-Boards` by Heltec — node OLED (`HT_SSD1306Wire.h`)
+- `heltec-eink-modules` by todd-herbert — receiver e-ink (pulls in Adafruit GFX)
 
 ## BOM
 
