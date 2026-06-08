@@ -120,9 +120,7 @@ board, or it errors with "Wrong build env"):
 | `sensor_onboard_heltec_v3` | Heltec WiFi LoRa 32(V3) |
 | `sensor_block_heltec_v3` | Heltec WiFi LoRa 32(V3) |
 
-Common settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600 |
-**Partition Scheme → one with OTA** (e.g. "Minimal SPIFFS (... with OTA)") so the
-web firmware update works.
+Common settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600
 
 **OTA updates (no USB after the first flash):** every unit's web portal has a
 `/update` page. Build a `.bin` via **Sketch → Export Compiled Binary**, join the
@@ -130,6 +128,11 @@ unit's WiFi, open its `/update` page (linked from the config page / dashboard),
 and upload the matching `.bin` — it flashes the spare partition, verifies, and
 reboots. Upload the OB `.bin` to onboard nodes, BL to block nodes, receiver to
 the receiver (the page shows which it expects).
+
+> No partition setting needed: the Heltec WiFi LoRa 32 V3 and Wireless Paper
+> both default to the `default_8MB` scheme, which already has two ~3.3MB app
+> slots (OTA-capable). There's no "Partition Scheme" menu for these boards
+> because the partition is fixed — and it's the right one.
 
 **Libraries (Library Manager):**
 - `RadioLib` by Jan Gromeš — all three sketches
