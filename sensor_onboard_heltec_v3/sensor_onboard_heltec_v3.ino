@@ -158,6 +158,8 @@ void drawOLED(float voltage, int status) {
 }
 
 // ── Web config portal ─────────────────────────────────────────────────────────
+float readVoltage();   // fwd decl (htmlPage shows the live reading)
+
 String htmlPage() {
   String s = F("<!doctype html><html><head>"
     "<meta name=viewport content='width=device-width,initial-scale=1'>"
@@ -227,8 +229,6 @@ void handleSave() {
   server.sendHeader("Location", "/");
   server.send(303);                       // redirect back to the form
 }
-
-float readVoltage();   // fwd decl
 
 // Single-point gain calibration: enter the true voltage from a meter; the node
 // trims its reading to match. Stored in flash so it survives reboots.
