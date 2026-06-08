@@ -118,6 +118,14 @@ int etaMinutes(const NodeState& n) {
   return -1;
 }
 
+// Signal strength → 0..3 bars (SX1262 @ SF9 is usable down to roughly -120 dBm).
+int signalLevel(int16_t rssi) {
+  if (rssi >= -95)  return 3;
+  if (rssi >= -110) return 2;
+  if (rssi >= -120) return 1;
+  return 0;
+}
+
 NodeState nodes[MAX_NODES];
 int nodeCount = 0;
 
@@ -237,6 +245,7 @@ uint32_t displaySignature() {
       sig = (sig ^ (uint32_t)(n.soc / 5)) * 16777619u;       // 5% buckets
       int eta = etaMinutes(n);                               // 10-min buckets
       sig = (sig ^ (uint32_t)((eta < 0 ? 9999 : eta) / 10 + 1)) * 16777619u;
+      sig = (sig ^ (uint32_t)signalLevel(n.rssi)) * 16777619u;
     }
   }
   // Receiver battery (0.1V resolution) + charging flag, so the header refreshes
@@ -247,11 +256,23 @@ uint32_t displaySignature() {
   return sig;
 }
 
+// Three signal bars of increasing height; filled = active, outline = empty.
+void drawBars(int x, int baseY, int level, uint16_t color) {
+  const int bw = 3, gap = 2, h[3] = {4, 8, 12};
+  for (int i = 0; i < 3; i++) {
+    int bx = x + i * (bw + gap);
+    int by = baseY - h[i] + 1;
+    if (i < level) display.fillRect(bx, by, bw, h[i], color);
+    else           display.drawRect(bx, by, bw, h[i], color);
+  }
+}
+
 void updateDisplay() {
   display.landscape();
   display.clearMemory();
 
-  const int RIGHT = 248;   // right edge for readouts
+  const int RIGHT  = 248;  // right edge (header battery)
+  const int VRIGHT = 226;  // right edge for row voltage (leaves room for bars)
 
   // Paging: clamp the current page to the node count (5 rows per page)
   int totalPages = (nodeCount + DISPLAY_ROWS - 1) / DISPLAY_ROWS;
@@ -349,9 +370,14 @@ void updateDisplay() {
     display.setFont(vfont);
     int16_t bx, by; uint16_t bw, bh;
     display.getTextBounds(readout, 0, 0, &bx, &by, &bw, &bh);
-    // Account for the glyph's left-bearing (bx) so the right edge lands at RIGHT
-    display.setCursor(RIGHT - bw - bx, y);
+    // Account for the glyph's left-bearing (bx) so the right edge lands at VRIGHT
+    display.setCursor(VRIGHT - bw - bx, y);
     display.print(readout);
+
+    // Signal bars at the far right (only while we have a recent RSSI)
+    if (t == FRESH || t == STALE) {
+      drawBars(232, y, signalLevel(n.rssi), invert ? WHITE : BLACK);
+    }
 
     display.setTextColor(BLACK);   // reset for next row
     row++;

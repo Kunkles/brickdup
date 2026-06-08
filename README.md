@@ -138,8 +138,8 @@ Settings: USB CDC On Boot → **Enabled** | Upload Speed → 921600
 - [x] Receiver paging (USER button cycles pages when >5 nodes)
 - [x] Fuel gauge: SoC % + rough time-to-empty per node (voltage-based)
 - [x] Calibration (enter true voltage on the web page; gain factor saved to NVS)
+- [x] RSSI signal bars per node on the receiver
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)
-- [ ] RSSI bars per node on display
 - [ ] CRIT buzzer alert on receiver
 - [ ] Receiver battery indicator
 - [ ] NVS persistence (remember nodes across receiver reboots)
