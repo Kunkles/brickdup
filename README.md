@@ -100,8 +100,9 @@ is only the first-ever-boot default.
 | Node (PRG) | toggle WiFi | — | **power off** |
 | Receiver (USER) | page nodes | toggle dashboard | **power off** |
 
-"Power off" is deep sleep (~10–20µA); **press the button again to wake** (the
-unit reboots). The receiver e-ink keeps showing "OFF" while asleep.
+"Power off" is deep sleep (~10–20µA); the screen shows **POWERED DOWN** (white
+on black), then **press the button again to wake** (the unit reboots). The
+receiver e-ink keeps the POWERED DOWN screen visible while asleep.
 
 Thresholds — Onboard: WARN=13.5V, CRIT=12.8V | Block: WARN=21.0V, CRIT=20.0V
 

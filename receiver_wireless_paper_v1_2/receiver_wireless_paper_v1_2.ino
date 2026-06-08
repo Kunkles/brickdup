@@ -654,13 +654,13 @@ void handleUpdateUpload() {
 void powerOff() {
   display.landscape();
   display.clearMemory();
-  display.setTextColor(BLACK);
+  display.fillRect(0, 0, 250, 122, BLACK);       // black screen
+  display.setTextColor(WHITE);
   display.setFont(&FreeSansBold12pt7b);
-  display.setCursor(102, 58);
-  display.print("OFF");
-  display.setFont(&FreeSans9pt7b);
-  display.setCursor(58, 80);
-  display.print("press button to wake");
+  int16_t bx, by; uint16_t bw, bh;
+  display.getTextBounds("POWERED DOWN", 0, 0, &bx, &by, &bw, &bh);
+  display.setCursor((250 - (int)bw) / 2 - bx, 68);   // centered white text
+  display.print("POWERED DOWN");
   display.update();
   while (digitalRead(BTN_PIN) == LOW) delay(10);   // wait for release
   delay(50);

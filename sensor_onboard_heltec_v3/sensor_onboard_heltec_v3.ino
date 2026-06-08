@@ -296,17 +296,15 @@ void handleWifiOff() {
 
 // Deep sleep ("off"). Wakes on a button press; the node reboots fresh.
 void powerOff() {
-  oled.clear();
+  oled.clear();                                 // white text on a black screen
   oled.setTextAlignment(TEXT_ALIGN_CENTER);
-  oled.setFont(ArialMT_Plain_24);
-  oled.drawString(64, 6, "OFF");
-  oled.setFont(ArialMT_Plain_10);
-  oled.drawString(64, 42, "press btn to wake");
+  oled.setFont(ArialMT_Plain_16);
+  oled.drawString(64, 24, "POWERED DOWN");
   oled.setTextAlignment(TEXT_ALIGN_LEFT);
   oled.display();
-  delay(80);
-  digitalWrite(VEXT_PIN, HIGH);                 // cut the OLED rail
   while (digitalRead(PRG_BUTTON) == LOW) delay(10);   // wait for release
+  delay(1200);                                  // let the message be read
+  digitalWrite(VEXT_PIN, HIGH);                 // cut the OLED rail
   delay(50);
   esp_sleep_enable_ext0_wakeup((gpio_num_t)PRG_BUTTON, 0);  // wake on next press (low)
   esp_deep_sleep_start();
