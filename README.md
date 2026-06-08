@@ -164,6 +164,6 @@ the receiver (the page shows which it expects).
       sync word per channel, set on the node web page and on the receiver,
       NVS-stored. Lets multiple brickdup systems coexist (e.g. 1st/2nd unit)
 - [ ] CRIT buzzer alert on receiver
-- [ ] NVS persistence (remember nodes across receiver reboots)
+- [x] NVS persistence — receiver remembers nodes across reboots (clear on dashboard)
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)
 - [ ] PCB design (sensor node, two variants or DNP options)

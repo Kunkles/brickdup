@@ -171,11 +171,58 @@ WebServer   server(80);
 bool        portalActive = false;
 String      apSsid;
 
+// Node-roster persistence (remember nodes across receiver reboots)
+#define  ROSTER_SAVE_MS 120000UL   // flush to NVS at most this often
+bool     rosterDirty    = false;
+uint32_t lastRosterSave = 0;
+
 // Display — Wireless Paper V1.2
 // Library powers GPIO45 automatically; landscape() sets 250×122 orientation
 EInkDisplay_WirelessPaperV1_2 display;
 
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ── Roster persistence ────────────────────────────────────────────────────────
+// Serialize the node list to NVS as tab/newline-delimited records so the receiver
+// remembers which nodes exist across a reboot (shown stale until they re-check-in).
+void saveRoster() {
+  String blob;
+  for (int i = 0; i < nodeCount; i++) {
+    NodeState& n = nodes[i];
+    blob += n.permId; blob += '\t';
+    blob += n.type;   blob += '\t';
+    blob += n.name;   blob += '\t';
+    blob += String(n.voltage, 2); blob += '\t';
+    blob += String(n.status);     blob += '\n';
+  }
+  prefs.putString("roster", blob);
+}
+
+void loadRoster() {
+  String blob = prefs.getString("roster", "");
+  int start = 0;
+  while (start < (int)blob.length() && nodeCount < MAX_NODES) {
+    int nl = blob.indexOf('\n', start);
+    if (nl < 0) break;
+    String line = blob.substring(start, nl);
+    start = nl + 1;
+    int a = line.indexOf('\t');
+    int b = line.indexOf('\t', a + 1);
+    int c = line.indexOf('\t', b + 1);
+    int d = line.indexOf('\t', c + 1);
+    if (a < 0 || b < 0 || c < 0 || d < 0) continue;
+    int idx = nodeCount++;
+    nodes[idx] = {};
+    strncpy(nodes[idx].permId, line.substring(0, a).c_str(),     sizeof(nodes[idx].permId) - 1);
+    strncpy(nodes[idx].type,   line.substring(a + 1, b).c_str(), sizeof(nodes[idx].type) - 1);
+    strncpy(nodes[idx].name,   line.substring(b + 1, c).c_str(), sizeof(nodes[idx].name) - 1);
+    nodes[idx].voltage  = line.substring(c + 1, d).toFloat();
+    nodes[idx].status   = line.substring(d + 1).toInt();
+    nodes[idx].soc      = socFor(nodes[idx].type, nodes[idx].voltage);
+    nodes[idx].active   = true;
+    nodes[idx].lastSeen = millis() - STALE_MS - 1000;  // start STALE, grace to re-check-in
+  }
+}
 
 int findOrCreateNode(const char* permId, const char* type) {
   for (int i = 0; i < nodeCount; i++) {
@@ -465,7 +512,9 @@ td.v{font-weight:700;font-size:18px}
 <h1>BRICKDUP</h1><div class=sub id=sub>connecting…</div>
 <table><thead><tr><th>Name</th><th>Voltage</th><th>%</th><th>Time</th><th>Sig</th><th>Status</th></tr></thead>
 <tbody id=rows></tbody></table>
-<p style="margin-top:18px"><a href="/update" style="color:#2dd47a;font-size:13px">firmware update &rarr;</a></p>
+<p style="margin-top:18px">
+<button onclick="if(confirm('Clear remembered nodes?'))fetch('/clear').then(tick)" style="background:#333;color:#eee;border:0;border-radius:6px;padding:8px 12px;font-size:13px">Clear node list</button>
+&nbsp; <a href="/update" style="color:#2dd47a;font-size:13px">firmware update &rarr;</a></p>
 <script>
 function bars(n){let s='';for(let i=0;i<3;i++){let h=4+i*4;s+=`<span class="${i<n?'':'off'}" style="height:${h}px"></span>`}return `<span class=bars>${s}</span>`}
 function stat(d){if(d.tier==2)return d.dead?['DEAD','lost']:['LOST','lost'];if(d.tier==1)return['STALE','stale'];return[['OK','WARN','CRIT'][d.st],['ok','warn','crit'][d.st]]}
@@ -489,6 +538,14 @@ void jsonEsc(String& out, const char* s) {
 }
 
 void handleDash() { server.send_P(200, "text/html", DASH_HTML); }
+
+void handleClear() {
+  nodeCount   = 0;
+  rosterDirty = false;
+  prefs.remove("roster");
+  lastSig = 0xFFFFFFFF;        // force the e-ink to redraw empty
+  server.send(200, "text/plain", "OK");
+}
 
 void handleData() {
   String j = "{\"batt\":" + String(battVoltage, 2)
@@ -623,8 +680,11 @@ void setup() {
     apSsid = buf; }
   server.on("/", handleDash);
   server.on("/data", handleData);
+  server.on("/clear", handleClear);
   server.on("/update", HTTP_GET, handleUpdatePage);
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
+
+  loadRoster();   // restore remembered nodes (shown stale until they re-check-in)
 
   // ADC for the receiver's own battery (high divider output → 12dB attenuation)
   analogReadResolution(12);
@@ -692,6 +752,7 @@ void handlePacket() {
           nd.socAtCalc  = nd.soc;
           nd.lastRateMs = now;
         }
+        rosterDirty = true;   // persist this roster soon
       }
     }
   } else {
@@ -716,6 +777,13 @@ void loop() {
   if (millis() - lastBatt > BATT_SAMPLE_MS) {
     lastBatt = millis();
     updateBattery();
+  }
+
+  // Flush the roster to NVS occasionally (throttled to limit flash wear)
+  if (rosterDirty && millis() - lastRosterSave > ROSTER_SAVE_MS) {
+    lastRosterSave = millis();
+    rosterDirty = false;
+    saveRoster();
   }
 
   // 2. Any node in a *true* LOST state (gone silent while still healthy)?
