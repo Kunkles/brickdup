@@ -351,10 +351,21 @@ void powerOff() {
   esp_deep_sleep_start();
 }
 
-// Toggle battery type (4S ↔ 6S) and remember it.
+// Toggle battery type (4S ↔ 6S), remember it, and confirm on the OLED.
 void cycleMode() {
   g_mode ^= 1;
   prefs.putUChar("mode", g_mode);
+  // Immediate, unmistakable confirmation
+  oled.clear();
+  oled.setTextAlignment(TEXT_ALIGN_CENTER);
+  oled.setFont(ArialMT_Plain_24);
+  oled.drawString(64, 4, g_mode ? "BL 6S" : "OB 4S");
+  oled.setFont(ArialMT_Plain_10);
+  oled.drawString(64, 42, g_mode ? "BLOCK (6S)" : "ONBOARD (4S)");
+  oled.setTextAlignment(TEXT_ALIGN_LEFT);
+  oled.display();
+  delay(800);                            // hold the confirmation briefly
+  lastTx = millis() - TX_INTERVAL_MS;    // transmit + redraw normally right away
 }
 
 // PRG button: short tap = WiFi toggle, long press = switch battery type,
