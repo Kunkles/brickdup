@@ -13,6 +13,7 @@
 #include <heltec-eink-modules.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <DNSServer.h>       // captive portal (dashboard auto-pops on connect)
 #include <Preferences.h>
 #include <Update.h>          // built-in OTA (web firmware update)
 #include <esp_sleep.h>       // deep sleep (triple-tap power off)
@@ -180,6 +181,7 @@ uint32_t lastTapMs    = 0;
 // Web dashboard
 Preferences prefs;
 WebServer   server(80);
+DNSServer   dnsServer;            // wildcard DNS for the captive portal
 bool        portalActive = false;
 String      apSsid;
 
@@ -595,6 +597,13 @@ void jsonEsc(String& out, const char* s) {
 
 void handleDash() { server.send_P(200, "text/html", DASH_HTML); }
 
+// Catch-all (incl. OS captive-portal probes) → the dashboard, so phones pop it
+// automatically on connect.
+void handleNotFound() {
+  server.sendHeader("Location", "http://192.168.4.1/", true);
+  server.send(302, "text/plain", "");
+}
+
 void handleClear() {
   nodeCount   = 0;
   rosterDirty = false;
@@ -630,6 +639,7 @@ void handleData() {
 void rxWifiStart() {
   WiFi.mode(WIFI_AP);
   WiFi.softAP(apSsid.c_str(), AP_PASSWORD);
+  dnsServer.start(53, "*", WiFi.softAPIP());   // resolve all names → dashboard
   server.begin();
   portalActive = true;
   prefs.putBool("rxwifi", true);
@@ -639,6 +649,7 @@ void rxWifiStart() {
 }
 
 void rxWifiStop() {
+  dnsServer.stop();
   server.stop();
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
@@ -764,6 +775,7 @@ void setup() {
   server.on("/clear", handleClear);
   server.on("/update", HTTP_GET, handleUpdatePage);
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
+  server.onNotFound(handleNotFound);   // captive-portal catch-all
 
 #if DEMO_NODES
   seedDemoNodes();   // preview: 5 fake nodes
@@ -849,7 +861,7 @@ void handlePacket() {
 
 void loop() {
   pollButton();                              // short=page, long=toggle dashboard
-  if (portalActive) server.handleClient();   // serve the live dashboard
+  if (portalActive) { dnsServer.processNextRequest(); server.handleClient(); }
 
   // 1. Drain any received packet
   if (packetFlag) {

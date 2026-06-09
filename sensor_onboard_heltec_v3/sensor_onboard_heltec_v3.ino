@@ -8,6 +8,7 @@
 #include "HT_SSD1306Wire.h"   // bundled with the Heltec ESP32 board package
 #include <WiFi.h>
 #include <WebServer.h>
+#include <DNSServer.h>        // captive portal (page auto-pops on connect)
 #include <Preferences.h>
 #include <Update.h>           // built-in OTA (web firmware update)
 #include <esp_sleep.h>        // deep sleep (triple-tap power off)
@@ -101,6 +102,7 @@ SSD1306Wire oled(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RST_OLED);
 // ── Runtime config ────────────────────────────────────────────────────────────
 Preferences prefs;
 WebServer   server(80);
+DNSServer   dnsServer;              // wildcard DNS for the captive portal
 String      g_permId;               // permanent unique id from chip MAC (SSID)
 String      g_name;                 // editable user name (shown + broadcast)
 float       g_cal   = 1.0f;         // calibration gain factor (1.0 = uncalibrated)
@@ -215,6 +217,13 @@ String htmlPage() {
 
 void handleRoot() { server.send(200, "text/html", htmlPage()); }
 
+// Catch-all: any other URL (incl. the OS captive-portal probes) → the config
+// page, which makes phones pop the portal automatically on connect.
+void handleNotFound() {
+  server.sendHeader("Location", "http://192.168.4.1/", true);
+  server.send(302, "text/plain", "");
+}
+
 void handleLogo() {
   server.sendHeader("Cache-Control", "max-age=86400");
   server.send_P(200, "image/jpeg", (const char*)logo_jpg, logo_jpg_len);
@@ -265,6 +274,7 @@ void wifiStart() {
   String ssid = "Brickdup-" + g_permId;
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid.c_str(), AP_PASSWORD);
+  dnsServer.start(53, "*", WiFi.softAPIP());   // resolve all names → portal
   server.begin();
   portalActive = true;
   Serial.printf("[CFG] WiFi ON: '%s'  http://%s\n",
@@ -272,6 +282,7 @@ void wifiStart() {
 }
 
 void wifiStop() {
+  dnsServer.stop();
   server.stop();
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
@@ -412,6 +423,7 @@ void setup() {
   server.on("/wifioff", handleWifiOff);
   server.on("/update", HTTP_GET, handleUpdatePage);
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
+  server.onNotFound(handleNotFound);   // captive-portal catch-all
   // Restore the saved WiFi state (off stays off across reboots)
   if (prefs.getBool("wifi", WIFI_ON_AT_BOOT)) {
     wifiStart();
@@ -468,7 +480,7 @@ int voltageStatus(float v) {
 void loop() {
   pollButton();                               // PRG toggles WiFi on/off
   if (pendingWifiOff) { pendingWifiOff = false; delay(150); setWifi(false); }
-  if (portalActive) server.handleClient();    // keep the config portal responsive
+  if (portalActive) { dnsServer.processNextRequest(); server.handleClient(); }
 
   uint32_t now = millis();
   if (now - lastTx >= TX_INTERVAL_MS) {
