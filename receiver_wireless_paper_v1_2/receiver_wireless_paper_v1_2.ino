@@ -54,6 +54,9 @@
 // trend instead (which only catches an actively-rising charge).
 #define VBUS_PIN      -1
 
+// ── DEMO: populate fake nodes to preview the display. Set to 0 for normal use.
+#define DEMO_NODES    1
+
 // ── Radio config (must match all nodes) ──────────────────────────────────────
 #define FREQ_MHZ   915.0
 #define BW_KHZ     125.0
@@ -232,6 +235,35 @@ void loadRoster() {
     nodes[idx].lastSeen = millis() - STALE_MS - 1000;  // start STALE, grace to re-check-in
   }
 }
+
+#if DEMO_NODES
+// Fill the table with 5 fake nodes spanning OK / WARN / CRIT for a preview.
+void seedDemoNodes() {
+  struct Demo { const char* id; const char* type; const char* name;
+                float v; uint8_t st; int16_t rssi; float soc; float rate; };
+  static const Demo d[5] = {
+    {"OB-A001","OB","Cam A",   14.8f, 0,  -68, 92, -0.6f},
+    {"OB-B002","OB","B-Cam",   15.1f, 0,  -82, 78, -0.9f},
+    {"BL-C003","BL","Floor 1", 21.4f, 1,  -98, 40, -1.4f},
+    {"OB-D004","OB","Drone",   12.9f, 2, -112,  9, -2.5f},
+    {"OB-E005","OB","Steadi",  14.2f, 0, -105, 64, -0.7f},
+  };
+  for (int i = 0; i < 5; i++) {
+    nodes[i] = {};
+    strncpy(nodes[i].permId, d[i].id,   sizeof(nodes[i].permId) - 1);
+    strncpy(nodes[i].type,   d[i].type, sizeof(nodes[i].type) - 1);
+    strncpy(nodes[i].name,   d[i].name, sizeof(nodes[i].name) - 1);
+    nodes[i].voltage  = d[i].v;
+    nodes[i].status   = d[i].st;
+    nodes[i].rssi     = d[i].rssi;
+    nodes[i].soc      = d[i].soc;
+    nodes[i].socRate  = d[i].rate;
+    nodes[i].active   = true;
+    nodes[i].lastSeen = millis();
+  }
+  nodeCount = 5;
+}
+#endif
 
 int findOrCreateNode(const char* permId, const char* type) {
   for (int i = 0; i < nodeCount; i++) {
@@ -734,7 +766,11 @@ void setup() {
   server.on("/update", HTTP_GET, handleUpdatePage);
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
 
+#if DEMO_NODES
+  seedDemoNodes();   // preview: 5 fake nodes
+#else
   loadRoster();   // restore remembered nodes (shown stale until they re-check-in)
+#endif
 
   // ADC for the receiver's own battery (high divider output → 12dB attenuation)
   analogReadResolution(12);
@@ -829,12 +865,17 @@ void loop() {
     updateBattery();
   }
 
+#if DEMO_NODES
+  // Keep the fake nodes fresh so the preview doesn't age into STALE/LOST
+  for (int i = 0; i < nodeCount; i++) nodes[i].lastSeen = millis();
+#else
   // Flush the roster to NVS occasionally (throttled to limit flash wear)
   if (rosterDirty && millis() - lastRosterSave > ROSTER_SAVE_MS) {
     lastRosterSave = millis();
     rosterDirty = false;
     saveRoster();
   }
+#endif
 
   // 2. Any node in a *true* LOST state (gone silent while still healthy)?
   // Those rows flash. A DEAD node (silent after CRIT) renders steady instead.
