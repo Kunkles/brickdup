@@ -55,7 +55,7 @@
 #define VBUS_PIN      -1
 
 // ── DEMO: populate fake nodes to preview the display. Set to 0 for normal use.
-#define DEMO_NODES    1
+#define DEMO_NODES    0
 
 // ── Radio config (must match all nodes) ──────────────────────────────────────
 #define FREQ_MHZ   915.0
