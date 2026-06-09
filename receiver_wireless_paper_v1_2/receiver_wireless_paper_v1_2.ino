@@ -486,13 +486,13 @@ void updateDisplay() {
     display.print("Waiting for nodes...");
   }
 
-  // Firmware version, tiny in the bottom-right corner
-  display.setFont(&TomThumb);
+  // Firmware version in the bottom-right corner
+  display.setFont(&FreeSans9pt7b);
   display.setTextColor(BLACK);
   {
     int16_t vbx, vby; uint16_t vbw, vbh;
     display.getTextBounds("v" FW_VERSION, 0, 0, &vbx, &vby, &vbw, &vbh);
-    display.setCursor(249 - vbw - vbx, 121);
+    display.setCursor(249 - vbw - vbx, 120);
     display.print("v" FW_VERSION);
   }
 
