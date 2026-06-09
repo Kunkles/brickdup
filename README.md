@@ -181,6 +181,11 @@ the receiver (the page shows which it expects).
       mDNS host like `brickdup-ob-7f3a.local` (same chip-serial as the AP name).
       Credentials set via the AP config page, stored in NVS. Reach/OTA any unit
       from one device on the production WiFi
+- [ ] BLE / companion phone app — receiver exposes node data over Bluetooth LE
+      (GATT, mirroring the `/data` JSON) for a phone app: live view + push
+      notifications for CRIT/DEAD batteries (alerts even with the handheld in a
+      bag), no WiFi join needed. NimBLE stack; LoRa is a separate radio, BLE
+      time-shares 2.4GHz with WiFi
 - [ ] CRIT buzzer alert on receiver
 - [x] NVS persistence — receiver remembers nodes across reboots (clear on dashboard)
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)
