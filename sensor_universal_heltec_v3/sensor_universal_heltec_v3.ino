@@ -183,7 +183,7 @@ void drawV7(int x, int y, int w, int h, int t) {
 
 void drawOLED(float voltage, int status) {
   const char* tag     = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
-  const char* typeStr = g_mode ? "BL 6S" : "OB 4S";
+  const char* typeStr = g_mode ? "6S" : "4S";
 
   oled.clear();
 
@@ -202,7 +202,7 @@ void drawOLED(float voltage, int status) {
 
   // Big 7-segment voltage + a matching chunky "V" on the same line
   int vx = drawVoltage7(2, 30, voltage);
-  drawV7(vx + 3, 30, 12, 30, 4);
+  drawV7(vx + 3, 30, 20, 30, 4);
 
   // Right column: battery type (where "USB TEST" used to be) + version
   oled.setFont(ArialMT_Plain_10);
