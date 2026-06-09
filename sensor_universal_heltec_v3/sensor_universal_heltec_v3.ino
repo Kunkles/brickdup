@@ -138,44 +138,65 @@ String makePermId() {
   return String(buf);
 }
 
+// 7-segment bitmasks for 0–9 (bit0=a top, 1=b, 2=c, 3=d, 4=e, 5=f, 6=g middle)
+const uint8_t SEG7[10] = {0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F};
+
+void drawDigit7(int x, int y, int w, int h, int t, uint8_t s) {
+  int mid = y + (h - t) / 2, bot = y + h - t;
+  if (s & 0x01) oled.fillRect(x + t,     y,        w - 2*t, t);            // a
+  if (s & 0x20) oled.fillRect(x,         y + t,    t, mid - (y + t));      // f
+  if (s & 0x02) oled.fillRect(x + w - t, y + t,    t, mid - (y + t));      // b
+  if (s & 0x40) oled.fillRect(x + t,     mid,      w - 2*t, t);            // g
+  if (s & 0x10) oled.fillRect(x,         mid + t,  t, bot - (mid + t));    // e
+  if (s & 0x04) oled.fillRect(x + w - t, mid + t,  t, bot - (mid + t));    // c
+  if (s & 0x08) oled.fillRect(x + t,     bot,      w - 2*t, t);            // d
+}
+
+// Draw the voltage big in 7-seg starting at (x,y); returns the x after it.
+int drawVoltage7(int x, int y, float v) {
+  char str[8];
+  snprintf(str, sizeof(str), "%.1f", v);
+  const int W = 16, H = 30, T = 4, GAP = 4;
+  for (char* p = str; *p; p++) {
+    if (*p >= '0' && *p <= '9') { drawDigit7(x, y, W, H, T, SEG7[*p - '0']); x += W + GAP; }
+    else if (*p == '.')         { oled.fillRect(x, y + H - T, T, T); x += T + GAP; }
+  }
+  return x;
+}
+
 void drawOLED(float voltage, int status) {
-  const char* tag = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
-  char volt[12];
-  snprintf(volt, sizeof(volt), "%.1fV", voltage);   // e.g. "14.7V"
+  const char* tag     = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
+  const char* typeStr = g_mode ? "BL 6S" : "OB 4S";
 
   oled.clear();
 
-  // Top line: WiFi network name on the left (so you can always find it),
-  // status tag on the right.
+  // Top: WiFi network name (left), status (right)
   oled.setFont(ArialMT_Plain_10);
   oled.setTextAlignment(TEXT_ALIGN_LEFT);
-  if (portalActive) {
-    String w = "Brickdup-" + g_permId;
-    oled.drawString(0, 0, w.c_str());
-  } else {
-    oled.drawString(0, 0, g_permId.c_str());   // WiFi off: just the device id
-  }
+  if (portalActive) { String w = "Brickdup-" + g_permId; oled.drawString(0, 0, w.c_str()); }
+  else              { oled.drawString(0, 0, g_permId.c_str()); }
   oled.setTextAlignment(TEXT_ALIGN_RIGHT);
   oled.drawString(128, 0, tag);
-  oled.setTextAlignment(TEXT_ALIGN_LEFT);
 
-  // User name, then the big voltage readout
+  // User name
   oled.setFont(ArialMT_Plain_16);
-  oled.drawString(0, 14, g_name.c_str());
-  oled.setFont(ArialMT_Plain_24);
-  oled.drawString(0, 34, volt);
+  oled.setTextAlignment(TEXT_ALIGN_LEFT);
+  oled.drawString(0, 12, g_name.c_str());
 
+  // Big 7-segment voltage + a "V"
+  int vx = drawVoltage7(2, 30, voltage);
+  oled.setFont(ArialMT_Plain_16);
+  oled.drawString(vx + 2, 36, "V");
+
+  // Right column: battery type (where "USB TEST" used to be) + version
+  oled.setFont(ArialMT_Plain_10);
+  oled.setTextAlignment(TEXT_ALIGN_RIGHT);
 #if USB_TEST_MODE
-  oled.setFont(ArialMT_Plain_10);
-  oled.setTextAlignment(TEXT_ALIGN_RIGHT);
-  oled.drawString(128, 40, "USB TEST");
-  oled.setTextAlignment(TEXT_ALIGN_LEFT);
+  oled.drawString(128, 30, "USB TEST");
+  oled.drawString(128, 42, typeStr);
+#else
+  oled.drawString(128, 32, typeStr);
 #endif
-  // Battery type (bottom-left) and firmware version (bottom-right)
-  oled.setFont(ArialMT_Plain_10);
-  oled.setTextAlignment(TEXT_ALIGN_LEFT);
-  oled.drawString(0, 53, g_mode ? "BL 6S" : "OB 4S");
-  oled.setTextAlignment(TEXT_ALIGN_RIGHT);
   oled.drawString(128, 53, "v" FW_VERSION);
   oled.setTextAlignment(TEXT_ALIGN_LEFT);
   oled.display();
