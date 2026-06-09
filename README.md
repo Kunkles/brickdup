@@ -147,6 +147,21 @@ the receiver (the page shows which it expects).
 > slots (OTA-capable). There's no "Partition Scheme" menu for these boards
 > because the partition is fixed — and it's the right one.
 
+### Prebuilt firmware (CI)
+
+GitHub Actions compiles all three sketches on **every push** and on version
+tags — no local toolchain needed to get a `.bin`:
+
+- **Every push:** download `brickdup-firmware` from the
+  [latest Actions run](../../actions) (artifacts: `brickdup_onboard.bin`,
+  `brickdup_block.bin`, `brickdup_receiver.bin`).
+- **Tagged releases:** push a `vX.Y.Z` tag → the `.bin`s are attached to a
+  [GitHub Release](../../releases).
+
+Grab the matching `.bin` and push it to a unit via its `/update` page. To cut a
+release: bump `FW_VERSION` in all three sketches, update `CHANGELOG.md`, commit,
+then `git tag v0.5.1 && git push --tags`.
+
 **Libraries (Library Manager):**
 - `RadioLib` by Jan Gromeš — all three sketches
 - `Heltec ESP32 Dev-Boards` by Heltec — node OLED (`HT_SSD1306Wire.h`)
