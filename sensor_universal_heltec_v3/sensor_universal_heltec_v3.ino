@@ -524,8 +524,15 @@ void setup() {
   lastTx = millis() - TX_INTERVAL_MS + 1500;  // first transmit ~1.5s after boot
 }
 
+// TEMP: force a fixed voltage on the display for a quick layout preview.
+// Set DEMO_VOLTAGE_ON to 0 for normal operation.
+#define DEMO_VOLTAGE_ON  1
+#define DEMO_VOLTAGE     16.2f
+
 float readVoltage() {
-#if USB_TEST_MODE
+#if DEMO_VOLTAGE_ON
+  return DEMO_VOLTAGE;
+#elif USB_TEST_MODE
   // Read the Heltec V3 onboard battery/supply sense
   pinMode(VBAT_CTRL, OUTPUT);
   digitalWrite(VBAT_CTRL, LOW);     // connect the onboard divider
