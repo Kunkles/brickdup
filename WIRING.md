@@ -1,8 +1,8 @@
 # brickdup — Sensor Node Wiring
 
-Two sensor-node variants. **Both are powered by the very battery they monitor**,
-through a buck converter — there is no separate node battery. The MCU never sees
-raw pack voltage; only the buck's regulated 5V and a divided-down sense voltage.
+Nodes are **powered by the very battery they monitor**, through a buck converter
+— there is no separate node battery. The MCU never sees raw pack voltage; only
+the buck's regulated 5V and a divided-down sense voltage.
 
 > ⚠️ **Never** connect raw battery voltage to the Heltec USB-C port, the `5V`
 > pin, or `3V3`. Raw pack voltage goes **only** to the buck `VIN` and the top of
@@ -10,6 +10,42 @@ raw pack voltage; only the buck's regulated 5V and a divided-down sense voltage.
 > this wrong destroys the board.
 
 ---
+
+## Universal node (recommended) — 4S **or** 6S, up to 25.2V
+
+One divider sized for 6S that also reads 4S fine. The battery type is a firmware
+setting (web page or long-press PRG) — **no extra wiring** for it.
+
+| Item | Value |
+|---|---|
+| R1 (VBAT → GPIO7) | **200 kΩ** |
+| R2 (GPIO7 → GND) | **27 kΩ** |
+| GPIO7 at 25.2V (6S full) | **~3.0 V** (headroom under the 3.3V ADC ceiling) |
+| GPIO7 at 16.8V (4S full) | ~2.0 V |
+| Buck | Pololu **D24V10F5** (36V max in → 5V) — must be 36V-rated for 6S |
+
+```
+                 ┌─────────────► Buck VIN ──► VOUT 5V ──► Heltec 5V
+   VBAT ─────────┤
+ (4S or 6S,      └──[200kΩ]──┬──► GPIO7
+  ≤25.2V)                    │
+                          [27kΩ]   [100nF]
+                             │        │
+   GND ──────────────────────┴────────┴──► Heltec GND  +  Buck GND
+```
+
+- **Buck rating matters:** for 6S (25.2V) use the 36V-rated D24V10F5. A 28V buck
+  (e.g. MP1584 modules) is too marginal for 6S.
+- `ADC_SCALE` in the sketch is the universal value `(227/27 × 3.3/4095)`. If you
+  fit different resistors, update it.
+- After wiring, **calibrate** on the web page against a multimeter.
+
+---
+
+## Legacy single-mode variants
+
+The two original sketches use fixed dividers (one per battery type). Prefer the
+universal node above; these are kept for reference.
 
 ## Common to both variants
 
