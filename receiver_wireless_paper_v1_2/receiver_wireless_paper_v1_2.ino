@@ -407,20 +407,25 @@ void updateDisplay() {
   display.setTextColor(BLACK);
   display.setCursor(2, 14);
   display.print("BRICKDUP");
+  int16_t hx, hy; uint16_t hw, hh;
+  display.getTextBounds("BRICKDUP", 0, 0, &hx, &hy, &hw, &hh);
+  int cursorX = 2 + hw + 8;   // just past the title
 
   // Firmware version, small, right after the title
   display.setFont(&TomThumb);
   display.setTextSize(2);
-  display.setCursor(86, 13);
+  display.setCursor(cursorX, 14);
   display.print("v" FW_VERSION);
+  display.getTextBounds("v" FW_VERSION, 0, 0, &hx, &hy, &hw, &hh);
+  cursorX += hw + 10;
   display.setTextSize(1);
 
-  // Page indicator (only when there's more than one page)
+  // Page indicator (only when there's more than one page), after the version
   if (totalPages > 1) {
     char pg[8];
     snprintf(pg, sizeof(pg), "%d/%d", page + 1, totalPages);
     display.setFont(&FreeSans9pt7b);
-    display.setCursor(140, 14);
+    display.setCursor(cursorX, 14);
     display.print(pg);
   }
 
