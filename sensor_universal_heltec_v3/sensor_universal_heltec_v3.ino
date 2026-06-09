@@ -156,7 +156,7 @@ void drawDigit7(int x, int y, int w, int h, int t, uint8_t s) {
 int drawVoltage7(int x, int y, float v) {
   char str[8];
   snprintf(str, sizeof(str), "%.1f", v);
-  const int W = 16, H = 30, T = 4, GAP = 4;
+  const int W = 16, H = 30, T = 4, GAP = 6;   // GAP = space between digits
   for (char* p = str; *p; p++) {
     if (*p >= '0' && *p <= '9') { drawDigit7(x, y, W, H, T, SEG7[*p - '0']); x += W + GAP; }
     else if (*p == '.')         { oled.fillRect(x, y + H - T, T, T); x += T + GAP; }
