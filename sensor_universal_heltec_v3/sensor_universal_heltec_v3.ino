@@ -200,10 +200,13 @@ void drawOLED(float voltage, int status) {
   oled.setTextAlignment(TEXT_ALIGN_LEFT);
   oled.drawString(0, 12, g_name.c_str());
 
-  // Big 7-segment voltage + a small "V"
+  // Big 7-segment voltage + a small "V", emboldened (overdrawn) for ~2x weight
   int vx = drawVoltage7(2, 30, voltage);
   oled.setFont(ArialMT_Plain_16);
   oled.drawString(vx + 2, 36, "V");
+  oled.drawString(vx + 3, 36, "V");
+  oled.drawString(vx + 2, 37, "V");
+  oled.drawString(vx + 3, 37, "V");
 
   // Right column: battery type (where "USB TEST" used to be) + version
   oled.setFont(ArialMT_Plain_10);
