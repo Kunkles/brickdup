@@ -31,13 +31,15 @@ jobs:
 
       - name: Compile (nodes = V3, receiver = Wireless Paper)
         run: |
-          arduino-cli compile -b Heltec-esp32:esp32:heltec_wifi_lora_32_V3 --output-dir out/onboard  sensor_onboard_heltec_v3
-          arduino-cli compile -b Heltec-esp32:esp32:heltec_wifi_lora_32_V3 --output-dir out/block    sensor_block_heltec_v3
-          arduino-cli compile -b Heltec-esp32:esp32:heltec_wireless_paper  --output-dir out/receiver receiver_wireless_paper_v1_2
+          arduino-cli compile -b Heltec-esp32:esp32:heltec_wifi_lora_32_V3 --output-dir out/universal sensor_universal_heltec_v3
+          arduino-cli compile -b Heltec-esp32:esp32:heltec_wifi_lora_32_V3 --output-dir out/onboard   sensor_onboard_heltec_v3
+          arduino-cli compile -b Heltec-esp32:esp32:heltec_wifi_lora_32_V3 --output-dir out/block     sensor_block_heltec_v3
+          arduino-cli compile -b Heltec-esp32:esp32:heltec_wireless_paper  --output-dir out/receiver  receiver_wireless_paper_v1_2
 
       - name: Collect .bin files (app images, for OTA)
         run: |
           mkdir -p firmware
+          cp out/universal/sensor_universal_heltec_v3.ino.bin firmware/brickdup_universal.bin
           cp out/onboard/sensor_onboard_heltec_v3.ino.bin     firmware/brickdup_onboard.bin
           cp out/block/sensor_block_heltec_v3.ino.bin         firmware/brickdup_block.bin
           cp out/receiver/receiver_wireless_paper_v1_2.ino.bin firmware/brickdup_receiver.bin
