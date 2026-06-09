@@ -216,6 +216,10 @@ then `git tag v0.5.1 && git push --tags`.
       notifications for CRIT/DEAD batteries (alerts even with the handheld in a
       bag), no WiFi join needed. NimBLE stack; LoRa is a separate radio, BLE
       time-shares 2.4GHz with WiFi
+- [ ] iOS app — native companion that keeps a **persistent live readout** of all
+      nodes and fires **push/local notifications** on CRIT/DEAD/LOST (even when
+      backgrounded or the phone is locked). Connects via BLE (Core Bluetooth
+      background mode) to the receiver; the front-end for the BLE item above
 - [ ] CRIT buzzer alert on receiver
 - [x] NVS persistence — receiver remembers nodes across reboots (clear on dashboard)
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)
