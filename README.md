@@ -21,6 +21,7 @@ Voltage divider feeds GPIO7. A 100nF ceramic cap between GPIO7 and GND filters A
 
 📐 **Full wiring (both variants, with diagrams): [WIRING.md](WIRING.md)**
 📌 **Pin assignments, button controls & screen layouts: [REFERENCE.md](REFERENCE.md)**
+📝 **Firmware version history: [CHANGELOG.md](CHANGELOG.md)** — current: **v0.5.0**
 
 ### Pin map
 

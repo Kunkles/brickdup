@@ -79,7 +79,7 @@ WiFi on/off state and "off" are remembered across reboots (NVS).
 Brickdup-OB-7F3A          OK     ← WiFi network name (left) · status (right)
 Cam A                            ← user name
 14.7V                            ← battery voltage
-                          v0.1.0 ← firmware version (bottom-right)
+                          v0.5.0 ← firmware version (bottom-right)
 ```
 
 - When WiFi is off, the top-left shows just the permanent id (`OB-7F3A`).
@@ -95,7 +95,7 @@ BRICKDUP  2/3              4.1V  ← title · page (if >1) · own battery (+ = c
   Cam C  stale        14.0V ▂░░
   Cam D              *DEAD*       ← silent after CRIT = battery dead (steady)
   Cam E              *LOST*       ← silent while healthy (flashes)
-WiFi: Brickdup-RX-7F3A     v0.1.0 ← AP name (when dashboard on) · version
+WiFi: Brickdup-RX-7F3A     v0.5.0 ← AP name (when dashboard on) · version
 ```
 
 Per-node states: **OK / WARN / CRIT / STALE / DEAD / LOST**. CRIT and DEAD are
