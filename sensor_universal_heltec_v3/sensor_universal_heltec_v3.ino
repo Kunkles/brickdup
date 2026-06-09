@@ -156,7 +156,7 @@ void drawDigit7(int x, int y, int w, int h, int t, uint8_t s) {
 int drawVoltage7(int x, int y, float v) {
   char str[8];
   snprintf(str, sizeof(str), "%.1f", v);
-  const int W = 16, H = 30, T = 4, GAP = 4;   // GAP = space between digits
+  const int W = 16, H = 30, T = 4, GAP = 6;   // GAP = space between digits
   int mid = y + (H - T) / 2, bot = y + H - T;
   for (char* p = str; *p; p++) {
     if (*p == '1') {                          // narrow cell: just the vertical
