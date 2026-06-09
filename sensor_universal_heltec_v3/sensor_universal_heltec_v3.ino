@@ -183,7 +183,7 @@ void drawV7(int x, int y, int w, int h, int t) {
 
 void drawOLED(float voltage, int status) {
   const char* tag     = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
-  const char* typeStr = g_mode ? "6S" : "4S";
+  const char* typeStr = g_mode ? "BL 6S" : "OB 4S";
 
   oled.clear();
 
@@ -200,10 +200,10 @@ void drawOLED(float voltage, int status) {
   oled.setTextAlignment(TEXT_ALIGN_LEFT);
   oled.drawString(0, 12, g_name.c_str());
 
-  // Big 7-segment voltage + a matching lowercase "v" on the baseline (like the
-  // logo's "14.8v"): shorter, bottom-aligned with the digits.
+  // Big 7-segment voltage + a small "V"
   int vx = drawVoltage7(2, 30, voltage);
-  drawV7(vx + 3, 42, 16, 18, 4);   // y+h = 60 = digit baseline
+  oled.setFont(ArialMT_Plain_16);
+  oled.drawString(vx + 2, 36, "V");
 
   // Right column: battery type (where "USB TEST" used to be) + version
   oled.setFont(ArialMT_Plain_10);
