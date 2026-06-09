@@ -408,12 +408,19 @@ void updateDisplay() {
   display.setCursor(2, 14);
   display.print("BRICKDUP");
 
+  // Firmware version, small, right after the title
+  display.setFont(&TomThumb);
+  display.setTextSize(2);
+  display.setCursor(86, 13);
+  display.print("v" FW_VERSION);
+  display.setTextSize(1);
+
   // Page indicator (only when there's more than one page)
   if (totalPages > 1) {
     char pg[8];
     snprintf(pg, sizeof(pg), "%d/%d", page + 1, totalPages);
     display.setFont(&FreeSans9pt7b);
-    display.setCursor(92, 14);
+    display.setCursor(140, 14);
     display.print(pg);
   }
 
@@ -517,19 +524,6 @@ void updateDisplay() {
     display.setCursor(10, 55);
     display.print("Waiting for nodes...");
   }
-
-  // Firmware version in the bottom-right corner (TomThumb at 2x — a touch
-  // smaller than 9pt, still legible)
-  display.setFont(&TomThumb);
-  display.setTextSize(2);
-  display.setTextColor(BLACK);
-  {
-    int16_t vbx, vby; uint16_t vbw, vbh;
-    display.getTextBounds("v" FW_VERSION, 0, 0, &vbx, &vby, &vbw, &vbh);
-    display.setCursor(249 - vbw - vbx, 120);
-    display.print("v" FW_VERSION);
-  }
-  display.setTextSize(1);   // reset for everything else
 
   // Dashboard / WiFi indicator, tiny in the bottom-left corner when active
   if (portalActive) {

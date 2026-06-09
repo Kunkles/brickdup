@@ -88,14 +88,14 @@ Cam A                            ← user name
 ### Receiver e-ink
 
 ```
-BRICKDUP  2/3              4.1V  ← title · page (if >1) · own battery (+ = charging)
+BRICKDUP v0.5.0  2/3       4.1V  ← title · version · page (if >1) · battery (+ = charging)
 ──────────────────────────────
 █ Cam A    63% ~48m   14.2V ▂▄█  ← marker · name · %/ETA · voltage · signal
   Cam B    88% ~2.1h  15.6V ▂▄░
   Cam C  stale        14.0V ▂░░
   Cam D              *DEAD*       ← silent after CRIT = battery dead (steady)
   Cam E              *LOST*       ← silent while healthy (flashes)
-WiFi: Brickdup-RX-7F3A     v0.5.0 ← AP name (when dashboard on) · version
+WiFi: Brickdup-RX-7F3A           ← AP name shown bottom-left when dashboard on
 ```
 
 Per-node states: **OK / WARN / CRIT / STALE / DEAD / LOST**. CRIT and DEAD are
