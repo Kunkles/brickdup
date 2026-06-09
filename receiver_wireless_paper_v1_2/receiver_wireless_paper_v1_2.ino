@@ -486,8 +486,10 @@ void updateDisplay() {
     display.print("Waiting for nodes...");
   }
 
-  // Firmware version in the bottom-right corner
-  display.setFont(&FreeSans9pt7b);
+  // Firmware version in the bottom-right corner (TomThumb at 2x — a touch
+  // smaller than 9pt, still legible)
+  display.setFont(&TomThumb);
+  display.setTextSize(2);
   display.setTextColor(BLACK);
   {
     int16_t vbx, vby; uint16_t vbw, vbh;
@@ -495,6 +497,7 @@ void updateDisplay() {
     display.setCursor(249 - vbw - vbx, 120);
     display.print("v" FW_VERSION);
   }
+  display.setTextSize(1);   // reset for everything else
 
   // Dashboard / WiFi indicator, tiny in the bottom-left corner when active
   if (portalActive) {
