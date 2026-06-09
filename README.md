@@ -35,30 +35,38 @@ E-ink (receiver):     CS=5, DC=4, RST=3, BUSY=2 | SCK=6, MOSI=1
 
 | File | Flash to |
 |---|---|
+| **`sensor_universal_heltec_v3/`** | **Recommended** node firmware — one board, 4S **or** 6S, type selectable |
+| `sensor_onboard_heltec_v3/` | Legacy onboard-only (4S) node |
+| `sensor_block_heltec_v3/` | Legacy block-only (6S) node |
+| `receiver_wireless_paper_v1_2/` | The handheld receiver (Heltec Wireless Paper) |
 | `bench_ping_test/` | Both V3s, to verify the radio link (set `ROLE_PINGER` per board) |
-| `sensor_onboard_heltec_v3/` | Each onboard (4S) sensor node |
-| `sensor_block_heltec_v3/` | Each block/floor (6S) sensor node |
-| `receiver_wireless_paper_v1_2/` | The handheld receiver (Heltec Wireless Paper V1.2) |
 
-> **Test modes:** `sensor_onboard_heltec_v3` has `USB_TEST_MODE` (default `1`) that
-> transmits the board's onboard supply voltage so the TX → RX → e-ink chain can be
-> validated over USB-C with no divider wired. Set to `0` for real 4S monitoring.
+**Universal node** (`sensor_universal_heltec_v3`) replaces the two single-mode
+sketches: one universal divider (200k/27k, sized for 6S) and a runtime **battery
+type** (OB 4S / BL 6S) that sets the thresholds + broadcast type. Pick it on the
+config page or **long-press PRG** to toggle. Identical firmware on every node —
+no per-unit edits. It shows a big 7-segment voltage and the type in the corner.
 
-Before flashing each sensor, set `NODE_ID` at the top of the file (1–99, unique per unit). `NODE_TYPE` is fixed per sketch — don't change it.
+> **USB test mode:** the node sketches have `USB_TEST_MODE` (default `1`) that
+> reads the board's onboard supply (~4V) instead of the divider, so the
+> TX → RX → e-ink chain can be validated over USB-C with nothing wired. Set to
+> `0` for real monitoring.
 
 ## Node identity
 
 Every node has two names:
 
-- **Permanent id** — auto-derived from the chip's unique MAC at boot, e.g.
-  `OB-7F3A`. Never changes, guaranteed unique, and is the WiFi network name.
-  This is the key the receiver tracks nodes by.
+- **Permanent id** — auto-derived from the chip's unique MAC at boot. Never
+  changes, guaranteed unique, and is the WiFi network name + the receiver's
+  tracking key. The **universal** sketch uses a type-independent `ND-7F3A` (so
+  toggling battery type updates the node in place); the legacy OB/BL sketches
+  use `OB-7F3A` / `BL-7F3A`.
 - **User name** — the friendly label you assign over WiFi (`Cam A`). Defaults to
   the permanent id until set. Shown on the OLED + handheld and broadcast.
 
 Because the permanent id comes from the silicon, you flash the **same firmware to
-every node** — no `NODE_ID` edits, no per-unit builds. The only compile-time
-choice is which sketch (OB vs BL = which divider is fitted).
+every node** — no per-unit edits. With the universal sketch even the battery
+type is a runtime setting, so one firmware truly covers every node.
 
 ## Packet format
 
@@ -130,6 +138,7 @@ board, or it errors with "Wrong build env"):
 | Sketch | Tools → Board |
 |---|---|
 | `receiver_wireless_paper_v1_2` | **Wireless Paper** (search "paper") |
+| `sensor_universal_heltec_v3` | Heltec WiFi LoRa 32(V3) |
 | `sensor_onboard_heltec_v3` | Heltec WiFi LoRa 32(V3) |
 | `sensor_block_heltec_v3` | Heltec WiFi LoRa 32(V3) |
 
@@ -188,14 +197,20 @@ then `git tag v0.5.1 && git push --tags`.
 - [x] RSSI signal bars per node on the receiver
 - [x] Receiver web dashboard (live node table on your phone; long-press USER)
 - [x] OTA firmware update via the web portal on all units (/update page)
+- [x] Captive portal — config page auto-pops on WiFi connect
+- [x] Universal node — one sketch, runtime 4S/6S battery type (web or long-press)
+- [x] Prebuilt firmware via CI (GitHub Actions builds .bin on every push)
 - [ ] Channel/group selection — separate networks via distinct frequency +
       sync word per channel, set on the node web page and on the receiver,
       NVS-stored. Lets multiple brickdup systems coexist (e.g. 1st/2nd unit)
 - [ ] WiFi client (STA) mode — units optionally join a local network (DHCP or
       static IP) instead of hosting their own AP, each reachable at a unique
-      mDNS host like `brickdup-ob-7f3a.local` (same chip-serial as the AP name).
+      mDNS host like `brickdup-7f3a.local` (chip-serial based).
       Credentials set via the AP config page, stored in NVS. Reach/OTA any unit
       from one device on the production WiFi
+- [ ] Trusted WiFi networks — a saved list of known SSIDs the unit auto-joins
+      (STA) when one is in range and WiFi is on, falling back to its own AP
+      otherwise. Set via the config page, stored in NVS
 - [ ] BLE / companion phone app — receiver exposes node data over Bluetooth LE
       (GATT, mirroring the `/data` JSON) for a phone app: live view + push
       notifications for CRIT/DEAD batteries (alerts even with the handheld in a

@@ -20,7 +20,8 @@ firmwares. For sensor-node *wiring* (dividers, buck, connectors) see
 | **USER / PRG button** | GPIO0 |
 | **External 5V input** | `5V` pad (from the buck — never raw VBAT) |
 
-Divider resistors differ by variant: **OB** R1=100k/R2=22k · **BL** R1=180k/R2=27k.
+Divider resistors: **universal** R1=200k/R2=27k (covers 4S & 6S) · legacy
+**OB** R1=100k/R2=22k · **BL** R1=180k/R2=27k.
 
 ### Receiver — Heltec Wireless Paper
 
@@ -54,9 +55,11 @@ Both boards use the onboard button on **GPIO0**.
 | Gesture | Action |
 |---|---|
 | **Single tap** | Toggle the WiFi config portal on/off |
+| **Long press** (~1s) | *(universal sketch)* toggle battery type 4S ↔ 6S |
 | **Triple tap** | Power off (deep sleep ~10–20µA) — press the button again to wake |
 
-WiFi on/off state and "off" are remembered across reboots (NVS).
+WiFi on/off, "off", and battery type are remembered across reboots (NVS). The
+legacy OB/BL sketches have no long-press (type is fixed per sketch).
 
 ### Receiver (USER button)
 
@@ -73,16 +76,18 @@ WiFi on/off state and "off" are remembered across reboots (NVS).
 
 ## On-screen layout
 
-### Node OLED
+### Node OLED (universal sketch)
 
 ```
-Brickdup-OB-7F3A          OK     ← WiFi network name (left) · status (right)
+ND-7F3A                   OK     ← WiFi network name / id (left) · status (right)
 Cam A                            ← user name
-14.7V                            ← battery voltage
+┌─┐ ┌─┐ . ┌─┐  V          OB 4S  ← big 7-segment voltage · battery type (right)
                           v0.5.0 ← firmware version (bottom-right)
 ```
 
-- When WiFi is off, the top-left shows just the permanent id (`OB-7F3A`).
+- Top-left shows the full `Brickdup-ND-7F3A` SSID when WiFi is on, else just `ND-7F3A`.
+- Battery type sits where `USB TEST` appears in test mode (right column).
+- Long-press flashes a big `OB 4S` / `BL 6S` confirmation.
 - "POWERED DOWN" (white on black) shows briefly on triple-tap before sleep.
 
 ### Receiver e-ink
