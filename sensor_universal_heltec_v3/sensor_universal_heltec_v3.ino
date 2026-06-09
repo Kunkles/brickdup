@@ -200,9 +200,10 @@ void drawOLED(float voltage, int status) {
   oled.setTextAlignment(TEXT_ALIGN_LEFT);
   oled.drawString(0, 12, g_name.c_str());
 
-  // Big 7-segment voltage + a matching chunky "V" on the same line
+  // Big 7-segment voltage + a matching lowercase "v" on the baseline (like the
+  // logo's "14.8v"): shorter, bottom-aligned with the digits.
   int vx = drawVoltage7(2, 30, voltage);
-  drawV7(vx + 3, 30, 20, 30, 4);
+  drawV7(vx + 3, 42, 16, 18, 4);   // y+h = 60 = digit baseline
 
   // Right column: battery type (where "USB TEST" used to be) + version
   oled.setFont(ArialMT_Plain_10);
