@@ -92,9 +92,15 @@ the Heltec battery connector directly (no adapter).
 
 ## 2. Sensor-node enclosure
 
-Houses: **Heltec V3** + the **buck converter** (Pololu D24V10F5, ~10.2 × 10.2 mm
+> **Parametric model:** [`enclosure/node_enclosure.scad`](enclosure/node_enclosure.scad)
+> implements this section (side-by-side layout: Heltec row + LiPo row + east
+> bay for buck/divider, 6 mm cable corridor between the rows). Open in
+> OpenSCAD, set `part`, tweak the `MEASURE`-tagged variables after calipering.
+
+Houses: **Heltec V3** + the **buck converter** (Pololu D24V10F5, ~12.7 × 10.2 mm
 `‹MEASURE›`) + the **voltage divider + cap** + a **small bridge LiPo (~1100 mAh)**
-+ wiring to the **battery connector** (D-Tap or AB 4-pin).
++ wiring to the **battery connector** (**LEMO panel-mount** — chosen over
+D-Tap/AB; measure your shell's panel-hole diameter + key flat).
 
 > **Power architecture:** the camera battery → buck → 5V powers the node *and*
 > charges the LiPo; the camera battery is also sensed via the divider → GPIO7.
@@ -208,7 +214,8 @@ Take these with calipers off the real hardware and fill into the parameters:
 - [x] Node LiPo (1100 mAh): **40 × 25 × 10 mm** (+ lead length ‹measure›)
 - [x] Receiver LiPo (3000 mAh): **65 × 35 × 10 mm** (+ lead length ‹measure›)
 - [ ] Buck (D24V10F5) footprint + height; divider board size
-- [ ] Chosen battery connector (D-Tap / AB) flange/panel dimensions
+- [ ] LEMO connector: panel-hole diameter + key-flat dims, body depth behind
+      panel, boot/strain-relief length
 
 ---
 
