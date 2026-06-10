@@ -220,6 +220,10 @@ then `git tag v0.5.1 && git push --tags`.
       nodes and fires **push/local notifications** on CRIT/DEAD/LOST (even when
       backgrounded or the phone is locked). Connects via BLE (Core Bluetooth
       background mode) to the receiver; the front-end for the BLE item above
+- [ ] Bridge LiPo on nodes — small backup cell (buck keeps it charged) so a node
+      stays alive to report a **camera battery removed/dead for sure** (vs just
+      going silent), survives swaps, and reports its own LiPo level. Replaces the
+      receiver's inferred DEAD with an explicit reported one
 - [ ] CRIT buzzer alert on receiver
 - [x] NVS persistence — receiver remembers nodes across reboots (clear on dashboard)
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)

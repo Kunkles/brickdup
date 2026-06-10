@@ -60,33 +60,49 @@ There are **two enclosures**:
 | LoRa antenna | u.FL → external | |
 | Internal LiPo | see below | |
 
-### MakerFocus 1S LiPo — 3.7V 3000 mAh (internal battery)
+### Internal LiPo (1S, JST 1.25) — **sized per role**
+
+Both units take a 1S LiPo (MakerFocus, protection board, JST 1.25 plug), but the
+**capacity differs by role** because the battery does a different job in each:
+
+| Unit | Suggested cell | Why |
+|---|---|---|
+| **Node** | **small, ~1100 mAh** | The LiPo is a **bridge/backup**, not primary power — the buck tops it off from the camera battery whenever one is connected. It only carries the node through a swap (seconds) or the window after a camera battery dies (minutes). Solo runtime is still ~15 h. **Smaller = more compact node.** |
+| **Receiver** | **bigger, ~3000 mAh** | Runs **solo all day** — nothing tops it off. ~3000 mAh ≈ 1+ day with margin for dashboard use. |
+
 | Item | Value | Notes |
 |---|---|---|
-| Cell type | 1S LiPo pouch, with protection board | JST 1.25 plug |
-| Dimensions L × W × H | **`‹MEASURE›`** (3000 mAh pouches are typically ~60–80 × 40–55 × ~6–8 mm) | **measure your exact cell — this drives the receiver size** |
-| Leads | JST 1.25, ~short | plugs into the Heltec battery connector |
-| Mounting | flat pocket, double-sided tape or a retention lip | keep clear of the antenna |
+| Cell type | 1S LiPo pouch, protection board | JST 1.25 plug into the Heltec battery connector |
+| Node cell dims L×W×H | **`‹MEASURE›`** (~1100 mAh ≈ ~50–60 × 30–35 × ~6 mm) | drives node thickness |
+| Receiver cell dims | **`‹MEASURE›`** (~3000 mAh ≈ ~60–80 × 40–55 × ~6–8 mm) | drives receiver size |
+| Mounting | flat pocket, tape or retention lip | keep clear of the antenna |
 
-> ⚠️ **The LiPo is the single biggest size driver for the receiver.** Measure it
-> first and design the receiver's internal pocket around it (+1 mm clearance all
-> round, +2 mm on the lead side for the JST plug + strain relief). Never compress
-> a pouch cell — give it a flat, unstressed bed.
+> ⚠️ **The LiPo is the biggest size driver for each shell.** Measure the exact
+> cell you'll use, then design the pocket around it (+1 mm clearance all round,
+> +2 mm on the lead side for the JST plug + strain relief). Never compress a
+> pouch cell — give it a flat, unstressed bed.
 
 ---
 
 ## 2. Sensor-node enclosure
 
 Houses: **Heltec V3** + the **buck converter** (Pololu D24V10F5, ~10.2 × 10.2 mm
-`‹MEASURE›`) + the **voltage divider + cap** (small protoboard or the future PCB)
-+ wiring to the **battery connector** (D-Tap or AB 4-pin). No internal LiPo
-(powered by the camera battery).
+`‹MEASURE›`) + the **voltage divider + cap** + a **small bridge LiPo (~1100 mAh)**
++ wiring to the **battery connector** (D-Tap or AB 4-pin).
+
+> **Power architecture:** the camera battery → buck → 5V powers the node *and*
+> charges the LiPo; the camera battery is also sensed via the divider → GPIO7.
+> The LiPo **bridges** battery swaps and keeps the node alive to report a dead /
+> removed camera battery for sure (vs just going silent). So the node needs a
+> **small LiPo pocket** in addition to the buck + divider bays.
 
 **Required features**
 - **OLED window** on the top face (clear cutout or thin transparent insert), over
   the 0.96" OLED.
 - **PRG button access** — a hole, flexible membrane, or a printed plunger button.
-- **USB-C cutout** (flashing/serve power for bench).
+- **USB-C cutout** (flashing + charging the bridge LiPo).
+- **Bridge LiPo pocket** — flat bed for the ~1100 mAh cell, JST reachable, away
+  from the antenna; tape or a retention lip (never compress the pouch).
 - **LoRa antenna exit** — a hole/grommet for the u.FL pigtail + external antenna,
   or an SMA bulkhead cutout if using a panel-mount antenna.
 - **Battery-lead entry** — a strain-relieved cutout/grommet where the wires from
@@ -183,7 +199,8 @@ Take these with calipers off the real hardware and fill into the parameters:
 - [ ] Wireless Paper module overall L × W × thickness
 - [ ] e-ink active-area size + X/Y offset
 - [ ] USER button + USB-C positions on the receiver
-- [ ] **MakerFocus 3000 mAh LiPo: L × W × thickness + lead length**
+- [ ] **Node LiPo (~1100 mAh): L × W × thickness + lead length**
+- [ ] **Receiver LiPo (~3000 mAh): L × W × thickness + lead length**
 - [ ] Buck (D24V10F5) footprint + height; divider board size
 - [ ] Chosen battery connector (D-Tap / AB) flange/panel dimensions
 

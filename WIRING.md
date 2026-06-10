@@ -23,19 +23,27 @@ setting (web page or long-press PRG) — **no extra wiring** for it.
 | GPIO7 at 25.2V (6S full) | **~3.0 V** (headroom under the 3.3V ADC ceiling) |
 | GPIO7 at 16.8V (4S full) | ~2.0 V |
 | Buck | Pololu **D24V10F5** (36V max in → 5V) — must be 36V-rated for 6S |
+| Bridge LiPo | 1S, **~1100 mAh**, JST 1.25 (backup — buck keeps it charged) |
 
 ```
-                 ┌─────────────► Buck VIN ──► VOUT 5V ──► Heltec 5V
-   VBAT ─────────┤
- (4S or 6S,      └──[200kΩ]──┬──► GPIO7
+                 ┌──► Buck VIN ──► VOUT 5V ──► Heltec "5V" pin ──► powers board
+   VBAT ─────────┤                                              └─► charges LiPo
+ (4S or 6S,      └──[200kΩ]──┬──► GPIO7                            (onboard charger)
   ≤25.2V)                    │
-                          [27kΩ]   [100nF]
-                             │        │
-   GND ──────────────────────┴────────┴──► Heltec GND  +  Buck GND
+                          [27kΩ]   [100nF]            Bridge LiPo (~1100mAh, 1S)
+                             │        │                  └─► Heltec JST 1.25
+   GND ──────────────────────┴────────┴──► Heltec GND  +  Buck GND  +  LiPo −
 ```
 
+- **Bridge LiPo (backup):** a small 1S LiPo on the Heltec's JST connector. The
+  buck **charges it** from the camera battery (via the 5V pin → onboard charger)
+  and **powers the node**; the LiPo only carries the node during a battery swap
+  or after the camera battery dies — so the node **stays alive to report a dead /
+  removed camera battery for sure**, and never reboots on a swap. ~1100mAh is
+  plenty (it's topped off whenever a camera battery is connected).
 - **Buck rating matters:** for 6S (25.2V) use the 36V-rated D24V10F5. A 28V buck
-  (e.g. MP1584 modules) is too marginal for 6S.
+  (e.g. MP1584 modules) is too marginal for 6S. The buck now also supplies the
+  LiPo charge current (~500mA) on top of the board — the 1A D24V10F5 handles it.
 - `ADC_SCALE` in the sketch is the universal value `(227/27 × 3.3/4095)`. If you
   fit different resistors, update it.
 - After wiring, **calibrate** on the web page against a multimeter.
