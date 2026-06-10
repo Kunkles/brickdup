@@ -6,16 +6,17 @@
 //   z 15..16  Heltec WiFi LoRa 32 V3 on four 13 mm corner towers,
 //             directly above the cell (battery JST is on the board's
 //             underside, so the lead run is tiny)
-//   east bay  LEMO panel connector tail + divider; buck recess in the
-//             bay floor.  Wires cross the bay rib's centre gap.
+//   west bay  buck recess in the floor + the two west screw bosses; the
+//             USB-C cable passes over the buck to reach the board
+//   east bay  LEMO panel connector tail + divider + the two east bosses
 //
-// Footprint is set by the Heltec (50.2 mm) + a 15 mm LEMO bay — the shell
-// can't be shorter than that.  Outer ≈ 74 x 35 x 30 mm (plus small screw
-// ears at the four corners).
+// Footprint is set by the Heltec (50.2 mm) + the two end bays.  Outer
+// ≈ 85 x 35 x 30 mm — all four M2 screws are now on internal corner
+// bosses (no external ears).
 //
-// Wall features:  USB-C cutout (west), LEMO panel hole (east), SMA antenna
-// hole (north wall, bay end), vent slots.  Lid: OLED window, PRG/RST holes,
-// M2 screws into 4 external ear posts (no internal bosses — no room).
+// Wall features:  USB-C slot (west — see note below), LEMO panel hole
+// (east), SMA antenna hole (north wall, bay end), vent slots.  Lid: OLED
+// window, plunger bores, M2 screws into the 4 corner bosses.
 //
 // part = "both" renders base + lid in print orientation.
 //
@@ -28,12 +29,15 @@
 //     unsoldered).  If yours are soldered pointing down, raise standoff_h
 //     to ~22 and the shell grows ~9 mm taller.
 //   - The LEMO tail (~20 mm behind the panel) runs at floor level under the
-//     board's east end, over the buck.  A fat 1B body may graze the buck —
-//     check depths; shift the buck recess or shorten lemo_z if so.
+//     board's east end.  The buck now lives in the WEST bay, so nothing is
+//     under the tail — but keep divider wire slack out of its way.
 //   - LiPo side clearance is ~0.75 mm/side (cell measured 25.0 wide).  If
 //     your cell runs fat, bump `pad` by 0.5 — never squeeze the pouch.
-//   - The USB-C plug reaches through wall + ~2.5 mm of rim; the chamfered
-//     mouth handles most cables, but check yours.
+//   - The USB-C port sits ~15 mm behind the west wall (behind the west
+//     bay), so the wall opening is an OVERMOLD-SIZED SLOT: the cable's
+//     plastic body passes through the wall and into the bay (over the
+//     buck — different heights, no clash).  MEASURE your cable's overmold
+//     and size usb_w/usb_h to it +1 mm; chunky cables may not fit.
 //   - Buttons are actuated by CAPTIVE PRINTED PLUNGERS (no exposed PCB):
 //     each button gets a guide tube under the lid and a printed piston,
 //     dropped in from the inside before the lid goes on.  The flared cone
@@ -66,11 +70,12 @@ lipo_l = 40.0;  lipo_w = 25.0;  lipo_t = 10.0;   // measured
 buck_l = 12.7;  buck_w = 10.2;   // MEASURE (datasheet 0.5" x 0.4")
 buck_recess = 0.6;               // bay-floor recess to locate it (foam-tape it in)
 
-/* ---------------- east bay (LEMO tail + buck + divider) ---------------- */
-bay_l = 15.0;   // depth along X
+/* ---------------- end bays ---------------- */
+wbay  = 13.0;   // west bay: buck (sideways) + west bosses + USB reach-through
+bay_l = 15.0;   // east bay: LEMO tail + divider + east bosses
 
 /* ---------------- connectors ---------------- */
-usb_w = 10.0;  usb_h = 4.8;      // USB-C cutout (port ~9x3.2 + slip)  MEASURE
+usb_w = 13.0;  usb_h = 8.0;      // overmold slot, not port-sized  MEASURE cable
 lemo_hole_d = 12.0;  // MEASURE your shell: LEMO 0B panel ~9.1 mm (+ key flat),
                      // 1B ~12.1 mm.  Add the anti-rotation flat after measuring.
 lemo_z = 9.0;        // hole centre height — keeps the tail below the board
@@ -96,8 +101,8 @@ tip_d    = 4.0;      // contact face on the button cap
 tube_od  = 9.4;      // guide tube under the lid
 tube_len = 5.5;      // tube reach below the lid underside
 
-/* ---------------- screws (M2 self-tap into ear posts) ---------------- */
-ear_d       = 7.0;
+/* ---------------- screws (M2 self-tap into corner bosses) ---------------- */
+boss_d      = 6.0;
 screw_pilot = 1.7;   // M2 self-tap pilot in PETG
 screw_clear = 2.4;   // clearance through lid
 cb_d = 4.6;  cb_t = 1.2;   // pan-head counterbore
@@ -106,7 +111,7 @@ cb_d = 4.6;  cb_t = 1.2;   // pan-head counterbore
 hz_l = pcb_l + 1.0;                      // Heltec zone, 0.5 mm slip per side
 hz_w = pcb_w + 1.0;
 
-inner_l = pad + hz_l + rib + bay_l;          // ~69.8
+inner_l = wbay + hz_l + rib + bay_l;         // ~80.8
 inner_w = pad + hz_w + pad;                  // ~30.5
 inner_h = standoff_h + pcb_t + comp_h + 2.0; // 26
 
@@ -114,22 +119,26 @@ outer_l = inner_l + 2*wall;
 outer_w = inner_w + 2*wall;
 base_h  = wall + inner_h;
 
-bx = wall + pad + 0.5;            // PCB SW corner (board centred in its zone)
+bx = wall + wbay + 0.5;           // PCB SW corner (board centred in its zone)
 by = wall + pad + 0.5;
-ribX    = wall + pad + hz_l;      // bay rib west face
+ribW    = wall + wbay - rib;      // west rib (west bay | board zone), west face
+ribX    = wall + wbay + hz_l;     // bay rib (board zone | east bay), west face
 bayX    = ribX + rib;             // east bay west edge
 rim_top = wall + standoff_h + pcb_t + 2;   // rim cradles the PCB edge by 2 mm
-lipoX   = wall + pad + 1;         // cell west edge
+lipoX   = wall + wbay + 1;        // cell west edge
+usb_y0  = outer_w/2 - usb_w/2;    // USB slot / west-rib gap edges
+usb_y1  = outer_w/2 + usb_w/2;
+usb_zc  = wall + standoff_h + pcb_t + 1.6; // USB port axis height
 
-ear_pos = [ [-1.5, 7], [-1.5, outer_w - 7],
-            [outer_l + 1.5, 7], [outer_l + 1.5, outer_w - 7] ];
+boss_pos = [ [5, 5], [5, outer_w - 5],
+             [outer_l - 5, 5], [outer_l - 5, outer_w - 5] ];
 
 btns    = [ [prg_x, prg_y], [rst_x, rst_y] ];
 btn_z   = wall + standoff_h + pcb_t + btn_top;   // button cap top (z)
 lid_top = base_h + lid_t;
 
 echo(str("outer: ", outer_l, " x ", outer_w, " x ", base_h + lid_t,
-         " mm (+ ear posts)"));
+         " mm"));
 echo(str("inner: ", inner_l, " x ", inner_w, " x ", inner_h, " mm"));
 
 /* ================= helpers ================= */
@@ -154,13 +163,16 @@ module base() {
         translate([wall, wall, wall]) cube([inner_l, inner_w, inner_h + 1]);
       }
 
-      // rim: cradles the PCB edges (west / south / north), board drops inside
-      translate([wall, wall, wall])
-        cube([pad, inner_w, rim_top - wall]);                       // west
-      translate([wall, wall, wall])
-        cube([ribX - wall, pad, rim_top - wall]);                   // south
-      translate([wall, wall + pad + hz_w, wall])
-        cube([ribX - wall, pad, rim_top - wall]);                   // north
+      // rim: cradles the PCB edges, board drops inside.  West side is a rib
+      // (west bay | board zone) gapped for the USB plug + buck output wires
+      translate([ribW, wall, wall])
+        cube([rib, usb_y0 - wall, rim_top - wall]);
+      translate([ribW, usb_y1, wall])
+        cube([rib, wall + inner_w - usb_y1, rim_top - wall]);
+      translate([ribW, wall, wall])
+        cube([ribX - ribW, pad, rim_top - wall]);                   // south
+      translate([ribW, wall + pad + hz_w, wall])
+        cube([ribX - ribW, pad, rim_top - wall]);                   // north
 
       // bay rib — wide centre gap (y 10..24) passes the LEMO tail + wires
       translate([ribX, wall, wall]) cube([rib, 10 - wall, rim_top - wall]);
@@ -173,25 +185,28 @@ module base() {
                 [bx + pcb_l - 3.5, by + pcb_w - 3.5]])
         translate([p[0], p[1], wall]) cube([4, 4, standoff_h]);
 
-      // LiPo end stop (cell at x 5..45, under the board) — gap for the lead
+      // LiPo end stop (cell sits just east of the west rib, under the
+      // board) — gap for the lead
       translate([lipoX + lipo_l + 1, wall + pad, wall])
         cube([rib, 12 - wall - pad, 8]);
       translate([lipoX + lipo_l + 1, 20, wall])
         cube([rib, wall + pad + hz_w - 20, 8]);
 
-      // external screw ear posts (fused to the end walls)
-      for (p = ear_pos)
-        translate([p[0], p[1], 0]) cylinder(h = base_h, d = ear_d);
+      // internal corner screw bosses (live in the end bays, clear of the
+      // board, LiPo, LEMO tail, and buck)
+      for (p = boss_pos)
+        translate([p[0], p[1], wall]) cylinder(h = inner_h, d = boss_d);
     }
 
-    // ear pilot holes (M2 self-tap)
-    for (p = ear_pos)
+    // boss pilot holes (M2 self-tap)
+    for (p = boss_pos)
       translate([p[0], p[1], base_h - 8]) cylinder(h = 8.1, d = screw_pilot);
 
-    // USB-C cutout, west wall + rim (+ chamfered mouth)
-    translate([-0.1, by + pcb_w/2 - usb_w/2, wall + standoff_h + pcb_t - 0.8])
-      cube([wall + pad + 0.2, usb_w, usb_h]);
-    translate([-0.1, by + pcb_w/2 - usb_w/2 - 1.2, wall + standoff_h + pcb_t - 2.0])
+    // USB-C slot, west wall: sized for the cable OVERMOLD, which passes
+    // through the wall and across the west bay to the recessed port
+    translate([-0.1, usb_y0, usb_zc - usb_h/2])
+      cube([wall + 0.2, usb_w, usb_h]);
+    translate([-0.1, usb_y0 - 1.2, usb_zc - usb_h/2 - 1.2])
       cube([1.2, usb_w + 2.4, usb_h + 2.4]);
 
     // LEMO panel hole, east wall, centred, low (tail runs under the board)
@@ -201,21 +216,21 @@ module base() {
     translate([wall + inner_l - 4, outer_w/2 - 9, wall - 0.8])
       cube([4.1, 18, 0.9]);
 
-    // SMA bulkhead (antenna), north wall at the bay end — u.FL pigtail from
+    // SMA bulkhead (antenna), north wall at the east bay — u.FL pigtail from
     // the board's east end bends ~90° to reach it
-    translate([66, outer_w - wall - 0.1, 20])
+    translate([bayX + 5, outer_w - wall - 0.1, 20])
       rotate([-90, 0, 0]) cylinder(h = wall + 0.2, d = sma_d);
 
     // vents — board level (above the rim): both long walls over the ESP,
-    // plus the bay (south wall only; SMA owns the north bay wall)
-    vent_row(30, 6);
-    vent_row(30, 6, yw = outer_w - wall);
-    vent_row(57, 3);
+    // plus the east bay (south wall only; SMA owns the north bay wall)
+    vent_row(42, 6);
+    vent_row(42, 6, yw = outer_w - wall);
+    vent_row(68, 3);
 
-    // buck locating recess, bay floor, south side (under the LEMO tail —
-    // see header note about 1B body clearance)
-    translate([bayX + 0.7, 2.5, wall - buck_recess])
-      cube([buck_l + 1, buck_w + 1, buck_recess + 0.1]);
+    // buck locating recess, west bay floor, sideways, centred between the
+    // bosses — the USB cable passes well above it
+    translate([wall + 0.1, outer_w/2 - (buck_l + 1)/2, wall - buck_recess])
+      cube([buck_w + 1, buck_l + 1, buck_recess + 0.1]);
   }
 }
 
@@ -224,9 +239,6 @@ module lid() {
   difference() {
     union() {
       translate([0, 0, base_h]) rbox(outer_l, outer_w, lid_t, fillet);
-      // ear pads over the posts
-      for (p = ear_pos)
-        translate([p[0], p[1], base_h]) cylinder(h = lid_t, d = ear_d);
       // plunger guide tubes under the lid
       if (plungers)
         for (p = btns)
@@ -241,10 +253,14 @@ module lid() {
       }
     }
 
-    // screw holes + counterbores through the ear pads
-    for (p = ear_pos) {
-      translate([p[0], p[1], base_h - 0.1])
-        cylinder(h = lid_t + 0.2, d = screw_clear);
+    // boss clearance notches in the lip
+    for (p = boss_pos)
+      translate([p[0], p[1], base_h - 3.1]) cylinder(h = 3.2, d = boss_d + 1);
+
+    // screw holes + counterbores over the bosses
+    for (p = boss_pos) {
+      translate([p[0], p[1], base_h - 3.2])
+        cylinder(h = lid_t + 3.4, d = screw_clear);
       translate([p[0], p[1], base_h + lid_t - cb_t])
         cylinder(h = cb_t + 0.1, d = cb_d);
     }

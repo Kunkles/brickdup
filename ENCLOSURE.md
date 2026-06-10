@@ -94,8 +94,9 @@ the Heltec battery connector directly (no adapter).
 
 > **Parametric model:** [`enclosure/node_enclosure.scad`](enclosure/node_enclosure.scad)
 > implements this section (**stacked** layout for minimum footprint: LiPo flat
-> on the floor, Heltec on 13 mm towers above it, small east bay for the LEMO
-> tail + buck + divider; outer ≈ **74 × 35 × 30 mm** — battery-brick
+> on the floor, Heltec on 13 mm towers above it, west bay for the buck + USB
+> reach-through, east bay for the LEMO tail + divider, M2 screws on four
+> internal corner bosses; outer ≈ **85 × 35 × 30 mm** — battery-brick
 > proportions). Open in OpenSCAD, set `part`, tweak the `MEASURE`-tagged
 > variables after calipering. Assumes no bottom-facing pin headers on the
 > Heltec; if soldered, raise `standoff_h` (shell grows taller). PRG/RST are
