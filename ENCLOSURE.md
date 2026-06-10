@@ -75,9 +75,13 @@ the Heltec battery connector directly (no adapter).
 
 | Item | Value | Notes |
 |---|---|---|
-| Node cell dims L×W×H | **`‹MEASURE›`** (1100 mAh pouch, ~50–60 × 30–35 × ~6 mm) | drives node thickness |
-| Receiver cell dims | **`‹MEASURE›`** (3000 mAh pouch, ~60–80 × 40–55 × ~6–8 mm) | drives receiver size |
+| **Node cell** (1100 mAh) | **40 × 25 × 10 mm** (L × W × thick) | pocket ≈ **42 × 27 × 11 mm** (+1 mm clearance) |
+| **Receiver cell** (3000 mAh) | **65 × 35 × 10 mm** (L × W × thick) | pocket ≈ **67 × 37 × 11 mm** (+1 mm clearance) |
 | Mounting | flat pocket, tape or retention lip | keep clear of the antenna |
+
+> Both cells are **10 mm thick** — that sets the minimum internal depth of each
+> shell's battery pocket. Add the JST plug + strain relief on the lead end
+> (~+2 mm length). Pocket lengths above already include +1 mm all-round slip.
 
 > ⚠️ **The LiPo is the biggest size driver for each shell.** Measure the exact
 > cell you'll use, then design the pocket around it (+1 mm clearance all round,
@@ -201,8 +205,8 @@ Take these with calipers off the real hardware and fill into the parameters:
 - [ ] Wireless Paper module overall L × W × thickness
 - [ ] e-ink active-area size + X/Y offset
 - [ ] USER button + USB-C positions on the receiver
-- [ ] **Node LiPo (~1100 mAh): L × W × thickness + lead length**
-- [ ] **Receiver LiPo (~3000 mAh): L × W × thickness + lead length**
+- [x] Node LiPo (1100 mAh): **40 × 25 × 10 mm** (+ lead length ‹measure›)
+- [x] Receiver LiPo (3000 mAh): **65 × 35 × 10 mm** (+ lead length ‹measure›)
 - [ ] Buck (D24V10F5) footprint + height; divider board size
 - [ ] Chosen battery connector (D-Tap / AB) flange/panel dimensions
 
