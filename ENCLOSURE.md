@@ -99,6 +99,20 @@ Houses: **Heltec V3** + the **buck converter** (Pololu D24V10F5, ~10.2 × 10.2 m
 - **Internal bays:** locate the Heltec, a footprint for the buck, and a small bay
   for the divider board, with wire channels between them.
 
+**Voltage divider — plan the bay around your build method.** The divider is tiny
+(R1 = 200kΩ, R2 = 27kΩ, + 100 nF cap, on GPIO7), but its footprint depends on how
+it's assembled — design the bay for whichever you use:
+- **Inline (smallest):** components soldered inline and heat-shrunk — no board.
+  Just provide a **wire channel + a ~10 × 25 mm slack pocket** between the
+  battery-lead entry and the Heltec.
+- **Perfboard scrap:** allow a **~20 × 15 mm board bay** (`‹MEASURE your board›`)
+  with a locating lip.
+- **Future PCB:** the planned sensor PCB **combines the buck + divider** on one
+  board — then this becomes a single board footprint (size TBD by the PCB).
+
+Keep the divider node (GPIO7) and its 100 nF cap **close to the Heltec** to keep
+the ADC trace short and quiet.
+
 **Suggested envelope:** ~60 × 35 × 20 mm internal `‹DERIVE from parts›`. Rugged,
 thick corners, IP-ish (gasket channel optional).
 
