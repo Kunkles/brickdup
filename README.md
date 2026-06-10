@@ -226,17 +226,20 @@ then `git tag v0.5.1 && git push --tags`.
       stays alive to report a **camera battery removed/dead for sure** (vs just
       going silent), survives swaps, and reports its own LiPo level. Replaces the
       receiver's inferred DEAD with an explicit reported one
-- [ ] Regulated-source mode (block batteries) — the only accessible outlet on
-      the block batteries is likely the **regulated 14.4V output**, which holds
-      flat until the pack dies: no discharge curve, so SoC%/time-to-empty/WARN
-      are meaningless for it. **First verify with a meter** (full vs drained
-      block; also probe the charge port — charging reaches the raw cells, so it
-      may expose true pack voltage and restore the full curve). If regulated:
-      repurpose BL mode → "regulated source" — node reports voltage +
-      alive/dead only; receiver shows a dash instead of SoC%, states reduce to
-      OK/STALE/LOST/DEAD (no WARN/CRIT). Honest display over fake fuel gauge.
-      Pairs with the bridge-LiPo item: explicit source-gone reporting is the
-      *only* health signal a regulated output gives
+- [ ] VCLX block-battery mode (NiMH) — the blocks in use are Anton/Bauer
+      **VCLX NM2** (600Wh **NiMH**), tapped at a 14.4V 4-pin XLR. Per the
+      [manual](https://www.antonbauer.com/wp-content/uploads/2023/07/ab_86750174-4980_0-vclx_nm2-manual_en.pdf)
+      spec table, only 28V/48V (+5V USB) are regulated; the 4-pin XLRs are
+      **variable 12–17V** (pack-following) — so the node *does* see a real
+      discharge curve. But the chemistry breaks the Li-ion fuel gauge: NiMH
+      holds a flat ~14.4V (1.2V/cell × 12) for most of the discharge, knees
+      at ~13.2V, and the battery hard-cuts its output at **12.0V** (output
+      vanishes → bridge LiPo keeps the node alive to report DEAD). Repurpose
+      BL mode → NiMH profile: thresholds ≈ WARN 13.2 / CRIT 12.4, and
+      suppress SoC%/time-to-empty (or fit a rough NiMH curve) — the Li-ion
+      curve reads nonsense on the flat middle. Verify thresholds on a real
+      pack: meter the XLR full (~16.8V) vs drained. Heads-up for the divider
+      bench test: cap input at ~17V for this mode, not 25.2V
 - [ ] CRIT buzzer alert on receiver
 - [x] NVS persistence — receiver remembers nodes across reboots (clear on dashboard)
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)
