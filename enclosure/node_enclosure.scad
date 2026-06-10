@@ -1,24 +1,22 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD scaffold)
 // =================================================================
-// STACKED layout — minimum footprint, battery-brick proportions:
+// STACKED + SIDE-CHANNEL layout:
 //
 //   z 2..12   1100 mAh bridge LiPo (40x25x10) flat on the floor
 //   z 15..16  Heltec WiFi LoRa 32 V3 on four 13 mm corner towers,
 //             directly above the cell (battery JST is on the board's
 //             underside, so the lead run is tiny)
-//   west bay  buck recess in the floor + the two west screw bosses; the
-//             USB-C cable passes over the buck to reach the board
-//   east bay  LEMO panel connector tail + divider + the two east bosses
+//   south ch  buck recess in the floor + wire raceway (11.5 mm wide)
+//   north ch  divider / wire slack raceway (7 mm wide)
+//   east bay  LEMO panel connector tail + divider
 //
-// Footprint is set by the Heltec (50.2 mm) + the two end bays.  Outer
-// ≈ 85 x 35 x 30 mm — all four M2 screws are now on internal corner
-// bosses (no external ears).
+// The board sits ~2.5 mm from the west wall, so USB-C is a normal
+// chamfered port hole (~4 mm recess), not a deep slot.  All four M2
+// screws are internal corner bosses, in the channel corners.  Channels
+// open into the east bay, so wires run LEMO → channel → buck → board
+// without rib gaps.  Outer ≈ 73 x 52 x 30 mm.
 //
-// Wall features:  USB-C slot (west — see note below), LEMO panel hole
-// (east), SMA antenna hole (north wall, bay end), vent slots.  Lid: OLED
-// window, plunger bores, M2 screws into the 4 corner bosses.
-//
-// part = "both" renders base + lid in print orientation.
+// part = "both" renders base + lid + plungers in print orientation.
 //
 // Every value marked MEASURE is a best guess from ENCLOSURE.md — verify with
 // calipers and a dry fit before the final print.  Print a fit test of the
@@ -28,16 +26,15 @@
 //   - Assumes NO bottom-facing pin headers on the Heltec (Heltec ships them
 //     unsoldered).  If yours are soldered pointing down, raise standoff_h
 //     to ~22 and the shell grows ~9 mm taller.
+//   - USB-C port face sits ~4 mm behind the outer wall.  The 12x7 chamfered
+//     hole lets a plug nose seat through that on most cables — check yours;
+//     enlarge usb_w/usb_h if the nose is chunky.
 //   - The LEMO tail (~20 mm behind the panel) runs at floor level under the
-//     board's east end.  The buck now lives in the WEST bay, so nothing is
-//     under the tail — but keep divider wire slack out of its way.
+//     board's east end and stops ~6 mm short of the LiPo.  If your LEMO
+//     body is longer than ~25 mm, bump bay_l.
 //   - LiPo side clearance is ~0.75 mm/side (cell measured 25.0 wide).  If
-//     your cell runs fat, bump `pad` by 0.5 — never squeeze the pouch.
-//   - The USB-C port sits ~15 mm behind the west wall (behind the west
-//     bay), so the wall opening is an OVERMOLD-SIZED SLOT: the cable's
-//     plastic body passes through the wall and into the bay (over the
-//     buck — different heights, no clash).  MEASURE your cable's overmold
-//     and size usb_w/usb_h to it +1 mm; chunky cables may not fit.
+//     your cell runs fat, widen the board-zone ribs apart — never squeeze
+//     the pouch.
 //   - Buttons are actuated by CAPTIVE PRINTED PLUNGERS (no exposed PCB):
 //     each button gets a guide tube under the lid and a printed piston,
 //     dropped in from the inside before the lid goes on.  The flared cone
@@ -53,7 +50,7 @@ lid_t  = 2.4;   // lid plate (screw counterbores live here)
 tol    = 0.20;  // slip-fit clearance
 fillet = 2.5;   // outer corner radius (XY)
 rib    = 1.6;   // internal partition thickness
-pad    = 2.0;   // margin between cavity wall and the board zone (= rim width)
+pad    = 2.0;   // margin between west wall and the board zone (= rim width)
 $fn = 48;
 
 /* ---------------- Heltec WiFi LoRa 32 V3 ---------------- */
@@ -68,18 +65,21 @@ lipo_l = 40.0;  lipo_w = 25.0;  lipo_t = 10.0;   // measured
 
 /* ---------------- buck (Pololu D24V10F5) ---------------- */
 buck_l = 12.7;  buck_w = 10.2;   // MEASURE (datasheet 0.5" x 0.4")
-buck_recess = 0.6;               // bay-floor recess to locate it (foam-tape it in)
+buck_recess = 0.6;               // floor recess to locate it (foam-tape it in)
+buck_x = 20.0;                   // recess position along the south channel
 
-/* ---------------- end bays ---------------- */
-wbay  = 13.0;   // west bay: buck (sideways) + west bosses + USB reach-through
-bay_l = 15.0;   // east bay: LEMO tail + divider + east bosses
+/* ---------------- channels & east bay ---------------- */
+ch_s  = 11.5;   // south channel: buck + wires (sized to the buck recess)
+ch_n  = 7.0;    // north channel: divider / wire slack
+bay_l = 14.0;   // east bay: LEMO tail + divider
 
 /* ---------------- connectors ---------------- */
-usb_w = 13.0;  usb_h = 8.0;      // overmold slot, not port-sized  MEASURE cable
+usb_w = 12.0;  usb_h = 7.0;      // port hole, chamfered  MEASURE plug nose
 lemo_hole_d = 12.0;  // MEASURE your shell: LEMO 0B panel ~9.1 mm (+ key flat),
                      // 1B ~12.1 mm.  Add the anti-rotation flat after measuring.
 lemo_z = 9.0;        // hole centre height — keeps the tail below the board
-sma_d = 6.5;         // SMA bulkhead pass-through  VERIFY (north wall, bay end)
+sma_d = 6.5;         // SMA bulkhead pass-through  VERIFY (east wall)
+sma_y = 12.0;        // SMA centre (between the SE boss and the LEMO nut)
 
 /* ---------------- lid features (offsets from the PCB's SW corner) ------- */
 oled_off_x = 16.0;   // MEASURE  (active area 21.7 x 11, roughly mid-board)
@@ -111,23 +111,22 @@ cb_d = 4.6;  cb_t = 1.2;   // pan-head counterbore
 hz_l = pcb_l + 1.0;                      // Heltec zone, 0.5 mm slip per side
 hz_w = pcb_w + 1.0;
 
-inner_l = wbay + hz_l + rib + bay_l;         // ~80.8
-inner_w = pad + hz_w + pad;                  // ~30.5
-inner_h = standoff_h + pcb_t + comp_h + 2.0; // 26
+inner_l = pad + hz_l + rib + bay_l;            // ~68.8
+inner_w = ch_s + rib + hz_w + rib + ch_n;      // ~48.2
+inner_h = standoff_h + pcb_t + comp_h + 2.0;   // 26
 
 outer_l = inner_l + 2*wall;
 outer_w = inner_w + 2*wall;
 base_h  = wall + inner_h;
 
-bx = wall + wbay + 0.5;           // PCB SW corner (board centred in its zone)
-by = wall + pad + 0.5;
-ribW    = wall + wbay - rib;      // west rib (west bay | board zone), west face
-ribX    = wall + wbay + hz_l;     // bay rib (board zone | east bay), west face
-bayX    = ribX + rib;             // east bay west edge
+bx = wall + pad + 0.5;            // PCB SW corner (board centred in its zone)
+by = wall + ch_s + rib + 0.5;
+ribS    = wall + ch_s;            // south rib (channel | board zone), south face
+ribN    = ribS + rib + hz_w;      // north rib (board zone | channel), south face
+ribX    = wall + pad + hz_l;      // bay rib (board zone | east bay), west face
 rim_top = wall + standoff_h + pcb_t + 2;   // rim cradles the PCB edge by 2 mm
-lipoX   = wall + wbay + 1;        // cell west edge
-usb_y0  = outer_w/2 - usb_w/2;    // USB slot / west-rib gap edges
-usb_y1  = outer_w/2 + usb_w/2;
+lipoX   = wall + pad + 1;         // cell west edge
+pcb_yc  = by + pcb_w/2;           // board centreline: USB, LEMO + tail follow it
 usb_zc  = wall + standoff_h + pcb_t + 1.6; // USB port axis height
 
 boss_pos = [ [5, 5], [5, outer_w - 5],
@@ -137,8 +136,7 @@ btns    = [ [prg_x, prg_y], [rst_x, rst_y] ];
 btn_z   = wall + standoff_h + pcb_t + btn_top;   // button cap top (z)
 lid_top = base_h + lid_t;
 
-echo(str("outer: ", outer_l, " x ", outer_w, " x ", base_h + lid_t,
-         " mm"));
+echo(str("outer: ", outer_l, " x ", outer_w, " x ", base_h + lid_t, " mm"));
 echo(str("inner: ", inner_l, " x ", inner_w, " x ", inner_h, " mm"));
 
 /* ================= helpers ================= */
@@ -163,21 +161,19 @@ module base() {
         translate([wall, wall, wall]) cube([inner_l, inner_w, inner_h + 1]);
       }
 
-      // rim: cradles the PCB edges, board drops inside.  West side is a rib
-      // (west bay | board zone) gapped for the USB plug + buck output wires
-      translate([ribW, wall, wall])
-        cube([rib, usb_y0 - wall, rim_top - wall]);
-      translate([ribW, usb_y1, wall])
-        cube([rib, wall + inner_w - usb_y1, rim_top - wall]);
-      translate([ribW, wall, wall])
-        cube([ribX - ribW, pad, rim_top - wall]);                   // south
-      translate([ribW, wall + pad + hz_w, wall])
-        cube([ribX - ribW, pad, rim_top - wall]);                   // north
+      // channel ribs (stop at the bay, so channels open into it)
+      translate([wall, ribS, wall]) cube([ribX - wall, rib, rim_top - wall]);
+      translate([wall, ribN, wall]) cube([ribX - wall, rib, rim_top - wall]);
 
-      // bay rib — wide centre gap (y 10..24) passes the LEMO tail + wires
-      translate([ribX, wall, wall]) cube([rib, 10 - wall, rim_top - wall]);
-      translate([ribX, 24, wall])
-        cube([rib, wall + inner_w - 24, rim_top - wall]);
+      // west rim band: cradles the board's USB edge (hole cut through it)
+      translate([wall, ribS + rib, wall])
+        cube([pad, hz_w, rim_top - wall]);
+
+      // bay rib — centre gap passes the LEMO tail + wires under the board
+      translate([ribX, ribS + rib, wall])
+        cube([rib, pcb_yc - 7 - (ribS + rib), rim_top - wall]);
+      translate([ribX, pcb_yc + 7, wall])
+        cube([rib, ribN - (pcb_yc + 7), rim_top - wall]);
 
       // PCB corner towers (board rests on these at standoff_h)
       for (p = [[bx - 0.5, by - 0.5], [bx + pcb_l - 3.5, by - 0.5],
@@ -185,15 +181,14 @@ module base() {
                 [bx + pcb_l - 3.5, by + pcb_w - 3.5]])
         translate([p[0], p[1], wall]) cube([4, 4, standoff_h]);
 
-      // LiPo end stop (cell sits just east of the west rib, under the
-      // board) — gap for the lead
-      translate([lipoX + lipo_l + 1, wall + pad, wall])
-        cube([rib, 12 - wall - pad, 8]);
-      translate([lipoX + lipo_l + 1, 20, wall])
-        cube([rib, wall + pad + hz_w - 20, 8]);
+      // LiPo end stop (cell under the board, against the west rim) — gap
+      // for the lead, centred on the board
+      translate([lipoX + lipo_l + 1, ribS + rib, wall])
+        cube([rib, pcb_yc - 4 - (ribS + rib), 8]);
+      translate([lipoX + lipo_l + 1, pcb_yc + 4, wall])
+        cube([rib, ribN - (pcb_yc + 4), 8]);
 
-      // internal corner screw bosses (live in the end bays, clear of the
-      // board, LiPo, LEMO tail, and buck)
+      // internal corner screw bosses (channel corners, clear of everything)
       for (p = boss_pos)
         translate([p[0], p[1], wall]) cylinder(h = inner_h, d = boss_d);
     }
@@ -202,35 +197,34 @@ module base() {
     for (p = boss_pos)
       translate([p[0], p[1], base_h - 8]) cylinder(h = 8.1, d = screw_pilot);
 
-    // USB-C slot, west wall: sized for the cable OVERMOLD, which passes
-    // through the wall and across the west bay to the recessed port
-    translate([-0.1, usb_y0, usb_zc - usb_h/2])
-      cube([wall + 0.2, usb_w, usb_h]);
-    translate([-0.1, usb_y0 - 1.2, usb_zc - usb_h/2 - 1.2])
-      cube([1.2, usb_w + 2.4, usb_h + 2.4]);
+    // USB-C port hole, west wall + rim (~4 mm recess), with a generous
+    // 45° chamfered mouth so the plug nose seats
+    translate([-0.1, pcb_yc - usb_w/2, usb_zc - usb_h/2])
+      cube([wall + pad + 0.2, usb_w, usb_h]);
+    translate([-0.1, pcb_yc - usb_w/2 - 1.5, usb_zc - usb_h/2 - 1.5])
+      cube([1.5, usb_w + 3, usb_h + 3]);
 
-    // LEMO panel hole, east wall, centred, low (tail runs under the board)
-    translate([outer_l - wall - 0.1, outer_w/2, lemo_z])
+    // LEMO panel hole, east wall, on the board centreline, low (tail runs
+    // under the board, through the bay rib's gap)
+    translate([outer_l - wall - 0.1, pcb_yc, lemo_z])
       rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = lemo_hole_d);
     // shallow floor relief so the LEMO nut clears (deepen if yours is fat)
-    translate([wall + inner_l - 4, outer_w/2 - 9, wall - 0.8])
+    translate([wall + inner_l - 4, pcb_yc - 9, wall - 0.8])
       cube([4.1, 18, 0.9]);
 
-    // SMA bulkhead (antenna), north wall at the east bay — u.FL pigtail from
-    // the board's east end bends ~90° to reach it
-    translate([bayX + 5, outer_w - wall - 0.1, 20])
-      rotate([-90, 0, 0]) cylinder(h = wall + 0.2, d = sma_d);
+    // SMA bulkhead (antenna), east wall, south of the LEMO — u.FL pigtail
+    // from the board's east end reaches it through the bay
+    translate([outer_l - wall - 0.1, sma_y, 20])
+      rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = sma_d);
 
-    // vents — board level (above the rim): both long walls over the ESP,
-    // plus the east bay (south wall only; SMA owns the north bay wall)
-    vent_row(42, 6);
-    vent_row(42, 6, yw = outer_w - wall);
-    vent_row(68, 3);
+    // vents — both channel walls, above rib height so air crosses the ribs
+    vent_row(25, 7);
+    vent_row(25, 7, yw = outer_w - wall);
 
-    // buck locating recess, west bay floor, sideways, centred between the
-    // bosses — the USB cable passes well above it
-    translate([wall + 0.1, outer_w/2 - (buck_l + 1)/2, wall - buck_recess])
-      cube([buck_w + 1, buck_l + 1, buck_recess + 0.1]);
+    // buck locating recess, south channel floor — wires run along the
+    // channel: LEMO (east) → buck VIN, buck VOUT → board 5V pin
+    translate([buck_x, wall + 0.2, wall - buck_recess])
+      cube([buck_l + 1, buck_w + 1, buck_recess + 0.1]);
   }
 }
 
