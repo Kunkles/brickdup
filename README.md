@@ -226,6 +226,17 @@ then `git tag v0.5.1 && git push --tags`.
       stays alive to report a **camera battery removed/dead for sure** (vs just
       going silent), survives swaps, and reports its own LiPo level. Replaces the
       receiver's inferred DEAD with an explicit reported one
+- [ ] Regulated-source mode (block batteries) — the only accessible outlet on
+      the block batteries is likely the **regulated 14.4V output**, which holds
+      flat until the pack dies: no discharge curve, so SoC%/time-to-empty/WARN
+      are meaningless for it. **First verify with a meter** (full vs drained
+      block; also probe the charge port — charging reaches the raw cells, so it
+      may expose true pack voltage and restore the full curve). If regulated:
+      repurpose BL mode → "regulated source" — node reports voltage +
+      alive/dead only; receiver shows a dash instead of SoC%, states reduce to
+      OK/STALE/LOST/DEAD (no WARN/CRIT). Honest display over fake fuel gauge.
+      Pairs with the bridge-LiPo item: explicit source-gone reporting is the
+      *only* health signal a regulated output gives
 - [ ] CRIT buzzer alert on receiver
 - [x] NVS persistence — receiver remembers nodes across reboots (clear on dashboard)
 - [ ] Deep sleep on sensor nodes (~10µA between transmissions)
