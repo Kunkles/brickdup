@@ -180,12 +180,14 @@ then `git tag v0.5.1 && git push --tags`.
 
 | Part | Source | ~Cost |
 |---|---|---|
-| Heltec WiFi LoRa 32 V3 (915 MHz) | Amazon | $22 ea |
-| Waveshare 2.13" e-Paper HAT V4 | Amazon | $22 |
-| Pololu D24V10F5 buck converter | Pololu | — |
+| Heltec WiFi LoRa 32 V3 (915 MHz) — nodes | Amazon | $22 ea |
+| Heltec Wireless Paper (915 MHz) — receiver | Amazon | $22 |
+| Pololu D24V10F5 buck converter (per node) | Pololu | — |
+| Node LiPo — MakerHawk 1100mAh 1S (JST 1.25) | Amazon `B0F9YSFV4T` | 4-pack |
+| Receiver LiPo — MakerFocus 3000mAh 1S (JST 1.25) | Amazon `B08T6GT7DV` | 4-pack |
 | D-Tap male connectors | B&H (CT-DTAP-M) | — |
 | AB 4-pin connectors | Pinknoise Systems / Trew Audio | — |
-| 1% metal film resistors (100k, 22k, 180k, 27k) | — | — |
+| 1% metal film resistors — universal: 200k, 27k (legacy: 100k/22k, 180k/27k) | — | — |
 | 100nF ceramic caps (104) | — | — |
 
 ## Roadmap

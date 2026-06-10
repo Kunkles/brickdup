@@ -65,16 +65,18 @@ There are **two enclosures**:
 Both units take a 1S LiPo (MakerFocus, protection board, JST 1.25 plug), but the
 **capacity differs by role** because the battery does a different job in each:
 
-| Unit | Suggested cell | Why |
+| Unit | Cell (chosen) | Why |
 |---|---|---|
-| **Node** | **small, ~1100 mAh** | The LiPo is a **bridge/backup**, not primary power — the buck tops it off from the camera battery whenever one is connected. It only carries the node through a swap (seconds) or the window after a camera battery dies (minutes). Solo runtime is still ~15 h. **Smaller = more compact node.** |
-| **Receiver** | **bigger, ~3000 mAh** | Runs **solo all day** — nothing tops it off. ~3000 mAh ≈ 1+ day with margin for dashboard use. |
+| **Node** | **MakerHawk 1100 mAh** 1S (Amazon `B0F9YSFV4T`) | The LiPo is a **bridge/backup**, not primary power — the buck tops it off from the camera battery whenever one is connected. It only carries the node through a swap (seconds) or the window after a camera battery dies (minutes). Solo runtime is still ~15 h. **Smaller = more compact node.** |
+| **Receiver** | **MakerFocus 3000 mAh** 1S (Amazon `B08T6GT7DV`) | Runs **solo all day** — nothing tops it off. ~3000 mAh ≈ 1+ day with margin for dashboard use. |
+
+Both are 1S LiPo pouches with a protection board and a **JST 1.25 plug** that mates
+the Heltec battery connector directly (no adapter).
 
 | Item | Value | Notes |
 |---|---|---|
-| Cell type | 1S LiPo pouch, protection board | JST 1.25 plug into the Heltec battery connector |
-| Node cell dims L×W×H | **`‹MEASURE›`** (~1100 mAh ≈ ~50–60 × 30–35 × ~6 mm) | drives node thickness |
-| Receiver cell dims | **`‹MEASURE›`** (~3000 mAh ≈ ~60–80 × 40–55 × ~6–8 mm) | drives receiver size |
+| Node cell dims L×W×H | **`‹MEASURE›`** (1100 mAh pouch, ~50–60 × 30–35 × ~6 mm) | drives node thickness |
+| Receiver cell dims | **`‹MEASURE›`** (3000 mAh pouch, ~60–80 × 40–55 × ~6–8 mm) | drives receiver size |
 | Mounting | flat pocket, tape or retention lip | keep clear of the antenna |
 
 > ⚠️ **The LiPo is the biggest size driver for each shell.** Measure the exact
