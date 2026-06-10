@@ -93,9 +93,12 @@ the Heltec battery connector directly (no adapter).
 ## 2. Sensor-node enclosure
 
 > **Parametric model:** [`enclosure/node_enclosure.scad`](enclosure/node_enclosure.scad)
-> implements this section (side-by-side layout: Heltec row + LiPo row + east
-> bay for buck/divider, 6 mm cable corridor between the rows). Open in
-> OpenSCAD, set `part`, tweak the `MEASURE`-tagged variables after calipering.
+> implements this section (**stacked** layout for minimum footprint: LiPo flat
+> on the floor, Heltec on 13 mm towers above it, small east bay for the LEMO
+> tail + buck + divider; outer ≈ **74 × 35 × 30 mm** — battery-brick
+> proportions). Open in OpenSCAD, set `part`, tweak the `MEASURE`-tagged
+> variables after calipering. Assumes no bottom-facing pin headers on the
+> Heltec; if soldered, raise `standoff_h` (shell grows taller).
 
 Houses: **Heltec V3** + the **buck converter** (Pololu D24V10F5, ~12.7 × 10.2 mm
 `‹MEASURE›`) + the **voltage divider + cap** + a **small bridge LiPo (~1100 mAh)**
