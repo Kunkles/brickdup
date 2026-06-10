@@ -34,10 +34,14 @@
 //     your cell runs fat, bump `pad` by 0.5 — never squeeze the pouch.
 //   - The USB-C plug reaches through wall + ~2.5 mm of rim; the chamfered
 //     mouth handles most cables, but check yours.
-//   - Buttons sit ~12 mm below the lid — press with a pen for now, or design
-//     a TPU plunger later (ENCLOSURE.md §4).
+//   - Buttons are actuated by CAPTIVE PRINTED PLUNGERS (no exposed PCB):
+//     each button gets a guide tube under the lid and a printed piston,
+//     dropped in from the inside before the lid goes on.  The flared cone
+//     keeps it captive; the tactile switch's own spring returns it.  Verify
+//     `btn_top` (button cap height above the PCB) or the throw will be off.
+//     Set plungers = false to fall back to plain access holes.
 
-part = "both"; // [both, base, lid, assembly]
+part = "both"; // [both, base, lid, plunger, assembly]
 
 /* ---------------- global ---------------- */
 wall   = 2.0;   // shell wall
@@ -79,7 +83,18 @@ oled_w = 23.7;       // window = active area + ~1 mm margin per side
 oled_h = 13.0;
 prg_x = 8.0;   prg_y = 5.0;    // MEASURE  PRG/USER button centre
 rst_x = 8.0;   rst_y = 20.5;   // MEASURE  RST button centre
-btn_d = 4.5;                   // access-hole diameter
+btn_d = 4.5;                   // access-hole diameter (plungers = false only)
+
+/* ---------------- button plungers (captive printed pistons) ------------- */
+plungers = true;     // false = plain access holes instead
+btn_top  = 1.7;      // button cap height above the PCB top  MEASURE
+plunger_gap = 0.3;   // how proud of the lid the piston sits resting on the button
+bore_d   = 6.4;      // bore through lid + guide tube
+stem_d   = 6.0;      // piston body (what your finger presses)
+flange_d = 9.0;      // captive flare (cones at 45° — supportless)
+tip_d    = 4.0;      // contact face on the button cap
+tube_od  = 9.4;      // guide tube under the lid
+tube_len = 5.5;      // tube reach below the lid underside
 
 /* ---------------- screws (M2 self-tap into ear posts) ---------------- */
 ear_d       = 7.0;
@@ -108,6 +123,10 @@ lipoX   = wall + pad + 1;         // cell west edge
 
 ear_pos = [ [-1.5, 7], [-1.5, outer_w - 7],
             [outer_l + 1.5, 7], [outer_l + 1.5, outer_w - 7] ];
+
+btns    = [ [prg_x, prg_y], [rst_x, rst_y] ];
+btn_z   = wall + standoff_h + pcb_t + btn_top;   // button cap top (z)
+lid_top = base_h + lid_t;
 
 echo(str("outer: ", outer_l, " x ", outer_w, " x ", base_h + lid_t,
          " mm (+ ear posts)"));
@@ -208,6 +227,11 @@ module lid() {
       // ear pads over the posts
       for (p = ear_pos)
         translate([p[0], p[1], base_h]) cylinder(h = lid_t, d = ear_d);
+      // plunger guide tubes under the lid
+      if (plungers)
+        for (p = btns)
+          translate([bx + p[0], by + p[1], base_h - tube_len])
+            cylinder(h = tube_len, d = tube_od);
       // locating lip, drops 3 mm into the cavity
       translate([0, 0, base_h - 3]) difference() {
         translate([wall + tol, wall + tol, 0])
@@ -229,19 +253,52 @@ module lid() {
     translate([bx + oled_off_x, by + oled_off_y, base_h - 0.1])
       cube([oled_w, oled_h, lid_t + 0.2]);
 
-    // button access holes (PRG used constantly; RST occasionally)
-    for (p = [[prg_x, prg_y], [rst_x, rst_y]])
-      translate([bx + p[0], by + p[1], base_h - 0.1])
-        cylinder(h = lid_t + 0.2, d = btn_d);
+    // button access: plunger bores through plate + tube, or plain holes
+    for (p = btns)
+      if (plungers)
+        translate([bx + p[0], by + p[1], base_h - tube_len - 0.1])
+          cylinder(h = tube_len + lid_t + 0.2, d = bore_d);
+      else
+        translate([bx + p[0], by + p[1], base_h - 0.1])
+          cylinder(h = lid_t + 0.2, d = btn_d);
   }
+}
+
+/* ================= button plunger (print 2; drop in from inside) ======== */
+// Modelled at rest-on-button position.  Stack, tip to top: contact face,
+// 45° flare out to the captive flange, 45° taper back to the stem, stem
+// proud of the lid.  Pulled outward, the upper taper seats on the tube's
+// bottom rim (~0.2 mm of float) — it cannot escape; pushed, it clicks the
+// switch.  The switch spring returns it.
+module plunger() {                       // local frame: tip face at z = 0
+  flare = (flange_d - tip_d) / 2;        // 45° cone heights
+  taper = (flange_d - stem_d) / 2;
+  len   = lid_top + plunger_gap - btn_z; // tip on button → top proud of lid
+  cylinder(h = flare, d1 = tip_d, d2 = flange_d);
+  translate([0, 0, flare]) cylinder(h = 0.8, d = flange_d);
+  translate([0, 0, flare + 0.8]) cylinder(h = taper, d1 = flange_d, d2 = stem_d);
+  translate([0, 0, flare + 0.8 + taper])
+    cylinder(h = len - flare - 0.8 - taper, d = stem_d);
 }
 
 /* ================= output ================= */
 if (part == "base")     base();
 if (part == "lid")      lid();
-if (part == "assembly") { base(); color("steelblue", 0.5) lid(); }
+if (part == "plunger")  plunger();
+if (part == "assembly") {
+  base();
+  color("steelblue", 0.5) lid();
+  if (plungers)
+    color("tomato") for (p = btns)
+      translate([bx + p[0], by + p[1], btn_z]) plunger();
+}
 if (part == "both") {
   base();
   // lid flipped flat for printing, parked south of the base
   translate([0, -12, base_h + lid_t]) rotate([180, 0, 0]) lid();
+  // plungers printed tip-up (stem face on the bed; cones are 45° = supportless)
+  if (plungers)
+    for (i = [0, 1])
+      translate([outer_l + 12 + i * 15, -20, lid_top + plunger_gap - btn_z])
+        rotate([180, 0, 0]) plunger();
 }

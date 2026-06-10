@@ -98,7 +98,9 @@ the Heltec battery connector directly (no adapter).
 > tail + buck + divider; outer ≈ **74 × 35 × 30 mm** — battery-brick
 > proportions). Open in OpenSCAD, set `part`, tweak the `MEASURE`-tagged
 > variables after calipering. Assumes no bottom-facing pin headers on the
-> Heltec; if soldered, raise `standoff_h` (shell grows taller).
+> Heltec; if soldered, raise `standoff_h` (shell grows taller). PRG/RST are
+> actuated via **captive printed plungers** (guide tube in the lid + printed
+> piston, §4) — no exposed PCB; set `plungers = false` for plain holes.
 
 Houses: **Heltec V3** + the **buck converter** (Pololu D24V10F5, ~12.7 × 10.2 mm
 `‹MEASURE›`) + the **voltage divider + cap** + a **small bridge LiPo (~1100 mAh)**
