@@ -70,6 +70,8 @@ $fn = 48;
 
 /* ---------------- Heltec WiFi LoRa 32 V3 ---------------- */
 pcb_l      = 48.0;  // measured (tray = pcb_l + 1 = 49)
+tab_gap    = 18.0;  // bay-rib gap for the board's u.FL antenna tab (+ wires),
+                    // centred on the board  MEASURE tab width/offset
 pcb_w      = 25.5;  // MEASURE
 pcb_t      = 1.0;
 comp_h     = 4.0;   // tallest part above PCB (OLED/USB)  MEASURE
@@ -229,11 +231,12 @@ module base() {
       translate([wall, ribS + rib, wall])
         cube([pad, hz_w, rim_top - wall]);
 
-      // bay rib — centre gap passes the LEMO tail + wires under the board
+      // bay rib — centre gap clears the board's u.FL antenna tab, plus the
+      // wires between the bay and the board zone
       translate([ribX, ribS + rib, wall])
-        cube([rib, pcb_yc - 7 - (ribS + rib), rim_top - wall]);
-      translate([ribX, pcb_yc + 7, wall])
-        cube([rib, ribN - (pcb_yc + 7), rim_top - wall]);
+        cube([rib, pcb_yc - tab_gap/2 - (ribS + rib), rim_top - wall]);
+      translate([ribX, pcb_yc + tab_gap/2, wall])
+        cube([rib, ribN - (pcb_yc + tab_gap/2), rim_top - wall]);
 
       // PCB corner towers (board rests on these at standoff_h)
       for (p = [[bx - 0.5, by - 0.5], [bx + pcb_l - 3.5, by - 0.5],
