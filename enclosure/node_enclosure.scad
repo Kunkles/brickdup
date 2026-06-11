@@ -70,9 +70,8 @@ $fn = 48;
 
 /* ---------------- Heltec WiFi LoRa 32 V3 ---------------- */
 pcb_l      = 48.0;  // measured (tray = pcb_l + 1 = 49)
-tab_gap    = 21.0;  // bay-rib gap for the board's u.FL antenna tab (+ wires),
-                    // centred on the board — generous; the corner cradle
-                    // segments shrink to ~2.7 mm each but still locate fine
+tab_gap    = 18.0;  // bay-rib gap for the board's u.FL antenna tab (+ wires),
+                    // centred on the board  MEASURE tab width/offset
 pcb_w      = 25.5;  // MEASURE
 pcb_t      = 1.0;
 comp_h     = 4.0;   // tallest part above PCB (OLED/USB)  MEASURE
