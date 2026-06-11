@@ -97,7 +97,7 @@ the Heltec battery connector directly (no adapter).
 > the floor, Heltec on 13 mm towers above it and ~2.5 mm from the west wall
 > so USB-C is a normal chamfered port hole; side channels carry the buck +
 > wiring and host the four internal M2 corner bosses; east bay for the LEMO
-> tail + divider; outer ≈ **73 × 54 × 24 mm**). Open in OpenSCAD, set
+> tail + divider; outer ≈ **71 × 54 × 24 mm**). Open in OpenSCAD, set
 > `part`, tweak the `MEASURE`-tagged
 > variables after calipering. Assumes no bottom-facing pin headers on the
 > Heltec; if soldered, raise `standoff_h` (shell grows taller). PRG/RST are

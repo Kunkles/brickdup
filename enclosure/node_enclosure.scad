@@ -14,7 +14,7 @@
 // chamfered port hole (~4 mm recess), not a deep slot.  All four M2
 // screws are internal corner bosses, in the channel corners.  Channels
 // open into the east bay, so wires run LEMO → channel → buck → board
-// without rib gaps.  Outer ≈ 73 x 54 x 24 mm.
+// without rib gaps.  Outer ≈ 71 x 54 x 24 mm.
 //
 // part = "both" renders base + lid + plungers in print orientation.
 //
@@ -31,8 +31,8 @@
 //     enlarge usb_w/usb_h if the nose is chunky.  The lid's lip is notched
 //     above the port so the plug doesn't hit it.
 //   - The LEMO tail (~20 mm behind the panel) runs at floor level under the
-//     board's east end and stops ~6 mm short of the LiPo.  If your LEMO
-//     body is longer than ~25 mm, bump bay_l.
+//     board's east end and stops ~1 mm short of the LiPo's end-stop rib.
+//     If your LEMO body is longer than ~21 mm, bump bay_l.
 //   - LiPo side clearance is ~0.75 mm/side (cell measured 25.0 wide).  If
 //     your cell runs fat, widen the board-zone ribs apart — never squeeze
 //     the pouch.
@@ -64,7 +64,7 @@ pad    = 2.0;   // margin between west wall and the board zone (= rim width)
 $fn = 48;
 
 /* ---------------- Heltec WiFi LoRa 32 V3 ---------------- */
-pcb_l      = 50.2;  // MEASURE
+pcb_l      = 48.0;  // measured (tray = pcb_l + 1 = 49)
 pcb_w      = 25.5;  // MEASURE
 pcb_t      = 1.0;
 comp_h     = 4.0;   // tallest part above PCB (OLED/USB)  MEASURE
