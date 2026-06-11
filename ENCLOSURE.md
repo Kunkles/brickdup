@@ -75,7 +75,7 @@ the Heltec battery connector directly (no adapter).
 
 | Item | Value | Notes |
 |---|---|---|
-| **Node cell** (1100 mAh) | **40 × 25 × 10 mm** (L × W × thick) | pocket ≈ **42 × 27 × 11 mm** (+1 mm clearance) |
+| **Node cell** (1100 mAh) | **41.4 × 25.15 × 10.25 mm** (L × W × thick, calipered) | pocket: 42 mm clear span between towers, tape-retained, no end stop |
 | **Receiver cell** (3000 mAh) | **65 × 35 × 10 mm** (L × W × thick) | pocket ≈ **67 × 37 × 11 mm** (+1 mm clearance) |
 | Mounting | flat pocket, tape or retention lip | keep clear of the antenna |
 
