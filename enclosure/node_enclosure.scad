@@ -3,14 +3,15 @@
 // Version: v3 (2026-06-11) — post-print fit pass on the v2 print: button
 //          height corrected from fit symptom (plunger pressed the switch
 //          with the lid screwed tight), plunger flange slimmed to match,
-//          tray length -1.
+//          tray length -1, battery pocket opened up (real cell dims:
+//          towers slimmed to 3 mm + pushed to the ribs, end stop gone).
 //          v2 (2026-06-10) — first measured revision: real board/buck/
 //          LEMO dims, click-in board tray, captive button plungers.
 //          (v1 = the pre-measurement scaffold, git history before this.)
 //
 // STACKED + SIDE-CHANNEL layout:
 //
-//   z 2..12   1100 mAh bridge LiPo (40x25x10) flat on the floor
+//   z 2..12   1100 mAh bridge LiPo (41.4x25.15x10.25) flat on the floor
 //   z 15..16  Heltec WiFi LoRa 32 V3 on four 13 mm corner towers,
 //             directly above the cell (battery JST is on the board's
 //             underside, so the lead run is tiny)
@@ -42,9 +43,10 @@
 //     intrudes 10 mm past the 2 mm wall — it stays inside the bay.  The
 //     leads bend in the remaining 2 mm or pass through the bay rib's gap
 //     and bend under the board.
-//   - LiPo side clearance is ~0.75 mm/side (cell measured 25.0 wide).  If
-//     your cell runs fat, widen the board-zone ribs apart — never squeeze
-//     the pouch.
+//   - LiPo: cell measured 41.39 x 25.15 x 10.25.  It sits between the
+//     corner towers (42 mm clear span, ~0.65 mm/side width-wise), tape-
+//     retained — no end stop, so the leads have free run to the bay-rib
+//     gap.  Never squeeze the pouch.
 //   - The board CLICKS into its tray: full-height cradle walls (2 mm past
 //     the PCB top), a continuous chamfered lip on the south rib, and two
 //     snap nubs on flex tabs on the north rib.  Assembly: tilt the south
@@ -82,7 +84,9 @@ comp_h     = 4.0;   // tallest part above PCB (OLED/USB)  MEASURE
 standoff_h = 13.0;  // tower height: LiPo (10) + 1 air + 2 wire room underneath
 
 /* ---------------- bridge LiPo (MakerHawk 1100 mAh) ---------------- */
-lipo_l = 40.0;  lipo_w = 25.0;  lipo_t = 10.0;   // measured
+lipo_l = 41.4;  lipo_w = 25.15;  lipo_t = 10.25; // measured (v2 print fit);
+                                                 // length excludes the leads —
+                                                 // they exit via the bay-rib gap
 
 /* ---------------- buck (Pololu D24V10F5) ---------------- */
 buck_l = 12.7;  buck_w = 12.0;   // width measured; length from datasheet 0.5"
@@ -150,7 +154,6 @@ ribN    = ribS + rib + hz_w;      // north rib (board zone | channel), south fac
 ribX    = wall + pad + hz_l;      // bay rib (board zone | east bay), west face
 board_top = wall + standoff_h + pcb_t;   // PCB top surface (z)
 rim_top   = board_top + 2;               // cradle walls rise 2 mm past the PCB
-lipoX   = wall + pad + 1;         // cell west edge
 pcb_yc  = by + pcb_w/2;           // board centreline: USB, LEMO + tail follow it
 usb_zc  = wall + standoff_h + pcb_t + 1.6; // USB port axis height
 
@@ -244,18 +247,13 @@ module base() {
       translate([ribX, pcb_yc + tab_gap/2, wall])
         cube([rib, ribN - (pcb_yc + tab_gap/2), rim_top - wall]);
 
-      // PCB corner towers (board rests on these at standoff_h)
-      for (p = [[bx - 0.5, by - 0.5], [bx + pcb_l - 3.5, by - 0.5],
+      // PCB corner towers (board rests on these at standoff_h) — 3 mm wide
+      // and flush against the west rim / bay rib, so the clear span between
+      // them (42 mm) takes the cell; no end stop, the cell is tape-retained
+      for (p = [[bx - 0.5, by - 0.5], [bx + pcb_l - 2.5, by - 0.5],
                 [bx - 0.5, by + pcb_w - 3.5],
-                [bx + pcb_l - 3.5, by + pcb_w - 3.5]])
-        translate([p[0], p[1], wall]) cube([4, 4, standoff_h]);
-
-      // LiPo end stop (cell under the board, against the west rim) — gap
-      // for the lead, centred on the board
-      translate([lipoX + lipo_l + 1, ribS + rib, wall])
-        cube([rib, pcb_yc - 4 - (ribS + rib), 8]);
-      translate([lipoX + lipo_l + 1, pcb_yc + 4, wall])
-        cube([rib, ribN - (pcb_yc + 4), 8]);
+                [bx + pcb_l - 2.5, by + pcb_w - 3.5]])
+        translate([p[0], p[1], wall]) cube([3, 4, standoff_h]);
 
       // internal corner screw bosses (channel corners, clear of everything)
       for (p = boss_pos)
