@@ -1,5 +1,9 @@
-// brickdup — sensor-node enclosure (parametric OpenSCAD scaffold)
+// brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
+// Version: v2 (2026-06-10) — first measured revision: real board/buck/
+//          LEMO dims, click-in board tray, captive button plungers.
+//          (v1 = the pre-measurement scaffold, git history before this.)
+//
 // STACKED + SIDE-CHANNEL layout:
 //
 //   z 2..12   1100 mAh bridge LiPo (40x25x10) flat on the floor
