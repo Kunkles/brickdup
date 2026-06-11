@@ -36,6 +36,12 @@
 //   - LiPo side clearance is ~0.75 mm/side (cell measured 25.0 wide).  If
 //     your cell runs fat, widen the board-zone ribs apart — never squeeze
 //     the pouch.
+//   - The board CLICKS into its tray: continuous lip on the south rib,
+//     two snap nubs on flex tabs on the north rib (tilt south edge under
+//     the lip, press north edge down).  The lip bears on the board's edge
+//     strip (~1 mm) — fine over pads, check nothing tall lives there.  The
+//     lip is a 1.5 mm 90° overhang mid-print: short enough to bridge, but
+//     check your first print's underside.
 //   - Buttons are actuated by CAPTIVE PRINTED PLUNGERS (no exposed PCB):
 //     each button gets a guide tube under the lid and a printed piston,
 //     dropped in from the inside before the lid goes on.  The flared cone
@@ -129,7 +135,8 @@ by = wall + ch_s + rib + 0.5;
 ribS    = wall + ch_s;            // south rib (channel | board zone), south face
 ribN    = ribS + rib + hz_w;      // north rib (board zone | channel), south face
 ribX    = wall + pad + hz_l;      // bay rib (board zone | east bay), west face
-rim_top = wall + standoff_h + pcb_t + 2;   // rim cradles the PCB edge by 2 mm
+rim_top = wall + standoff_h + pcb_t + 0.3; // cradle walls stop just above the
+                                           // PCB top; retention lips take over
 lipoX   = wall + pad + 1;         // cell west edge
 pcb_yc  = by + pcb_w/2;           // board centreline: USB, LEMO + tail follow it
 usb_zc  = wall + standoff_h + pcb_t + 1.6; // USB port axis height
@@ -179,9 +186,31 @@ module base() {
         translate([wall, wall, wall]) cube([inner_l, inner_w, inner_h + 1]);
       }
 
-      // channel ribs (stop at the bay, so channels open into it)
-      translate([wall, ribS, wall]) cube([ribX - wall, rib, rim_top - wall]);
-      translate([wall, ribN, wall]) cube([ribX - wall, rib, rim_top - wall]);
+      // channel ribs (stop at the bay, so channels open into it).  The
+      // board CLICKS into them: the south rib carries a continuous lip the
+      // board's edge slides under, the north rib has two chamfered snap
+      // nubs on flex tabs.  Assembly: tilt the south edge under the lip,
+      // press the north edge down past the nubs.
+      difference() {
+        union() {
+          translate([wall, ribS, wall])
+            cube([ribX - wall, rib, rim_top - wall]);
+          translate([wall, ribN, wall])
+            cube([ribX - wall, rib, rim_top - wall]);
+          // south retention lip (overhangs the PCB edge by ~1 mm)
+          translate([wall + pad, ribS, rim_top])
+            cube([ribX - wall - pad, rib + 1.5, 1.4]);
+          // north snap nubs — 45° lead-in, flat underside at rim_top
+          for (x0 = [18, 42]) hull() {
+            translate([x0, ribN - 1.3, rim_top]) cube([4, 1.3 + rib, 0.1]);
+            translate([x0, ribN, rim_top + 1.2]) cube([4, rib, 0.1]);
+          }
+        }
+        // slits flanking each nub so its rib section can flex outward
+        for (x0 = [18, 42], dx = [-3.8, 6])
+          translate([x0 + dx, ribN - 0.1, 6])
+            cube([1.8, rib + 0.2, rim_top]);
+      }
 
       // west rim band: cradles the board's USB edge (hole cut through it)
       translate([wall, ribS + rib, wall])
