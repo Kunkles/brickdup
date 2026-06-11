@@ -14,7 +14,7 @@
 // chamfered port hole (~4 mm recess), not a deep slot.  All four M2
 // screws are internal corner bosses, in the channel corners.  Channels
 // open into the east bay, so wires run LEMO → channel → buck → board
-// without rib gaps.  Outer ≈ 73 x 52 x 30 mm.
+// without rib gaps.  Outer ≈ 73 x 52 x 24 mm.
 //
 // part = "both" renders base + lid + plungers in print orientation.
 //
@@ -28,7 +28,8 @@
 //     to ~22 and the shell grows ~9 mm taller.
 //   - USB-C port face sits ~4 mm behind the outer wall.  The 12x7 chamfered
 //     hole lets a plug nose seat through that on most cables — check yours;
-//     enlarge usb_w/usb_h if the nose is chunky.
+//     enlarge usb_w/usb_h if the nose is chunky.  The lid's lip is notched
+//     above the port so the plug doesn't hit it.
 //   - The LEMO tail (~20 mm behind the panel) runs at floor level under the
 //     board's east end and stops ~6 mm short of the LiPo.  If your LEMO
 //     body is longer than ~25 mm, bump bay_l.
@@ -40,6 +41,9 @@
 //     dropped in from the inside before the lid goes on.  The flared cone
 //     keeps it captive; the tactile switch's own spring returns it.  Verify
 //     `btn_top` (button cap height above the PCB) or the throw will be off.
+//     The guide-tube length is DERIVED from the under-lid headroom; with
+//     comp_h = 4 the lid sits low, so the flange stack is slimmed to fit.
+//     A console warning prints if the headroom is too small for the flange.
 //     Set plungers = false to fall back to plain access holes.
 
 part = "both"; // [both, base, lid, plunger, assembly]
@@ -57,7 +61,7 @@ $fn = 48;
 pcb_l      = 50.2;  // MEASURE
 pcb_w      = 25.5;  // MEASURE
 pcb_t      = 1.0;
-comp_h     = 10.0;  // tallest part above PCB (OLED/USB)  MEASURE
+comp_h     = 4.0;   // tallest part above PCB (OLED/USB)  MEASURE
 standoff_h = 13.0;  // tower height: LiPo (10) + 1 air + 2 wire room underneath
 
 /* ---------------- bridge LiPo (MakerHawk 1100 mAh) ---------------- */
@@ -80,14 +84,15 @@ lemo_hole_d = 12.0;  // MEASURE your shell: LEMO 0B panel ~9.1 mm (+ key flat),
 lemo_z = 9.0;        // hole centre height — keeps the tail below the board
 sma_d = 6.5;         // SMA bulkhead pass-through  VERIFY (east wall)
 sma_y = 12.0;        // SMA centre (between the SE boss and the LEMO nut)
+sma_z = 14.0;
 
 /* ---------------- lid features (offsets from the PCB's SW corner) ------- */
-oled_off_x = 16.0;   // MEASURE  (active area 21.7 x 11, roughly mid-board)
+oled_off_x = 20.0;   // MEASURE  (active area 21.7 x 11, roughly mid-board)
 oled_off_y = 7.25;   // MEASURE
 oled_w = 23.7;       // window = active area + ~1 mm margin per side
 oled_h = 13.0;
-prg_x = 8.0;   prg_y = 5.0;    // MEASURE  PRG/USER button centre
-rst_x = 8.0;   rst_y = 20.5;   // MEASURE  RST button centre
+prg_x = 4.5;   prg_y = 5.0;    // MEASURE  PRG/USER button centre
+rst_x = 4.5;   rst_y = 20.5;   // MEASURE  RST button centre
 btn_d = 4.5;                   // access-hole diameter (plungers = false only)
 
 /* ---------------- button plungers (captive printed pistons) ------------- */
@@ -96,10 +101,10 @@ btn_top  = 1.7;      // button cap height above the PCB top  MEASURE
 plunger_gap = 0.3;   // how proud of the lid the piston sits resting on the button
 bore_d   = 6.4;      // bore through lid + guide tube
 stem_d   = 6.0;      // piston body (what your finger presses)
-flange_d = 9.0;      // captive flare (cones at 45° — supportless)
+flange_d = 8.0;      // captive flare (cones at 45° — supportless)
+flange_t = 0.4;      // flange land thickness
 tip_d    = 4.0;      // contact face on the button cap
-tube_od  = 9.4;      // guide tube under the lid
-tube_len = 5.5;      // tube reach below the lid underside
+tube_od  = 9.4;      // guide tube under the lid (length derived below)
 
 /* ---------------- screws (M2 self-tap into corner bosses) ---------------- */
 boss_d      = 6.0;
@@ -113,7 +118,7 @@ hz_w = pcb_w + 1.0;
 
 inner_l = pad + hz_l + rib + bay_l;            // ~68.8
 inner_w = ch_s + rib + hz_w + rib + ch_n;      // ~48.2
-inner_h = standoff_h + pcb_t + comp_h + 2.0;   // 26
+inner_h = standoff_h + pcb_t + comp_h + 2.0;   // ~20
 
 outer_l = inner_l + 2*wall;
 outer_w = inner_w + 2*wall;
@@ -136,8 +141,21 @@ btns    = [ [prg_x, prg_y], [rst_x, rst_y] ];
 btn_z   = wall + standoff_h + pcb_t + btn_top;   // button cap top (z)
 lid_top = base_h + lid_t;
 
+// plunger geometry, derived (all cones 45°):
+flare_h = (flange_d - tip_d) / 2;    // tip → flange
+taper_h = (flange_d - stem_d) / 2;   // flange → stem
+// distance from the tip to where the upper taper measures bore_d — that
+// point seating on the tube rim is what makes the piston captive
+seat_h  = flare_h + flange_t + taper_h * (flange_d - bore_d)/(flange_d - stem_d);
+// tube reaches down to leave ~0.3 mm of outward float at rest-on-button
+tube_len = max(0, base_h - btn_z - seat_h - 0.3);
+if (plungers && base_h - btn_z < seat_h + 0.2)
+  echo("WARNING: not enough under-lid headroom for the plunger flange — increase comp_h or slim flange_d/flange_t/tip_d");
+
 echo(str("outer: ", outer_l, " x ", outer_w, " x ", base_h + lid_t, " mm"));
 echo(str("inner: ", inner_l, " x ", inner_w, " x ", inner_h, " mm"));
+echo(str("plunger: tube_len ", tube_len, ", stem ",
+         lid_top + plunger_gap - btn_z - flare_h - flange_t - taper_h, " mm"));
 
 /* ================= helpers ================= */
 module rbox(l, w, h, r) {            // box rounded in XY
@@ -145,7 +163,7 @@ module rbox(l, w, h, r) {            // box rounded in XY
     translate([x, y, 0]) cylinder(h = h, r = r);
 }
 
-module vent_row(x0, n, z = 16, h = 9, w = 1.4, pitch = 3.2, yw = 0) {
+module vent_row(x0, n, z = 13, h = 7, w = 1.4, pitch = 3.2, yw = 0) {
   // yw = 0 cuts the south wall; yw = outer_w - wall cuts the north wall
   for (i = [0 : n - 1])
     translate([x0 + i*pitch, yw - 0.1, z]) cube([w, wall + 0.2, h]);
@@ -197,12 +215,12 @@ module base() {
     for (p = boss_pos)
       translate([p[0], p[1], base_h - 8]) cylinder(h = 8.1, d = screw_pilot);
 
-    // USB-C port hole, west wall + rim (~4 mm recess), with a generous
-    // 45° chamfered mouth so the plug nose seats
+    // USB-C port hole, west wall + rim (~4 mm recess), with a 45° chamfered
+    // mouth so the plug nose seats (chamfer kept below the wall's top edge)
     translate([-0.1, pcb_yc - usb_w/2, usb_zc - usb_h/2])
       cube([wall + pad + 0.2, usb_w, usb_h]);
-    translate([-0.1, pcb_yc - usb_w/2 - 1.5, usb_zc - usb_h/2 - 1.5])
-      cube([1.5, usb_w + 3, usb_h + 3]);
+    translate([-0.1, pcb_yc - usb_w/2 - 1.0, usb_zc - usb_h/2 - 1.0])
+      cube([1.0, usb_w + 2, usb_h + 2]);
 
     // LEMO panel hole, east wall, on the board centreline, low (tail runs
     // under the board, through the bay rib's gap)
@@ -214,10 +232,10 @@ module base() {
 
     // SMA bulkhead (antenna), east wall, south of the LEMO — u.FL pigtail
     // from the board's east end reaches it through the bay
-    translate([outer_l - wall - 0.1, sma_y, 20])
+    translate([outer_l - wall - 0.1, sma_y, sma_z])
       rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = sma_d);
 
-    // vents — both channel walls, above rib height so air crosses the ribs
+    // vents — both channel walls (kept below the wall top / lid lip)
     vent_row(25, 7);
     vent_row(25, 7, yw = outer_w - wall);
 
@@ -234,7 +252,7 @@ module lid() {
     union() {
       translate([0, 0, base_h]) rbox(outer_l, outer_w, lid_t, fillet);
       // plunger guide tubes under the lid
-      if (plungers)
+      if (plungers && tube_len > 0)
         for (p = btns)
           translate([bx + p[0], by + p[1], base_h - tube_len])
             cylinder(h = tube_len, d = tube_od);
@@ -246,6 +264,11 @@ module lid() {
           cube([inner_l - 2*tol - 3.2, inner_w - 2*tol - 3.2, 3.2]);
       }
     }
+
+    // lip notch over the USB port — the low lid puts the lip in the plug's
+    // path, so clear it across the port width
+    translate([-0.1, pcb_yc - usb_w/2, base_h - 3.1])
+      cube([wall + pad + 0.2, usb_w, 3.2]);
 
     // boss clearance notches in the lip
     for (p = boss_pos)
@@ -278,17 +301,16 @@ module lid() {
 // Modelled at rest-on-button position.  Stack, tip to top: contact face,
 // 45° flare out to the captive flange, 45° taper back to the stem, stem
 // proud of the lid.  Pulled outward, the upper taper seats on the tube's
-// bottom rim (~0.2 mm of float) — it cannot escape; pushed, it clicks the
+// bottom rim (~0.3 mm of float) — it cannot escape; pushed, it clicks the
 // switch.  The switch spring returns it.
 module plunger() {                       // local frame: tip face at z = 0
-  flare = (flange_d - tip_d) / 2;        // 45° cone heights
-  taper = (flange_d - stem_d) / 2;
-  len   = lid_top + plunger_gap - btn_z; // tip on button → top proud of lid
-  cylinder(h = flare, d1 = tip_d, d2 = flange_d);
-  translate([0, 0, flare]) cylinder(h = 0.8, d = flange_d);
-  translate([0, 0, flare + 0.8]) cylinder(h = taper, d1 = flange_d, d2 = stem_d);
-  translate([0, 0, flare + 0.8 + taper])
-    cylinder(h = len - flare - 0.8 - taper, d = stem_d);
+  len = lid_top + plunger_gap - btn_z;   // tip on button → top proud of lid
+  cylinder(h = flare_h, d1 = tip_d, d2 = flange_d);
+  translate([0, 0, flare_h]) cylinder(h = flange_t, d = flange_d);
+  translate([0, 0, flare_h + flange_t])
+    cylinder(h = taper_h, d1 = flange_d, d2 = stem_d);
+  translate([0, 0, flare_h + flange_t + taper_h])
+    cylinder(h = len - flare_h - flange_t - taper_h, d = stem_d);
 }
 
 /* ================= output ================= */
