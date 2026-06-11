@@ -14,7 +14,7 @@
 // chamfered port hole (~4 mm recess), not a deep slot.  All four M2
 // screws are internal corner bosses, in the channel corners.  Channels
 // open into the east bay, so wires run LEMO → channel → buck → board
-// without rib gaps.  Outer ≈ 71 x 54 x 24 mm.
+// without rib gaps.  Outer ≈ 69 x 54 x 24 mm.
 //
 // part = "both" renders base + lid + plungers in print orientation.
 //
@@ -30,9 +30,10 @@
 //     hole lets a plug nose seat through that on most cables — check yours;
 //     enlarge usb_w/usb_h if the nose is chunky.  The lid's lip is notched
 //     above the port so the plug doesn't hit it.
-//   - The LEMO tail (~20 mm behind the panel) runs at floor level under the
-//     board's east end and stops ~1 mm short of the LiPo's end-stop rib.
-//     If your LEMO body is longer than ~21 mm, bump bay_l.
+//   - The LEMO body is 12 mm from the back of its flange (measured), so it
+//     intrudes 10 mm past the 2 mm wall — it stays inside the bay.  The
+//     leads bend in the remaining 2 mm or pass through the bay rib's gap
+//     and bend under the board.
 //   - LiPo side clearance is ~0.75 mm/side (cell measured 25.0 wide).  If
 //     your cell runs fat, widen the board-zone ribs apart — never squeeze
 //     the pouch.
@@ -81,7 +82,7 @@ buck_x = 20.0;                   // recess position along the south channel
 /* ---------------- channels & east bay ---------------- */
 ch_s  = buck_w + 1.5;  // south channel: buck + wires (tracks the buck recess)
 ch_n  = 7.0;    // north channel: divider / wire slack
-bay_l = 14.0;   // east bay: LEMO tail + divider
+bay_l = 12.0;   // east bay: LEMO tail (10 into cavity) + wire bend + divider
 
 /* ---------------- connectors ---------------- */
 usb_w = 12.0;  usb_h = 7.0;      // port hole, chamfered  MEASURE plug nose
@@ -251,8 +252,8 @@ module base() {
     translate([-0.1, pcb_yc - usb_w/2 - 1.0, usb_zc - usb_h/2 - 1.0])
       cube([1.0, usb_w + 2, usb_h + 2]);
 
-    // LEMO panel hole, east wall, on the board centreline, low (tail runs
-    // under the board, through the bay rib's gap)
+    // LEMO panel hole, east wall, on the board centreline, low (the 10 mm
+    // tail stays in the bay; leads route through the bay rib's gap)
     translate([outer_l - wall - 0.1, pcb_yc, lemo_z])
       rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = lemo_hole_d);
     // shallow floor relief so the LEMO nut clears (deepen if yours is fat)
