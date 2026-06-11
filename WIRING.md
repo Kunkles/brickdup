@@ -28,12 +28,18 @@ setting (web page or long-press PRG) — **no extra wiring** for it.
 ```
                  ┌──► Buck VIN ──► VOUT 5V ──► Heltec "5V" pin ──► powers board
    VBAT ─────────┤                                              └─► charges LiPo
- (4S or 6S,      └──[200kΩ]──┬──► GPIO7                            (onboard charger)
-  ≤25.2V)                    │
+ (4S or 6S,      └──[200kΩ]──┬────────┬──► GPIO7                   (onboard charger)
+  ≤25.2V)                    │        │
                           [27kΩ]   [100nF]            Bridge LiPo (~1100mAh, 1S)
                              │        │                  └─► Heltec JST 1.25
    GND ──────────────────────┴────────┴──► Heltec GND  +  Buck GND  +  LiPo −
 ```
+
+> ⚠️ **The 100 nF cap sits ACROSS R2** (sense node → GND, i.e. in parallel —
+> easiest is to solder it leg-to-leg across R2). It is **not** in series with
+> the GPIO7 wire: a series cap blocks DC and the pin would read nothing.
+> Three things meet at the sense node: R1's bottom leg, R2's top leg + cap,
+> and the wire to GPIO7.
 
 - **Bridge LiPo (backup):** a small 1S LiPo on the Heltec's JST connector. The
   buck **charges it** from the camera battery (via the 5V pin → onboard charger)
@@ -105,8 +111,8 @@ Connector: D-Tap or AB 4-pin
 ```
                  ┌─────────────► Buck VIN ──► VOUT 5V ──► Heltec 5V
    VBAT ─────────┤
- (4S, ≤16.8V)    └──[100kΩ]──┬──► GPIO7
-                             │
+ (4S, ≤16.8V)    └──[100kΩ]──┬────────┬──► GPIO7
+                             │        │
                           [22kΩ]   [100nF]
                              │        │
    GND ──────────────────────┴────────┴──► Heltec GND  +  Buck GND
@@ -131,8 +137,8 @@ Connector: AB 4-pin (inline)
 ```
                  ┌─────────────► Buck VIN ──► VOUT 5V ──► Heltec 5V
    VBAT ─────────┤
- (6S, ≤25.2V)    └──[180kΩ]──┬──► GPIO7
-                             │
+ (6S, ≤25.2V)    └──[180kΩ]──┬────────┬──► GPIO7
+                             │        │
                           [27kΩ]   [100nF]
                              │        │
    GND ──────────────────────┴────────┴──► Heltec GND  +  Buck GND
