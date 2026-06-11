@@ -41,12 +41,12 @@
 //   - LiPo side clearance is ~0.75 mm/side (cell measured 25.0 wide).  If
 //     your cell runs fat, widen the board-zone ribs apart — never squeeze
 //     the pouch.
-//   - The board CLICKS into its tray: continuous lip on the south rib,
-//     two snap nubs on flex tabs on the north rib (tilt south edge under
-//     the lip, press north edge down).  The lip bears on the board's edge
-//     strip (~1 mm) — fine over pads, check nothing tall lives there.  The
-//     lip is a 1.5 mm 90° overhang mid-print: short enough to bridge, but
-//     check your first print's underside.
+//   - The board CLICKS into its tray: full-height cradle walls (2 mm past
+//     the PCB top), a continuous chamfered lip on the south rib, and two
+//     snap nubs on flex tabs on the north rib.  Assembly: tilt the south
+//     edge under the lip's 45° mouth (~1.7 mm above the board), press the
+//     north edge down past the nubs — pinned at 0.3 mm.  All overhangs are
+//     45°, so it prints supportless.
 //   - Buttons are actuated by CAPTIVE PRINTED PLUNGERS (no exposed PCB):
 //     each button gets a guide tube under the lid and a printed piston,
 //     dropped in from the inside before the lid goes on.  The flared cone
@@ -140,8 +140,8 @@ by = wall + ch_s + rib + 0.5;
 ribS    = wall + ch_s;            // south rib (channel | board zone), south face
 ribN    = ribS + rib + hz_w;      // north rib (board zone | channel), south face
 ribX    = wall + pad + hz_l;      // bay rib (board zone | east bay), west face
-rim_top = wall + standoff_h + pcb_t + 0.3; // cradle walls stop just above the
-                                           // PCB top; retention lips take over
+board_top = wall + standoff_h + pcb_t;   // PCB top surface (z)
+rim_top   = board_top + 2;               // cradle walls rise 2 mm past the PCB
 lipoX   = wall + pad + 1;         // cell west edge
 pcb_yc  = by + pcb_w/2;           // board centreline: USB, LEMO + tail follow it
 usb_zc  = wall + standoff_h + pcb_t + 1.6; // USB port axis height
@@ -202,13 +202,21 @@ module base() {
             cube([ribX - wall, rib, rim_top - wall]);
           translate([wall, ribN, wall])
             cube([ribX - wall, rib, rim_top - wall]);
-          // south retention lip (overhangs the PCB edge by ~1 mm)
-          translate([wall + pad, ribS, rim_top])
-            cube([ribX - wall - pad, rib + 1.5, 1.4]);
-          // north snap nubs — 45° lead-in, flat underside at rim_top
+          // south retention lip — 45° chamfered underside: the mouth sits
+          // ~1.7 mm above the board so the tilted edge slides under, then
+          // wedges toward snug at the wall face as the board levels
+          hull() {
+            translate([wall + pad, ribS, board_top + 1.7])
+              cube([ribX - wall - pad, rib + 1.2, rim_top - board_top - 1.7]);
+            translate([wall + pad, ribS, board_top + 0.5])
+              cube([ribX - wall - pad, rib + 0.01, rim_top - board_top - 0.5]);
+          }
+          // north snap nubs — 45° lead-in above, flat underside pins the
+          // board 0.3 mm over its top
           for (x0 = [18, 42]) hull() {
-            translate([x0, ribN - 1.3, rim_top]) cube([4, 1.3 + rib, 0.1]);
-            translate([x0, ribN, rim_top + 1.2]) cube([4, rib, 0.1]);
+            translate([x0, ribN - 1.3, board_top + 0.3])
+              cube([4, 1.3 + rib, 0.1]);
+            translate([x0, ribN, board_top + 1.5]) cube([4, rib, 0.1]);
           }
         }
         // slits flanking each nub so its rib section can flex outward
