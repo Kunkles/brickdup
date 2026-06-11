@@ -1,10 +1,12 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v3 (2026-06-11) — post-print fit pass on the v2 print: button
+// Version: v4 (2026-06-11) — battery pocket opened up to the calipered
+//          cell (41.39x25.15x10.25): towers slimmed to 3 mm + pushed to
+//          the ribs (42 mm clear span), end stop gone, tape retention.
+//          v3 (2026-06-11) — post-print fit pass on the v2 print: button
 //          height corrected from fit symptom (plunger pressed the switch
 //          with the lid screwed tight), plunger flange slimmed to match,
-//          tray length -1, battery pocket opened up (real cell dims:
-//          towers slimmed to 3 mm + pushed to the ribs, end stop gone).
+//          tray length -1.
 //          v2 (2026-06-10) — first measured revision: real board/buck/
 //          LEMO dims, click-in board tray, captive button plungers.
 //          (v1 = the pre-measurement scaffold, git history before this.)
