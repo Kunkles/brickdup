@@ -1,6 +1,10 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v2 (2026-06-10) — first measured revision: real board/buck/
+// Version: v3 (2026-06-11) — post-print fit pass on the v2 print: button
+//          height corrected from fit symptom (plunger pressed the switch
+//          with the lid screwed tight), plunger flange slimmed to match,
+//          tray length -1.
+//          v2 (2026-06-10) — first measured revision: real board/buck/
 //          LEMO dims, click-in board tray, captive button plungers.
 //          (v1 = the pre-measurement scaffold, git history before this.)
 //
@@ -18,7 +22,7 @@
 // chamfered port hole (~4 mm recess), not a deep slot.  All four M2
 // screws are internal corner bosses, in the channel corners.  Channels
 // open into the east bay, so wires run LEMO → channel → buck → board
-// without rib gaps.  Outer ≈ 69 x 54 x 24 mm.
+// without rib gaps.  Outer ≈ 68 x 54 x 24 mm.
 //
 // part = "both" renders base + lid + plungers in print orientation.
 //
@@ -69,7 +73,7 @@ pad    = 2.0;   // margin between west wall and the board zone (= rim width)
 $fn = 48;
 
 /* ---------------- Heltec WiFi LoRa 32 V3 ---------------- */
-pcb_l      = 48.0;  // measured (tray = pcb_l + 1 = 49)
+pcb_l      = 47.0;  // measured, then -1 after the v2 print (tray = pcb_l + 1)
 tab_gap    = 18.0;  // bay-rib gap for the board's u.FL antenna tab (+ wires),
                     // centred on the board  MEASURE tab width/offset
 pcb_w      = 25.5;  // MEASURE
@@ -110,12 +114,14 @@ btn_d = 4.5;                   // access-hole diameter (plungers = false only)
 
 /* ---------------- button plungers (captive printed pistons) ------------- */
 plungers = true;     // false = plain access holes instead
-btn_top  = 1.7;      // button cap height above the PCB top  MEASURE
+btn_top  = 3.2;      // button cap height above the PCB top — set from the v2
+                     // print's fit (piston pressed the switch when the lid
+                     // was screwed tight by ~1.5mm); VERIFY with calipers
 plunger_gap = 0.3;   // how proud of the lid the piston sits resting on the button
 bore_d   = 6.4;      // bore through lid + guide tube
 stem_d   = 6.0;      // piston body (what your finger presses)
-flange_d = 8.0;      // captive flare (cones at 45° — supportless)
-flange_t = 0.4;      // flange land thickness
+flange_d = 7.4;      // captive flare (cones at 45° — supportless), slimmed
+flange_t = 0.3;      // flange land thickness
 tip_d    = 4.0;      // contact face on the button cap
 tube_od  = 9.4;      // guide tube under the lid (length derived below)
 
