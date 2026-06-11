@@ -6,7 +6,7 @@
 //   z 15..16  Heltec WiFi LoRa 32 V3 on four 13 mm corner towers,
 //             directly above the cell (battery JST is on the board's
 //             underside, so the lead run is tiny)
-//   south ch  buck recess in the floor + wire raceway (11.5 mm wide)
+//   south ch  buck recess in the floor + wire raceway (tracks buck width)
 //   north ch  divider / wire slack raceway (7 mm wide)
 //   east bay  LEMO panel connector tail + divider
 //
@@ -14,7 +14,7 @@
 // chamfered port hole (~4 mm recess), not a deep slot.  All four M2
 // screws are internal corner bosses, in the channel corners.  Channels
 // open into the east bay, so wires run LEMO → channel → buck → board
-// without rib gaps.  Outer ≈ 73 x 52 x 24 mm.
+// without rib gaps.  Outer ≈ 73 x 54 x 24 mm.
 //
 // part = "both" renders base + lid + plungers in print orientation.
 //
@@ -68,12 +68,12 @@ standoff_h = 13.0;  // tower height: LiPo (10) + 1 air + 2 wire room underneath
 lipo_l = 40.0;  lipo_w = 25.0;  lipo_t = 10.0;   // measured
 
 /* ---------------- buck (Pololu D24V10F5) ---------------- */
-buck_l = 12.7;  buck_w = 10.2;   // MEASURE (datasheet 0.5" x 0.4")
+buck_l = 12.7;  buck_w = 12.0;   // width measured; length from datasheet 0.5"
 buck_recess = 0.6;               // floor recess to locate it (foam-tape it in)
 buck_x = 20.0;                   // recess position along the south channel
 
 /* ---------------- channels & east bay ---------------- */
-ch_s  = 11.5;   // south channel: buck + wires (sized to the buck recess)
+ch_s  = buck_w + 1.5;  // south channel: buck + wires (tracks the buck recess)
 ch_n  = 7.0;    // north channel: divider / wire slack
 bay_l = 14.0;   // east bay: LEMO tail + divider
 
@@ -117,7 +117,7 @@ hz_l = pcb_l + 1.0;                      // Heltec zone, 0.5 mm slip per side
 hz_w = pcb_w + 1.0;
 
 inner_l = pad + hz_l + rib + bay_l;            // ~68.8
-inner_w = ch_s + rib + hz_w + rib + ch_n;      // ~48.2
+inner_w = ch_s + rib + hz_w + rib + ch_n;      // ~50.2
 inner_h = standoff_h + pcb_t + comp_h + 2.0;   // ~20
 
 outer_l = inner_l + 2*wall;
