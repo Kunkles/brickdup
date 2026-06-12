@@ -9,7 +9,14 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.0 — current
+## 0.5.1 — current
+
+- Universal node: `ADC_SCALE` set to the as-built divider — R1 = 200kΩ
+  (2×100kΩ in series), R2 = **22kΩ** (was the 27kΩ design value). 25.2V now
+  reads ~2.5V on GPIO7; recalibrate via the portal after flashing.
+- Other sketches: version bump only (shared `FW_VERSION`).
+
+## 0.5.0
 
 Everything since the initial build, gathered into one version:
 

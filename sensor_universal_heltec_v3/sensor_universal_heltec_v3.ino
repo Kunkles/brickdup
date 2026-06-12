@@ -3,7 +3,7 @@
 // "battery type" (OB 4S / BL 6S) that sets the thresholds + broadcast type.
 // Pick the type on the web page, or LONG-PRESS the PRG button to toggle it.
 // Hardware: Heltec WiFi LoRa 32 V3 (ESP32-S3 + SX1262, 915 MHz)
-// Universal voltage divider: R1=200kΩ, R2=27kΩ on GPIO7 (25.2V → ~3.0V)
+// Universal voltage divider: R1=200kΩ (2×100k), R2=22kΩ on GPIO7 (25.2V → ~2.5V)
 
 #include <RadioLib.h>
 #include "HT_SSD1306Wire.h"   // bundled with the Heltec ESP32 board package
@@ -20,7 +20,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.5.0" // shown small in the OLED corner
+#define FW_VERSION "0.5.1" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -46,12 +46,12 @@
 #define TEST_WARN_V  3.50f
 #define TEST_CRIT_V  3.30f
 
-// ── ADC (universal divider, R1=200k / R2=27k) ────────────────────────────────
+// ── ADC (universal divider, R1=200k / R2=22k) ────────────────────────────────
 #define VBAT_PIN    7       // external divider input (real mode)
 #define ADC_SAMPLES 16
-// Vout = Vin * R2/(R1+R2) = Vin * 27/(200+27); 25.2V → ~3.0V (headroom)
+// Vout = Vin * R2/(R1+R2) = Vin * 22/(200+22); 25.2V → ~2.5V (headroom)
 // ADC_SCALE = (R1+R2)/R2 * (3.3/4095)
-#define ADC_SCALE  (227.0f / 27.0f * 3.3f / 4095.0f)
+#define ADC_SCALE  (222.0f / 22.0f * 3.3f / 4095.0f)
 
 // Heltec V3 onboard battery sense (test mode only)
 #define VBAT_CTRL   37      // drive LOW to connect the onboard divider

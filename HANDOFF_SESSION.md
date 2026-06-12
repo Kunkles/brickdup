@@ -16,7 +16,7 @@ on-set use.
 
 - **Repo:** https://github.com/Kunkles/brickdup (local: `~/Documents/brickwatch/`
   — folder name predates the repo rename, that's fine)
-- **Firmware version:** v0.5.0 (`FW_VERSION` in each sketch; CHANGELOG.md)
+- **Firmware version:** v0.5.1 (`FW_VERSION` in each sketch; CHANGELOG.md)
 - **CI:** GitHub Actions builds all sketches on every push; artifacts =
   `brickdup_{universal,onboard,block,receiver}.bin`. Tags `v*` attach bins to a
   GitHub Release.
@@ -27,7 +27,7 @@ on-set use.
 |---|---|---|
 | 2× nodes | Heltec WiFi LoRa 32 V3 (915MHz, ESP32-S3 + SX1262, 0.96" OLED) | sensor nodes |
 | 1× receiver | Heltec **Wireless Paper** V1.2 (ESP32-S3 + SX1262 + 2.13" e-ink) | handheld |
-| Node LiPo | MakerHawk **1100mAh** 1S JST1.25 (`B0F9YSFV4T`) — **40×25×10mm** | bridge cell |
+| Node LiPo | MakerHawk **1100mAh** 1S JST1.25 (`B0F9YSFV4T`) — **41.4×25.15×10.25mm** (calipered) | bridge cell |
 | Receiver LiPo | MakerFocus **3000mAh** 1S JST1.25 (`B08T6GT7DV`) — **65×35×10mm** | solo all-day |
 | Bench supply | SPS-3010 series 0–30V/10A | for divider testing |
 | Buck (per node) | Pololu D24V10F5 (36V→5V 1A) | powers node + charges LiPo |
@@ -50,7 +50,7 @@ hardcoded 915.0).
   (`Brickdup-ND-XXXX`, password `brickdup`, portal at 192.168.4.1). User-
   assignable friendly name (≤10 chars, NVS) rides in `M:` and wins on display.
 - **Universal node** (`sensor_universal_heltec_v3/`) is the recommended node
-  firmware: one divider **200k/27k** (6S-safe, 25.2V→~3.0V on GPIO7), battery
+  firmware: one divider **200k/22k** (2×100k + 22k as built; 6S-safe, 25.2V→~2.5V on GPIO7), battery
   type is a runtime setting (web dropdown or long-press PRG) that flips
   thresholds (OB: WARN 13.5/CRIT 12.8 · BL: WARN 21.0/CRIT 20.0) and broadcast
   type. Legacy `sensor_onboard`/`sensor_block` kept for reference.
@@ -65,7 +65,7 @@ hardcoded 915.0).
   currently forcing 16.2V for display-layout preview — **flip to 0 for real
   readings.** Receiver has `DEMO_NODES` (currently 0).
 
-## Feature inventory (all working, v0.5.0)
+## Feature inventory (all working, v0.5.1)
 
 **Nodes:** OLED status (id/SSID top, name, big 7-segment voltage with narrow
 "1" + GAP 6, emboldened "V", type + version bottom), WiFi config portal
@@ -127,7 +127,7 @@ point (user asked; deferred until features settle).
   file).
 - GPIO0 = boot strap: never *hold* during reset/wake.
 - ESP32-S3 ADC2 (receiver battery GPIO20) conflicts with WiFi.
-- Universal divider top end: 6S full = ~3.0V on GPIO7 — fine; legacy BL
+- Universal divider top end (200k/22k): 6S full = ~2.5V on GPIO7 — fine; legacy BL
   180k/27k ran 3.29V (tight, documented).
 - Heltec boards.txt hardcodes `default_8MB` partitions (OTA-capable app0/app1,
   no Partition Scheme menu — that's fine).

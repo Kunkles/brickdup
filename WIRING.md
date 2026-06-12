@@ -18,10 +18,10 @@ setting (web page or long-press PRG) — **no extra wiring** for it.
 
 | Item | Value |
 |---|---|
-| R1 (VBAT → GPIO7) | **200 kΩ** |
-| R2 (GPIO7 → GND) | **27 kΩ** |
-| GPIO7 at 25.2V (6S full) | **~3.0 V** (headroom under the 3.3V ADC ceiling) |
-| GPIO7 at 16.8V (4S full) | ~2.0 V |
+| R1 (VBAT → GPIO7) | **200 kΩ** (2 × 100 kΩ in series, as built) |
+| R2 (GPIO7 → GND) | **22 kΩ** (as built; 27 kΩ was the original design value) |
+| GPIO7 at 25.2V (6S full) | **~2.50 V** (big headroom under the 3.3V ADC ceiling) |
+| GPIO7 at 16.8V (4S / VCLX full) | ~1.66 V |
 | Buck | Pololu **D24V10F5** (36V max in → 5V) — must be 36V-rated for 6S |
 | Bridge LiPo | 1S, **~1100 mAh**, JST 1.25 (backup — buck keeps it charged) |
 
@@ -32,7 +32,7 @@ setting (web page or long-press PRG) — **no extra wiring** for it.
    VBAT ─────────┤                                              └─► charges LiPo
  (4S or 6S,      └──[200kΩ]──┬────────┬──► GPIO7                   (onboard charger)
   ≤25.2V)                    │        │
-                          [27kΩ]   [100nF]            Bridge LiPo (~1100mAh, 1S)
+                          [22kΩ]   [100nF]            Bridge LiPo (~1100mAh, 1S)
                              │        │                  └─► Heltec JST 1.25
    GND ──────────────────────┴────────┴──► Heltec GND  +  Buck GND  +  LiPo −
 ```
@@ -52,7 +52,7 @@ setting (web page or long-press PRG) — **no extra wiring** for it.
 - **Buck rating matters:** for 6S (25.2V) use the 36V-rated D24V10F5. A 28V buck
   (e.g. MP1584 modules) is too marginal for 6S. The buck now also supplies the
   LiPo charge current (~500mA) on top of the board — the 1A D24V10F5 handles it.
-- `ADC_SCALE` in the sketch is the universal value `(227/27 × 3.3/4095)`. If you
+- `ADC_SCALE` in the sketch is the as-built value `(222/22 × 3.3/4095)`. If you
   fit different resistors, update it.
 - After wiring, **calibrate** on the web page against a multimeter.
 

@@ -21,7 +21,7 @@ Voltage divider feeds GPIO7. A 100nF ceramic cap between GPIO7 and GND filters A
 
 📐 **Full wiring (both variants, with diagrams): [WIRING.md](WIRING.md)**
 📌 **Pin assignments, button controls & screen layouts: [REFERENCE.md](REFERENCE.md)**
-📝 **Firmware version history: [CHANGELOG.md](CHANGELOG.md)** — current: **v0.5.0**
+📝 **Firmware version history: [CHANGELOG.md](CHANGELOG.md)** — current: **v0.5.1**
 
 ### Pin map
 
@@ -42,7 +42,7 @@ E-ink (receiver):     CS=5, DC=4, RST=3, BUSY=2 | SCK=6, MOSI=1
 | `bench_ping_test/` | Both V3s, to verify the radio link (set `ROLE_PINGER` per board) |
 
 **Universal node** (`sensor_universal_heltec_v3`) replaces the two single-mode
-sketches: one universal divider (200k/27k, sized for 6S) and a runtime **battery
+sketches: one universal divider (200k/22k as built — 2×100k + 22k — 6S-safe with headroom) and a runtime **battery
 type** (OB 4S / BL 6S) that sets the thresholds + broadcast type. Pick it on the
 config page or **long-press PRG** to toggle. Identical firmware on every node —
 no per-unit edits. It shows a big 7-segment voltage and the type in the corner.
