@@ -2,7 +2,9 @@
 // =================================================================
 // Version: v5 (2026-06-11, in progress) — LEMO and SMA swapped on the
 //          east wall: LEMO's rear now faces the south channel for wire
-//          access; LEMO hole 8.9 mm (measured, was the 12 mm guess).
+//          access; LEMO hole 8.9 mm (measured, was the 12 mm guess) with
+//          its double-D flats (8.2), SMA single flat (5.75); nub-side
+//          tray wall +1.5 so the board can't pop over it.
 //          v4 (2026-06-11) — battery pocket opened up to the calipered
 //          cell (41.39x25.15x10.25): towers slimmed to 3 mm + pushed to
 //          the ribs (42 mm clear span), end stop gone, tape retention.
@@ -106,13 +108,15 @@ bay_l = 12.0;   // east bay: LEMO tail (10 into cavity) + wire bend + divider
 
 /* ---------------- connectors ---------------- */
 usb_w = 12.0;  usb_h = 7.0;      // port hole, chamfered  MEASURE plug nose
-lemo_hole_d = 8.9;   // measured.  Add the anti-rotation key flat if your
-                     // shell has one.
+lemo_hole_d = 8.9;   // measured
+lemo_flat = 8.2;     // measured across the LEMO's two flats (double-D hole,
+                     // flats top + bottom)
 lemo_y = 14.0;       // LEMO now at the SE spot (swapped with the SMA): its
 lemo_z = 14.0;       // rear faces the open bay + south channel, so there's
                      // working room to solder and dress the leads.  y is
                      // nudged up so the panel nut clears the SE boss.
 sma_d = 6.5;         // SMA bulkhead pass-through  VERIFY (east wall)
+sma_flat = 5.75;     // measured flat-to-round (single flat, on the bottom)
 sma_z = 9.0;         // SMA takes the old LEMO spot: board centreline, low
 
 /* ---------------- lid features (offsets from the PCB's SW corner) ------- */
@@ -219,8 +223,10 @@ module base() {
         union() {
           translate([wall, ribS, wall])
             cube([ribX - wall, rib, rim_top - wall]);
+          // nub-side wall runs 1.5 taller: with the battery pushing the
+          // board up from below, its edge can't pop over the wall top
           translate([wall, ribN, wall])
-            cube([ribX - wall, rib, rim_top - wall]);
+            cube([ribX - wall, rib, rim_top + 1.5 - wall]);
           // south retention lip — 45° chamfered underside: the mouth sits
           // ~1.7 mm above the board so the tilted edge slides under, then
           // wedges toward snug at the wall face as the board levels
@@ -280,14 +286,26 @@ module base() {
       cube([1.0, usb_w + 2, usb_h + 2]);
 
     // LEMO panel hole, east wall, SE position — the 10 mm tail stays in the
-    // bay and its rear lines up with the south channel for wire access
-    translate([outer_l - wall - 0.1, lemo_y, lemo_z])
-      rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = lemo_hole_d);
+    // bay and its rear lines up with the south channel for wire access.
+    // Double-D: 8.9 dia with both flats (8.2 across) top + bottom
+    intersection() {
+      translate([outer_l - wall - 0.1, lemo_y, lemo_z])
+        rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = lemo_hole_d);
+      translate([outer_l - wall - 0.2, lemo_y - lemo_hole_d/2,
+                 lemo_z - lemo_flat/2])
+        cube([wall + 0.4, lemo_hole_d, lemo_flat]);
+    }
 
     // SMA bulkhead (antenna), east wall, board centreline, low — u.FL
-    // pigtail from the board's east end reaches it through the bay
-    translate([outer_l - wall - 0.1, pcb_yc, sma_z])
-      rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = sma_d);
+    // pigtail from the board's east end reaches it through the bay.
+    // Single flat on the bottom (5.75 flat-to-round)
+    intersection() {
+      translate([outer_l - wall - 0.1, pcb_yc, sma_z])
+        rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = sma_d);
+      translate([outer_l - wall - 0.2, pcb_yc - sma_d/2,
+                 sma_z + sma_d/2 - sma_flat])
+        cube([wall + 0.4, sma_d, sma_flat]);
+    }
 
     // vents — both channel walls (kept below the wall top / lid lip)
     vent_row(25, 7);
