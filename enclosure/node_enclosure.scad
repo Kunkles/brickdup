@@ -4,7 +4,8 @@
 //          east wall: LEMO's rear now faces the south channel for wire
 //          access; LEMO hole 8.9 mm (measured, was the 12 mm guess) with
 //          its double-D flats (8.2), SMA single flat (5.75); nub-side
-//          tray wall +1.5 so the board can't pop over it.
+//          tray wall +1.5 and the snap nubs raised +1.5 to match the
+//          board's ride height with the battery installed.
 //          v4 (2026-06-11) — battery pocket opened up to the calipered
 //          cell (41.39x25.15x10.25): towers slimmed to 3 mm + pushed to
 //          the ribs (42 mm clear span), end stop gone, tape retention.
@@ -236,12 +237,13 @@ module base() {
             translate([wall + pad, ribS, board_top + 0.5])
               cube([ribX - wall - pad, rib + 0.01, rim_top - board_top - 0.5]);
           }
-          // north snap nubs — 45° lead-in above, flat underside pins the
-          // board 0.3 mm over its top
+          // north snap nubs — 45° lead-in above, flat underside raised to
+          // match the board's battery-pushed ride height (+1.8 over the
+          // nominal board top)
           for (x0 = [18, 42]) hull() {
-            translate([x0, ribN - 1.3, board_top + 0.3])
+            translate([x0, ribN - 1.3, board_top + 1.8])
               cube([4, 1.3 + rib, 0.1]);
-            translate([x0, ribN, board_top + 1.5]) cube([4, rib, 0.1]);
+            translate([x0, ribN, board_top + 3.0]) cube([4, rib, 0.1]);
           }
         }
         // slits flanking each nub so its rib section can flex outward
