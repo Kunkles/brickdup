@@ -1,6 +1,9 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v4 (2026-06-11) — battery pocket opened up to the calipered
+// Version: v5 (2026-06-11, in progress) — LEMO and SMA swapped on the
+//          east wall: LEMO's rear now faces the south channel for wire
+//          access; LEMO hole 8.9 mm (measured, was the 12 mm guess).
+//          v4 (2026-06-11) — battery pocket opened up to the calipered
 //          cell (41.39x25.15x10.25): towers slimmed to 3 mm + pushed to
 //          the ribs (42 mm clear span), end stop gone, tape retention.
 //          v3 (2026-06-11) — post-print fit pass on the v2 print: button
@@ -42,9 +45,10 @@
 //     enlarge usb_w/usb_h if the nose is chunky.  The lid's lip is notched
 //     above the port so the plug doesn't hit it.
 //   - The LEMO body is 12 mm from the back of its flange (measured), so it
-//     intrudes 10 mm past the 2 mm wall — it stays inside the bay.  The
-//     leads bend in the remaining 2 mm or pass through the bay rib's gap
-//     and bend under the board.
+//     intrudes 10 mm past the 2 mm wall — it stays inside the bay.  At the
+//     SE position its rear lines up with the south channel, so the leads
+//     run straight down the channel (toward the buck) with no sharp bend,
+//     and there's open length behind it for soldering.
 //   - LiPo: cell measured 41.39 x 25.15 x 10.25.  It sits between the
 //     corner towers (42 mm clear span, ~0.65 mm/side width-wise), tape-
 //     retained — no end stop, so the leads have free run to the bay-rib
@@ -102,12 +106,14 @@ bay_l = 12.0;   // east bay: LEMO tail (10 into cavity) + wire bend + divider
 
 /* ---------------- connectors ---------------- */
 usb_w = 12.0;  usb_h = 7.0;      // port hole, chamfered  MEASURE plug nose
-lemo_hole_d = 12.0;  // MEASURE your shell: LEMO 0B panel ~9.1 mm (+ key flat),
-                     // 1B ~12.1 mm.  Add the anti-rotation flat after measuring.
-lemo_z = 9.0;        // hole centre height — keeps the tail below the board
+lemo_hole_d = 8.9;   // measured.  Add the anti-rotation key flat if your
+                     // shell has one.
+lemo_y = 14.0;       // LEMO now at the SE spot (swapped with the SMA): its
+lemo_z = 14.0;       // rear faces the open bay + south channel, so there's
+                     // working room to solder and dress the leads.  y is
+                     // nudged up so the panel nut clears the SE boss.
 sma_d = 6.5;         // SMA bulkhead pass-through  VERIFY (east wall)
-sma_y = 12.0;        // SMA centre (between the SE boss and the LEMO nut)
-sma_z = 14.0;
+sma_z = 9.0;         // SMA takes the old LEMO spot: board centreline, low
 
 /* ---------------- lid features (offsets from the PCB's SW corner) ------- */
 oled_off_x = 20.0;   // MEASURE  (active area 21.7 x 11, roughly mid-board)
@@ -273,17 +279,14 @@ module base() {
     translate([-0.1, pcb_yc - usb_w/2 - 1.0, usb_zc - usb_h/2 - 1.0])
       cube([1.0, usb_w + 2, usb_h + 2]);
 
-    // LEMO panel hole, east wall, on the board centreline, low (the 10 mm
-    // tail stays in the bay; leads route through the bay rib's gap)
-    translate([outer_l - wall - 0.1, pcb_yc, lemo_z])
+    // LEMO panel hole, east wall, SE position — the 10 mm tail stays in the
+    // bay and its rear lines up with the south channel for wire access
+    translate([outer_l - wall - 0.1, lemo_y, lemo_z])
       rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = lemo_hole_d);
-    // shallow floor relief so the LEMO nut clears (deepen if yours is fat)
-    translate([wall + inner_l - 4, pcb_yc - 9, wall - 0.8])
-      cube([4.1, 18, 0.9]);
 
-    // SMA bulkhead (antenna), east wall, south of the LEMO — u.FL pigtail
-    // from the board's east end reaches it through the bay
-    translate([outer_l - wall - 0.1, sma_y, sma_z])
+    // SMA bulkhead (antenna), east wall, board centreline, low — u.FL
+    // pigtail from the board's east end reaches it through the bay
+    translate([outer_l - wall - 0.1, pcb_yc, sma_z])
       rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = sma_d);
 
     // vents — both channel walls (kept below the wall top / lid lip)
