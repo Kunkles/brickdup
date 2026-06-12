@@ -1,11 +1,12 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v5 (2026-06-11, in progress) — LEMO and SMA swapped on the
-//          east wall: LEMO's rear now faces the south channel for wire
-//          access; LEMO hole 8.9 mm (measured, was the 12 mm guess) with
-//          its double-D flats (8.2), SMA single flat (5.75); nub-side
-//          tray wall +1.5 and the snap nubs raised +1.5 to match the
-//          board's ride height with the battery installed.
+// Version: v5 (2026-06-11) — LEMO and SMA swapped on the east wall:
+//          LEMO's rear now faces the south channel for wire access; LEMO
+//          hole 8.9 mm (measured, was the 12 mm guess) with its double-D
+//          flats (8.2), SMA single flat (5.75); nub-side tray wall +1.5
+//          and the snap nubs raised +1.5 to match the board's ride height
+//          with the battery installed; USB hole shifted 1 mm south (the
+//          port isn't quite on the board centreline).
 //          v4 (2026-06-11) — battery pocket opened up to the calipered
 //          cell (41.39x25.15x10.25): towers slimmed to 3 mm + pushed to
 //          the ribs (42 mm clear span), end stop gone, tape retention.
@@ -109,6 +110,8 @@ bay_l = 12.0;   // east bay: LEMO tail (10 into cavity) + wire bend + divider
 
 /* ---------------- connectors ---------------- */
 usb_w = 12.0;  usb_h = 7.0;      // port hole, chamfered  MEASURE plug nose
+usb_y_off = -1.0;                // port sits ~1 mm south of the board
+                                 // centreline (print fit)
 lemo_hole_d = 8.9;   // measured
 lemo_flat = 8.2;     // measured across the LEMO's two flats (double-D hole,
                      // flats top + bottom)
@@ -282,9 +285,9 @@ module base() {
 
     // USB-C port hole, west wall + rim (~4 mm recess), with a 45° chamfered
     // mouth so the plug nose seats (chamfer kept below the wall's top edge)
-    translate([-0.1, pcb_yc - usb_w/2, usb_zc - usb_h/2])
+    translate([-0.1, pcb_yc + usb_y_off - usb_w/2, usb_zc - usb_h/2])
       cube([wall + pad + 0.2, usb_w, usb_h]);
-    translate([-0.1, pcb_yc - usb_w/2 - 1.0, usb_zc - usb_h/2 - 1.0])
+    translate([-0.1, pcb_yc + usb_y_off - usb_w/2 - 1.0, usb_zc - usb_h/2 - 1.0])
       cube([1.0, usb_w + 2, usb_h + 2]);
 
     // LEMO panel hole, east wall, SE position — the 10 mm tail stays in the
@@ -340,8 +343,8 @@ module lid() {
     }
 
     // lip notch over the USB port — the low lid puts the lip in the plug's
-    // path, so clear it across the port width
-    translate([-0.1, pcb_yc - usb_w/2, base_h - 3.1])
+    // path, so clear it across the port width (tracks usb_y_off)
+    translate([-0.1, pcb_yc + usb_y_off - usb_w/2, base_h - 3.1])
       cube([wall + pad + 0.2, usb_w, 3.2]);
 
     // boss clearance notches in the lip
