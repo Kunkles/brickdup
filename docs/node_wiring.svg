@@ -1,0 +1,60 @@
+<svg width="680" height="470" viewBox="0 0 680 470" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>brickdup sensor-node wiring schematic</title>
+  <desc>Battery power enters at the LEMO connector, splits at a junction to the buck converter VIN and to R1. The buck 5V output feeds the Heltec 5V pin. R1 leads to the sense node, which connects to GPIO7, with R2 and the 100 nF capacitor in parallel from the sense node to ground. The Heltec battery JST connects to the bridge LiPo. All grounds are common.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 12px; fill: #8a8a85; }
+    .wire { stroke: #8a8a85; stroke-width: 2; fill: none; }
+    .plate { stroke: #8a8a85; stroke-width: 3; fill: none; }
+    .box { stroke: #8a8a85; stroke-width: 2; fill: none; }
+    .mcu { stroke: #4a8bc4; stroke-width: 2; fill: none; }
+    .node { fill: #d85a30; }
+  </style>
+  <rect class="box" x="130" y="60" width="160" height="60" rx="4"/>
+  <text x="210" y="78" text-anchor="middle">Buck D24V10F5</text>
+  <text x="136" y="94">GND</text>
+  <text x="284" y="94" text-anchor="end">VOUT</text>
+  <text x="166" y="114">VIN</text>
+  <line class="wire" x1="290" y1="90" x2="480" y2="90"/>
+  <text x="385" y="108" text-anchor="middle">5 V — powers board + charges LiPo</text>
+  <polyline class="wire" points="130,90 30,90 30,440"/>
+  <rect class="box" x="38" y="150" width="54" height="80" rx="4"/>
+  <text x="65" y="186" text-anchor="middle">LEMO</text>
+  <text x="65" y="204" text-anchor="middle">panel</text>
+  <text x="135" y="146" text-anchor="middle">VBAT +</text>
+  <line class="wire" x1="92" y1="170" x2="160" y2="170"/>
+  <circle class="node" cx="160" cy="170" r="5"/>
+  <line class="wire" x1="160" y1="170" x2="160" y2="120"/>
+  <line class="wire" x1="65" y1="230" x2="65" y2="440"/>
+  <line class="wire" x1="160" y1="170" x2="200" y2="170"/>
+  <rect class="box" x="200" y="156" width="90" height="28" rx="4"/>
+  <text x="245" y="174" text-anchor="middle">R1 (see table)</text>
+  <line class="wire" x1="290" y1="170" x2="350" y2="170"/>
+  <circle class="node" cx="350" cy="170" r="5"/>
+  <text x="350" y="152" text-anchor="middle">sense node</text>
+  <line class="wire" x1="350" y1="170" x2="480" y2="170"/>
+  <line class="wire" x1="350" y1="170" x2="350" y2="210"/>
+  <line class="wire" x1="300" y1="210" x2="410" y2="210"/>
+  <rect class="box" x="286" y="230" width="28" height="60" rx="4"/>
+  <text x="280" y="264" text-anchor="end">R2 (see table)</text>
+  <line class="wire" x1="300" y1="210" x2="300" y2="230"/>
+  <line class="wire" x1="300" y1="290" x2="300" y2="440"/>
+  <line class="wire" x1="410" y1="210" x2="410" y2="245"/>
+  <line class="plate" x1="396" y1="245" x2="424" y2="245"/>
+  <line class="plate" x1="396" y1="257" x2="424" y2="257"/>
+  <line class="wire" x1="410" y1="257" x2="410" y2="440"/>
+  <text x="410" y="285" text-anchor="middle">100 nF</text>
+  <text x="410" y="302" text-anchor="middle">(parallel, not inline)</text>
+  <rect class="mcu" x="480" y="60" width="165" height="280" rx="4"/>
+  <text x="562" y="84" text-anchor="middle">Heltec V3</text>
+  <text x="488" y="94">5V</text>
+  <text x="488" y="174">GPIO7</text>
+  <text x="500" y="330">GND</text>
+  <line class="wire" x1="510" y1="340" x2="510" y2="440"/>
+  <line class="wire" x1="585" y1="340" x2="585" y2="370"/>
+  <text x="595" y="360">JST 1.25</text>
+  <rect class="box" x="525" y="370" width="120" height="55" rx="4"/>
+  <text x="585" y="392" text-anchor="middle">Bridge LiPo</text>
+  <text x="585" y="410" text-anchor="middle">1100 mAh</text>
+  <line class="wire" x1="25" y1="440" x2="515" y2="440"/>
+  <text x="25" y="458">GND — common: LEMO −, buck GND, R2 + cap, Heltec GND</text>
+</svg>

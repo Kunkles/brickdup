@@ -25,6 +25,8 @@ setting (web page or long-press PRG) — **no extra wiring** for it.
 | Buck | Pololu **D24V10F5** (36V max in → 5V) — must be 36V-rated for 6S |
 | Bridge LiPo | 1S, **~1100 mAh**, JST 1.25 (backup — buck keeps it charged) |
 
+![Node wiring schematic](docs/node_wiring.svg)
+
 ```
                  ┌──► Buck VIN ──► VOUT 5V ──► Heltec "5V" pin ──► powers board
    VBAT ─────────┤                                              └─► charges LiPo
