@@ -112,6 +112,9 @@ point (user asked; deferred until features settle).
   `brickdup_logo.h`, served at `/logo.jpg`).
 - Iterate in small steps with hardware verification between (user flashes +
   reports); compile errors get pasted back — fix and push.
+- Diagrams: clean SVG schematics (boxes, junction dots, common ground rail,
+  GitHub light/dark-safe colors), saved to `docs/` and embedded in the
+  relevant doc — not ASCII art, not chat-only. See `docs/node_wiring.svg`.
 - Display tweaks went through several rounds (7-seg digits, narrow 1, GAP 6,
   small bold V) — current state is liked; don't redesign unprompted.
 
