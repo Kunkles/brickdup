@@ -1,6 +1,8 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v9 (2026-06-18) — east bay deepened (bay_l 12 → 18) so the LEMO's
+// Version: v10 (2026-06-18) — east bay bumped to bay_l 20 (~10 mm clear
+//          behind the LEMO).
+//          v9 (2026-06-18) — east bay deepened (bay_l 12 → 18) so the LEMO's
 //          rear solder cups/wires clear the board/tray.  Because USB,
 //          buttons, OLED + board are all west-referenced, only the east wall
 //          (LEMO/SMA) moves — lid is unchanged; box grows ~6 mm in length.
@@ -42,7 +44,7 @@
 // chamfered port hole (~4 mm recess), not a deep slot.  All four M2
 // screws are internal corner bosses, in the channel corners.  Channels
 // open into the east bay, so wires run LEMO → channel → buck → board
-// without rib gaps.  Outer ≈ 74 x 54 x 24 mm.
+// without rib gaps.  Outer ≈ 76 x 54 x 24 mm.
 //
 // part = "both" renders base + lid + plungers in print orientation.
 //
@@ -59,8 +61,8 @@
 //     enlarge usb_w/usb_h if the nose is chunky.  The lid's lip is notched
 //     above the port so the plug doesn't hit it.
 //   - The LEMO body is 12 mm from the back of its flange (measured), so it
-//     intrudes 10 mm past the 2 mm wall — and the bay is 18 mm deep, so its
-//     rear cups/wires sit ~8 mm clear of the bay rib (board edge).  At the
+//     intrudes 10 mm past the 2 mm wall — and the bay is 20 mm deep, so its
+//     rear cups/wires sit ~10 mm clear of the bay rib (board edge).  At the
 //     SE position its rear lines up with the south channel, so the leads
 //     run straight down the channel (toward the buck) with no sharp bend.
 //   - LiPo: cell measured 41.39 x 25.15 x 10.25.  It sits between the
@@ -116,9 +118,9 @@ buck_x = 20.0;                   // recess position along the south channel
 /* ---------------- channels & east bay ---------------- */
 ch_s  = buck_w + 1.5;  // south channel: buck + wires (tracks the buck recess)
 ch_n  = 7.0;    // north channel: divider / wire slack
-bay_l = 18.0;   // east bay: LEMO tail (10 into cavity) + wire bend + divider.
+bay_l = 20.0;   // east bay: LEMO tail (10 into cavity) + wire bend + divider.
                 // Deeper than the tail needs (was 12) to keep the LEMO's rear
-                // solder cups + wires well clear of the board/tray — ~8 mm of
+                // solder cups + wires well clear of the board/tray — ~10 mm of
                 // open space behind the connector before the bay rib.
 
 /* ---------------- connectors ---------------- */
