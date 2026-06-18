@@ -1,6 +1,8 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v7 (2026-06-18) — SMA flat opened to 5.9; LEMO scooted toward
+// Version: v8 (2026-06-18) — LEMO back to lemo_y 14 (the v7 scoot left no
+//          room for the panel nut to spin on the back).
+//          v7 (2026-06-18) — SMA flat opened to 5.9; LEMO scooted toward
 //          the south wall (lemo_y 14 → 12.5).
 //          v6 (2026-06-18) — LEMO double-D rotated 90°: flats now on the
 //          left + right of the hole (were top/bottom).
@@ -119,10 +121,10 @@ usb_y_off = -1.0;                // port sits ~1 mm south of the board
 lemo_hole_d = 8.9;   // measured
 lemo_flat = 8.2;     // measured across the LEMO's two flats (double-D hole,
                      // flats left + right since v6)
-lemo_y = 12.5;       // LEMO at the SE spot (swapped with the SMA): its rear
+lemo_y = 14.0;       // LEMO at the SE spot (swapped with the SMA): its rear
 lemo_z = 14.0;       // faces the open bay + south channel, so there's working
-                     // room to solder and dress the leads.  Scooted toward the
-                     // south wall in v7 — verify the panel nut clears the SE boss.
+                     // room to solder and dress the leads.  Kept off the south
+                     // wall so the panel nut has room to spin on the back.
 sma_d = 6.5;         // SMA bulkhead pass-through  VERIFY (east wall)
 sma_flat = 5.9;      // measured flat-to-round (single flat, on the bottom)
 sma_z = 9.0;         // SMA takes the old LEMO spot: board centreline, low
