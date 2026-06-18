@@ -1,6 +1,8 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v6 (2026-06-18) — LEMO double-D rotated 90°: flats now on the
+// Version: v7 (2026-06-18) — SMA flat opened to 5.9; LEMO scooted toward
+//          the south wall (lemo_y 14 → 12.5).
+//          v6 (2026-06-18) — LEMO double-D rotated 90°: flats now on the
 //          left + right of the hole (were top/bottom).
 //          v5 (2026-06-11) — LEMO and SMA swapped on the east wall:
 //          LEMO's rear now faces the south channel for wire access; LEMO
@@ -116,13 +118,13 @@ usb_y_off = -1.0;                // port sits ~1 mm south of the board
                                  // centreline (print fit)
 lemo_hole_d = 8.9;   // measured
 lemo_flat = 8.2;     // measured across the LEMO's two flats (double-D hole,
-                     // flats top + bottom)
-lemo_y = 14.0;       // LEMO now at the SE spot (swapped with the SMA): its
-lemo_z = 14.0;       // rear faces the open bay + south channel, so there's
-                     // working room to solder and dress the leads.  y is
-                     // nudged up so the panel nut clears the SE boss.
+                     // flats left + right since v6)
+lemo_y = 12.5;       // LEMO at the SE spot (swapped with the SMA): its rear
+lemo_z = 14.0;       // faces the open bay + south channel, so there's working
+                     // room to solder and dress the leads.  Scooted toward the
+                     // south wall in v7 — verify the panel nut clears the SE boss.
 sma_d = 6.5;         // SMA bulkhead pass-through  VERIFY (east wall)
-sma_flat = 5.75;     // measured flat-to-round (single flat, on the bottom)
+sma_flat = 5.9;      // measured flat-to-round (single flat, on the bottom)
 sma_z = 9.0;         // SMA takes the old LEMO spot: board centreline, low
 
 /* ---------------- lid features (offsets from the PCB's SW corner) ------- */
@@ -306,7 +308,7 @@ module base() {
 
     // SMA bulkhead (antenna), east wall, board centreline, low — u.FL
     // pigtail from the board's east end reaches it through the bay.
-    // Single flat on the bottom (5.75 flat-to-round)
+    // Single flat on the bottom (5.9 flat-to-round)
     intersection() {
       translate([outer_l - wall - 0.1, pcb_yc, sma_z])
         rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = sma_d);
