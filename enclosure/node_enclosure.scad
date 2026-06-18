@@ -1,6 +1,8 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v5 (2026-06-11) — LEMO and SMA swapped on the east wall:
+// Version: v6 (2026-06-18) — LEMO double-D rotated 90°: flats now on the
+//          left + right of the hole (were top/bottom).
+//          v5 (2026-06-11) — LEMO and SMA swapped on the east wall:
 //          LEMO's rear now faces the south channel for wire access; LEMO
 //          hole 8.9 mm (measured, was the 12 mm guess) with its double-D
 //          flats (8.2), SMA single flat (5.75); nub-side tray wall +1.5
@@ -292,13 +294,14 @@ module base() {
 
     // LEMO panel hole, east wall, SE position — the 10 mm tail stays in the
     // bay and its rear lines up with the south channel for wire access.
-    // Double-D: 8.9 dia with both flats (8.2 across) top + bottom
+    // Double-D: 8.9 dia with both flats (8.2 across) on the LEFT + RIGHT
+    // (rotated 90° from top/bottom)
     intersection() {
       translate([outer_l - wall - 0.1, lemo_y, lemo_z])
         rotate([0, 90, 0]) cylinder(h = wall + 0.2, d = lemo_hole_d);
-      translate([outer_l - wall - 0.2, lemo_y - lemo_hole_d/2,
-                 lemo_z - lemo_flat/2])
-        cube([wall + 0.4, lemo_hole_d, lemo_flat]);
+      translate([outer_l - wall - 0.2, lemo_y - lemo_flat/2,
+                 lemo_z - lemo_hole_d/2])
+        cube([wall + 0.4, lemo_flat, lemo_hole_d]);
     }
 
     // SMA bulkhead (antenna), east wall, board centreline, low — u.FL
