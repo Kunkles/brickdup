@@ -22,7 +22,7 @@
 //   • USER name     — friendly label you assign over WiFi ("Floor 1"). Defaults
 //     to the permanent id until you set one. Shown on screens + broadcast.
 #define NODE_TYPE  "BL"    // fixed by hardware (which divider is fitted)
-#define FW_VERSION "0.5.5" // shown small in the OLED corner
+#define FW_VERSION "0.5.6" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network

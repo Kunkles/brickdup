@@ -9,7 +9,15 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.5 — current
+## 0.5.6 — current
+
+- Fix the bridge-LiPo read for real: the GPIO37 enable was reading 0 mV on LOW
+  (Heltec docs notwithstanding), so the sense divider was never connected. New
+  `VBAT_ON HIGH` connects it; this board reads correctly now. `LIPO_RATIO` may
+  still need a small trim against a meter once it shows a real number. (The
+  `[LIPO] pin=… mV` serial line is still on for verification — remove later.)
+
+## 0.5.5
 
 Receiver fixes (reflash the receiver only):
 - "Clear node list" now redraws the e-ink immediately instead of waiting for

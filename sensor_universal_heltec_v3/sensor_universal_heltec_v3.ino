@@ -20,7 +20,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.5.5" // shown small in the OLED corner
+#define FW_VERSION "0.5.6" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -69,7 +69,9 @@
 // Heltec V3 onboard battery sense — used for the bridge-LiPo level (B:) and the
 // USB bench-test mode. Drive VBAT_CTRL (GPIO37) LOW to connect the divider to
 // VBAT_ADC (GPIO1); it needs a settle delay before reading.
-#define VBAT_CTRL   37      // drive LOW to connect the onboard divider
+#define VBAT_CTRL   37      // GPIO37 enables the onboard battery divider
+#define VBAT_ON     HIGH    // level that CONNECTS it. Heltec docs say LOW, but
+                            // this board measured 0 mV on LOW — HIGH works here.
 #define VBAT_ADC    1       // onboard battery ADC pin
 #define VBAT_CAL    0.0041f // legacy raw factor (USB_TEST_MODE branch only)
 #define LIPO_RATIO  4.9f    // V3 onboard divider ratio (~390k/100k) — trim vs a meter
@@ -612,18 +614,18 @@ float readVoltage() {
 // only; not gated by g_cal.
 float readLipo() {
   pinMode(VBAT_CTRL, OUTPUT);
-  digitalWrite(VBAT_CTRL, LOW);
+  digitalWrite(VBAT_CTRL, VBAT_ON);   // connect the onboard divider
   delay(LIPO_SETTLE);
   long sum = 0;
   for (int i = 0; i < ADC_SAMPLES; i++) {
     sum += analogReadMilliVolts(VBAT_ADC);
     delayMicroseconds(200);
   }
-  pinMode(VBAT_CTRL, INPUT);        // release (high-Z) to save power
-  long avg = sum / ADC_SAMPLES;     // raw mV on the sense pin (pre-ratio)
+  digitalWrite(VBAT_CTRL, !VBAT_ON);  // disconnect to save power
+  pinMode(VBAT_CTRL, INPUT);
+  long avg = sum / ADC_SAMPLES;       // raw mV on the sense pin (pre-ratio)
   float v  = avg / 1000.0f * LIPO_RATIO;
-  // DIAGNOSTIC: pin should read ~800 mV for a ~4V LiPo (÷4.9). If it reads ~0,
-  // the GPIO37 enable isn't connecting the divider — next test is VBAT_CTRL HIGH.
+  // DIAGNOSTIC: pin should read ~800 mV for a ~4V LiPo (÷4.9). Remove later.
   Serial.printf("[LIPO] pin=%ld mV  ->  %.2fV\n", avg, v);
   return v;
 }

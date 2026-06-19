@@ -22,7 +22,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
 
-#define FW_VERSION "0.5.5"
+#define FW_VERSION "0.5.6"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
