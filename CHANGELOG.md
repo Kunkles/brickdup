@@ -9,7 +9,15 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.6 — current
+## 0.5.7 — current
+
+- Clear-node-list reliability (receiver): the button was a JS `fetch('/clear')`,
+  which the captive-portal mini-browsers (iOS/Android) often block — so on those
+  it silently did nothing and dead/lost nodes never cleared. Replaced with a
+  plain form submit; `handleClear` now redirects back to the dashboard. Added a
+  `[CLEAR]` serial log to confirm the handler runs.
+
+## 0.5.6
 
 - Fix the bridge-LiPo read for real: the GPIO37 enable was reading 0 mV on LOW
   (Heltec docs notwithstanding), so the sense divider was never connected. New

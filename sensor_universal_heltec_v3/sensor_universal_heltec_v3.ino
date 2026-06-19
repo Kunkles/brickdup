@@ -20,7 +20,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.5.6" // shown small in the OLED corner
+#define FW_VERSION "0.5.7" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network

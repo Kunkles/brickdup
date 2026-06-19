@@ -22,7 +22,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
 
-#define FW_VERSION "0.5.6"
+#define FW_VERSION "0.5.7"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
@@ -594,7 +594,7 @@ td.v{font-weight:700;font-size:18px}
 <table><thead><tr><th>Name</th><th>Voltage</th><th>%</th><th>Time</th><th>Sig</th><th>Status</th></tr></thead>
 <tbody id=rows></tbody></table>
 <p style="margin-top:18px">
-<button onclick="if(confirm('Clear remembered nodes?'))fetch('/clear').then(tick)" style="background:#333;color:#eee;border:0;border-radius:6px;padding:8px 12px;font-size:13px">Clear node list</button>
+<form action="/clear" style="display:inline" onsubmit="return confirm('Clear remembered nodes?')"><button type="submit" style="background:#333;color:#eee;border:0;border-radius:6px;padding:8px 12px;font-size:13px">Clear node list</button></form>
 &nbsp; <a href="/update" style="color:#2dd47a;font-size:13px">firmware update &rarr;</a></p>
 <script>
 function bars(n){let s='';for(let i=0;i<3;i++){let h=4+i*4;s+=`<span class="${i<n?'':'off'}" style="height:${h}px"></span>`}return `<span class=bars>${s}</span>`}
@@ -628,13 +628,18 @@ void handleNotFound() {
 }
 
 void handleClear() {
+  Serial.printf("[CLEAR] node list cleared (was %d nodes)\n", nodeCount);
   nodeCount   = 0;
   rosterDirty = false;
   prefs.remove("roster");
   if (flashing) { display.fastmodeOff(); flashing = false; }  // leave flash mode
   lastSig = 0xFFFFFFFF;        // force the e-ink to redraw empty
   maybeRefresh();             // redraw NOW — don't wait for the next packet
-  server.send(200, "text/plain", "OK");
+  // Redirect back to the dashboard so the page reflects the cleared list. A
+  // plain form submit + redirect is far more reliable than fetch() inside the
+  // captive-portal mini-browsers (iOS/Android), where JS is often restricted.
+  server.sendHeader("Location", "/");
+  server.send(303, "text/plain", "");
 }
 
 void handleData() {
