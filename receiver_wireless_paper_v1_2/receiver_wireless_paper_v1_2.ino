@@ -22,7 +22,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
 
-#define FW_VERSION "0.5.7"
+#define FW_VERSION "0.5.8"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
@@ -594,7 +594,7 @@ td.v{font-weight:700;font-size:18px}
 <table><thead><tr><th>Name</th><th>Voltage</th><th>%</th><th>Time</th><th>Sig</th><th>Status</th></tr></thead>
 <tbody id=rows></tbody></table>
 <p style="margin-top:18px">
-<form action="/clear" style="display:inline" onsubmit="return confirm('Clear remembered nodes?')"><button type="submit" style="background:#333;color:#eee;border:0;border-radius:6px;padding:8px 12px;font-size:13px">Clear node list</button></form>
+<form action="/clear" style="display:inline"><button type="submit" style="background:#333;color:#eee;border:0;border-radius:6px;padding:8px 12px;font-size:13px">Clear node list</button></form>
 &nbsp; <a href="/update" style="color:#2dd47a;font-size:13px">firmware update &rarr;</a></p>
 <script>
 function bars(n){let s='';for(let i=0;i<3;i++){let h=4+i*4;s+=`<span class="${i<n?'':'off'}" style="height:${h}px"></span>`}return `<span class=bars>${s}</span>`}
@@ -636,9 +636,10 @@ void handleClear() {
   lastSig = 0xFFFFFFFF;        // force the e-ink to redraw empty
   maybeRefresh();             // redraw NOW — don't wait for the next packet
   // Redirect back to the dashboard so the page reflects the cleared list. A
-  // plain form submit + redirect is far more reliable than fetch() inside the
-  // captive-portal mini-browsers (iOS/Android), where JS is often restricted.
-  server.sendHeader("Location", "/");
+  // plain form submit + absolute redirect is reliable inside the captive-portal
+  // mini-browsers (iOS CNA / Android), where fetch()/confirm() are often
+  // blocked — that JS-cancelled submit was why clear only worked in Safari.
+  server.sendHeader("Location", "http://192.168.4.1/");
   server.send(303, "text/plain", "");
 }
 

@@ -16,7 +16,7 @@ on-set use.
 
 - **Repo:** https://github.com/Kunkles/brickdup (local: `~/Documents/brickwatch/`
   — folder name predates the repo rename, that's fine)
-- **Firmware version:** v0.5.7 (`FW_VERSION` in each sketch; CHANGELOG.md)
+- **Firmware version:** v0.5.8 (`FW_VERSION` in each sketch; CHANGELOG.md)
 - **CI:** GitHub Actions builds all sketches on every push; artifacts =
   `brickdup_{universal,onboard,block,receiver}.bin`. Tags `v*` attach bins to a
   GitHub Release.

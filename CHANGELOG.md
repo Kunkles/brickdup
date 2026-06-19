@@ -9,7 +9,15 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.7 — current
+## 0.5.8 — current
+
+- Clear node list now works in the captive-portal popup, not just Safari. The
+  form's `onsubmit="return confirm(...)"` was the blocker: iOS's captive
+  mini-browser (CNA) doesn't run `confirm()`, so it returned false and
+  cancelled the submit. Dropped the confirm (clearing is low-stakes — live
+  nodes just re-appear) and made handleClear's redirect an absolute URL.
+
+## 0.5.7
 
 - Clear-node-list reliability (receiver): the button was a JS `fetch('/clear')`,
   which the captive-portal mini-browsers (iOS/Android) often block — so on those
