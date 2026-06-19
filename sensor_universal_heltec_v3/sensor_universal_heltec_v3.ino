@@ -67,8 +67,8 @@
 #define DIVIDER_RATIO  (222.0f / 22.0f)   // (R1+R2)/R2 = 200k+22k over 22k
 
 // Heltec V3 onboard battery sense — used for the bridge-LiPo level (B:) and the
-// USB bench-test mode. Drive VBAT_CTRL (GPIO37) LOW to connect the divider to
-// VBAT_ADC (GPIO1); it needs a settle delay before reading.
+// USB bench-test mode. Drive VBAT_CTRL (GPIO37) to VBAT_ON to connect the
+// divider to VBAT_ADC (GPIO1); it needs a settle delay before reading.
 #define VBAT_CTRL   37      // GPIO37 enables the onboard battery divider
 #define VBAT_ON     HIGH    // level that CONNECTS it. Heltec docs say LOW, but
                             // this board measured 0 mV on LOW — HIGH works here.
