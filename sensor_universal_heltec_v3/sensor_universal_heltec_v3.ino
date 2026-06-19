@@ -38,7 +38,7 @@
 //     instead of the external divider. Lets you verify TX → RX → e-ink with
 //     NOTHING wired up — just power the V3 over USB-C.
 // 0 = real mode: read the external universal divider on GPIO7.
-#define USB_TEST_MODE  1
+#define USB_TEST_MODE  0
 
 // ── Thresholds (volts) ────────────────────────────────────────────────────────
 // Set at runtime by battery type — see warnV()/critV() below. (In USB test mode
@@ -546,7 +546,7 @@ void setup() {
 
 // TEMP: force a fixed voltage on the display for a quick layout preview.
 // Set DEMO_VOLTAGE_ON to 0 for normal operation.
-#define DEMO_VOLTAGE_ON  1
+#define DEMO_VOLTAGE_ON  0
 #define DEMO_VOLTAGE     16.2f
 
 float readVoltage() {
