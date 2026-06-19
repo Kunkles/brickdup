@@ -620,7 +620,12 @@ float readLipo() {
     delayMicroseconds(200);
   }
   pinMode(VBAT_CTRL, INPUT);        // release (high-Z) to save power
-  return (sum / ADC_SAMPLES) / 1000.0f * LIPO_RATIO;
+  long avg = sum / ADC_SAMPLES;     // raw mV on the sense pin (pre-ratio)
+  float v  = avg / 1000.0f * LIPO_RATIO;
+  // DIAGNOSTIC: pin should read ~800 mV for a ~4V LiPo (÷4.9). If it reads ~0,
+  // the GPIO37 enable isn't connecting the divider — next test is VBAT_CTRL HIGH.
+  Serial.printf("[LIPO] pin=%ld mV  ->  %.2fV\n", avg, v);
+  return v;
 }
 
 int voltageStatus(float v) {
