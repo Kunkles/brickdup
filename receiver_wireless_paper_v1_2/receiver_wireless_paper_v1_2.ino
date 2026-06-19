@@ -22,7 +22,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
 
-#define FW_VERSION "0.5.4"
+#define FW_VERSION "0.5.5"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
@@ -631,7 +631,9 @@ void handleClear() {
   nodeCount   = 0;
   rosterDirty = false;
   prefs.remove("roster");
+  if (flashing) { display.fastmodeOff(); flashing = false; }  // leave flash mode
   lastSig = 0xFFFFFFFF;        // force the e-ink to redraw empty
+  maybeRefresh();             // redraw NOW — don't wait for the next packet
   server.send(200, "text/plain", "OK");
 }
 
@@ -649,7 +651,7 @@ void handleData() {
     j += ",\"st\":"    + String(n.status);
     j += ",\"soc\":"   + String((int)n.soc);
     j += ",\"eta\":"   + String(etaMinutes(n));
-    j += ",\"bars\":"  + String(signalLevel(n.rssi));
+    j += ",\"bars\":"  + String((t == FRESH || t == STALE) ? signalLevel(n.rssi) : 0);
     j += ",\"rssi\":"  + String(n.rssi);
     j += ",\"tier\":"  + String((int)t);
     j += ",\"lipo\":"  + String(n.lipo, 2);

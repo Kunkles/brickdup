@@ -9,7 +9,18 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.4 — current
+## 0.5.5 — current
+
+Receiver fixes (reflash the receiver only):
+- "Clear node list" now redraws the e-ink immediately instead of waiting for
+  the next packet, so clearing a stale/dead node actually removes it on screen.
+  (A *live* node still re-appears on its next 10s transmit — that's expected.)
+- Dashboard no longer shows stale full signal bars for a disconnected (LOST)
+  node — bars now read 0 unless the node is FRESH/STALE, matching the e-ink.
+  Note: at close bench range every node legitimately shows 3 bars (RSSI ≥ -95);
+  bars only drop with real distance/obstacles.
+
+## 0.5.4
 
 - Fix the bridge-LiPo read (`B:` was reporting `Li 0.0V`). The onboard
   battery-sense path had never actually run before — `DEMO_VOLTAGE_ON` masked
