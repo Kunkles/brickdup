@@ -52,8 +52,11 @@ setting (web page or long-press PRG) — **no extra wiring** for it.
 - **Buck rating matters:** for 6S (25.2V) use the 36V-rated D24V10F5. A 28V buck
   (e.g. MP1584 modules) is too marginal for 6S. The buck now also supplies the
   LiPo charge current (~500mA) on top of the board — the 1A D24V10F5 handles it.
-- `ADC_SCALE` in the sketch is the as-built value `(222/22 × 3.3/4095)`. If you
-  fit different resistors, update it.
+- The universal sketch reads GPIO7 with `analogReadMilliVolts()` (factory ADC
+  calibration), so the only constant is the divider ratio
+  `DIVIDER_RATIO = (222/22)` = (R1+R2)/R2. If you fit different resistors,
+  update that. (The legacy OB/BL sketches still use raw `analogRead` × their
+  own `ADC_SCALE`.)
 - After wiring, **calibrate** on the web page against a multimeter.
 
 ---

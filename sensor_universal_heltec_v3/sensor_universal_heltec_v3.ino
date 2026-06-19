@@ -20,7 +20,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.5.1" // shown small in the OLED corner
+#define FW_VERSION "0.5.2" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -49,9 +49,12 @@
 // ── ADC (universal divider, R1=200k / R2=22k) ────────────────────────────────
 #define VBAT_PIN    7       // external divider input (real mode)
 #define ADC_SAMPLES 16
-// Vout = Vin * R2/(R1+R2) = Vin * 22/(200+22); 25.2V → ~2.5V (headroom)
-// ADC_SCALE = (R1+R2)/R2 * (3.3/4095)
-#define ADC_SCALE  (222.0f / 22.0f * 3.3f / 4095.0f)
+// Vin = Vpin * (R1+R2)/R2; 25.2V → ~2.5V on the pin (headroom).
+// readVoltage() reads the pin in millivolts via analogReadMilliVolts(), which
+// applies the ESP32-S3's factory ADC calibration (much better absolute accuracy
+// and low-end behaviour than raw counts × an assumed 3.3/4095). So the only
+// scale we apply is the divider ratio.
+#define DIVIDER_RATIO  (222.0f / 22.0f)   // (R1+R2)/R2 = 200k+22k over 22k
 
 // Heltec V3 onboard battery sense (test mode only)
 #define VBAT_CTRL   37      // drive LOW to connect the onboard divider
@@ -567,10 +570,10 @@ float readVoltage() {
 #else
   long sum = 0;
   for (int i = 0; i < ADC_SAMPLES; i++) {
-    sum += analogRead(VBAT_PIN);
+    sum += analogReadMilliVolts(VBAT_PIN);   // factory-calibrated mV at the pin
     delayMicroseconds(200);
   }
-  return (float)(sum / ADC_SAMPLES) * ADC_SCALE * g_cal;
+  return (sum / ADC_SAMPLES) / 1000.0f * DIVIDER_RATIO * g_cal;
 #endif
 }
 

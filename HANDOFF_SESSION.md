@@ -16,7 +16,7 @@ on-set use.
 
 - **Repo:** https://github.com/Kunkles/brickdup (local: `~/Documents/brickwatch/`
   — folder name predates the repo rename, that's fine)
-- **Firmware version:** v0.5.1 (`FW_VERSION` in each sketch; CHANGELOG.md)
+- **Firmware version:** v0.5.2 (`FW_VERSION` in each sketch; CHANGELOG.md)
 - **CI:** GitHub Actions builds all sketches on every push; artifacts =
   `brickdup_{universal,onboard,block,receiver}.bin`. Tags `v*` attach bins to a
   GitHub Release.
@@ -59,13 +59,12 @@ hardcoded 915.0).
   onboard charger); camera battery also → divider → GPIO7 (sense, common
   ground). The 1100mAh LiPo bridges battery swaps and keeps the node alive to
   **report** a dead/removed camera battery (vs the receiver inferring it).
-- **`USB_TEST_MODE 1`** (current state in node sketches): reads the Heltec's
-  own supply (~4V) so the whole chain works over USB-C with no divider wired.
-  Set 0 for real monitoring. Universal also has **`DEMO_VOLTAGE_ON 1`**
-  currently forcing 16.2V for display-layout preview — **flip to 0 for real
-  readings.** Receiver has `DEMO_NODES` (currently 0).
+- **Bench/demo flags now OFF for real monitoring:** universal sketch has
+  `USB_TEST_MODE 0` and `DEMO_VOLTAGE_ON 0` — it reads the real divider on
+  GPIO7 (via `analogReadMilliVolts`). Set `USB_TEST_MODE 1` only to re-run the
+  no-divider USB bench test. Receiver has `DEMO_NODES` (currently 0).
 
-## Feature inventory (all working, v0.5.1)
+## Feature inventory (all working, v0.5.2)
 
 **Nodes:** OLED status (id/SSID top, name, big 7-segment voltage with narrow
 "1" + GAP 6, emboldened "V", type + version bottom), WiFi config portal

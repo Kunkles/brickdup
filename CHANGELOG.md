@@ -9,7 +9,17 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.1 — current
+## 0.5.2 — current
+
+- Universal node: read GPIO7 with `analogReadMilliVolts()` (ESP32-S3 factory
+  ADC calibration) instead of raw `analogRead()` × an assumed 3.3/4095. Much
+  better absolute accuracy and low-end behaviour; the only scale left is the
+  divider ratio (`DIVIDER_RATIO` = 222/22). Fixes the ~0.2V high reading that
+  single-point calibration couldn't remove. Recalibrate (reset, then set) after
+  flashing.
+- Other sketches: version bump only (shared `FW_VERSION`).
+
+## 0.5.1
 
 - Universal node: `ADC_SCALE` set to the as-built divider — R1 = 200kΩ
   (2×100kΩ in series), R2 = **22kΩ** (was the 27kΩ design value). 25.2V now
