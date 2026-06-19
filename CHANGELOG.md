@@ -9,7 +9,15 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.3 — current
+## 0.5.4 — current
+
+- Fix the bridge-LiPo read (`B:` was reporting `Li 0.0V`). The onboard
+  battery-sense path had never actually run before — `DEMO_VOLTAGE_ON` masked
+  the only code that used it — so its 5 ms settle was too short. Now: settle
+  `LIPO_SETTLE` (20 ms), read in mV via `analogReadMilliVolts()`, scale by the
+  V3 onboard divider ratio `LIPO_RATIO` (~4.9, trim against a meter).
+
+## 0.5.3
 
 Bridge-LiPo support / explicit dead-battery reporting:
 - Node reads its bridge LiPo (Heltec onboard sense) and broadcasts it as a new

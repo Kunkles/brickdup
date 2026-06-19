@@ -20,7 +20,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.5.3" // shown small in the OLED corner
+#define FW_VERSION "0.5.4" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -66,10 +66,14 @@
 // scale we apply is the divider ratio.
 #define DIVIDER_RATIO  (222.0f / 22.0f)   // (R1+R2)/R2 = 200k+22k over 22k
 
-// Heltec V3 onboard battery sense (test mode only)
+// Heltec V3 onboard battery sense — used for the bridge-LiPo level (B:) and the
+// USB bench-test mode. Drive VBAT_CTRL (GPIO37) LOW to connect the divider to
+// VBAT_ADC (GPIO1); it needs a settle delay before reading.
 #define VBAT_CTRL   37      // drive LOW to connect the onboard divider
 #define VBAT_ADC    1       // onboard battery ADC pin
-#define VBAT_CAL    0.0041f // nominal V3 divider factor (calibrate later)
+#define VBAT_CAL    0.0041f // legacy raw factor (USB_TEST_MODE branch only)
+#define LIPO_RATIO  4.9f    // V3 onboard divider ratio (~390k/100k) — trim vs a meter
+#define LIPO_SETTLE 20      // ms for the high-Z divider + filter cap to settle
 
 // ── OLED (Heltec V3 onboard 128×64, I2C) ──────────────────────────────────────
 // These macros are defined by the Heltec V3 board variant; fall back if not.
@@ -602,20 +606,21 @@ float readVoltage() {
 }
 
 // Read the bridge LiPo on the Heltec's onboard battery sense: drive VBAT_CTRL
-// LOW to connect the onboard divider, sample VBAT_ADC, release to save power.
-// VBAT_CAL is the nominal V3 factor (volts/count) — trim against a meter if the
-// reported Li level is off. Informational only; not gated by g_cal.
+// LOW to connect the onboard divider, let it settle, sample VBAT_ADC in mV
+// (factory ADC cal), release to save power. LIPO_RATIO is the board's divider
+// ratio — trim against a meter if the reported Li level is off. Informational
+// only; not gated by g_cal.
 float readLipo() {
   pinMode(VBAT_CTRL, OUTPUT);
   digitalWrite(VBAT_CTRL, LOW);
-  delay(5);
+  delay(LIPO_SETTLE);
   long sum = 0;
   for (int i = 0; i < ADC_SAMPLES; i++) {
-    sum += analogRead(VBAT_ADC);
+    sum += analogReadMilliVolts(VBAT_ADC);
     delayMicroseconds(200);
   }
   pinMode(VBAT_CTRL, INPUT);        // release (high-Z) to save power
-  return (float)(sum / ADC_SAMPLES) * VBAT_CAL;
+  return (sum / ADC_SAMPLES) / 1000.0f * LIPO_RATIO;
 }
 
 int voltageStatus(float v) {
