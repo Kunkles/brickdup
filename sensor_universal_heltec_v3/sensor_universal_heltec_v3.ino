@@ -20,7 +20,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.5.2" // shown small in the OLED corner
+#define FW_VERSION "0.5.3" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -45,6 +45,16 @@
 // the source is a single cell ~4V, so single-cell levels are used instead.)
 #define TEST_WARN_V  3.50f
 #define TEST_CRIT_V  3.30f
+
+// ── Bridge LiPo / no-source detection ─────────────────────────────────────────
+// The node is also powered by a small 1S bridge LiPo (Heltec battery JST). When
+// the camera battery is removed or dies, the buck output drops but the LiPo keeps
+// the node alive — so instead of going silent it reports S:3 ("no source") plus
+// its own LiPo level (B:<volts>), and the receiver shows an explicit DEAD.
+// Below SOURCE_MIN_V on the camera divider = no battery present (any real 4S/6S
+// pack is far above this; the bare divider floats near ~1V with nothing connected).
+#define SOURCE_MIN_V  5.0f
+#define STATUS_NOSRC  3        // packet S: value for "camera battery removed/dead"
 
 // ── ADC (universal divider, R1=200k / R2=22k) ────────────────────────────────
 #define VBAT_PIN    7       // external divider input (real mode)
@@ -184,9 +194,12 @@ void drawV7(int x, int y, int w, int h, int t) {
   }
 }
 
-void drawOLED(float voltage, int status) {
-  const char* tag     = (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
+void drawOLED(float voltage, int status, float lipo) {
+  const char* tag     = (status == STATUS_NOSRC) ? "NO SRC"
+                      : (status == 2) ? "CRIT" : (status == 1) ? "WARN" : "OK";
   const char* typeStr = g_mode ? "BL 6S" : "OB 4S";
+  char li[16];
+  snprintf(li, sizeof(li), "Li %.1fV", lipo);
 
   oled.clear();
 
@@ -203,13 +216,24 @@ void drawOLED(float voltage, int status) {
   oled.setTextAlignment(TEXT_ALIGN_LEFT);
   oled.drawString(0, 12, g_name.c_str());
 
-  // Big 7-segment voltage + a small "V", emboldened (overdrawn) for ~2x weight
-  int vx = drawVoltage7(2, 30, voltage);
-  oled.setFont(ArialMT_Plain_16);
-  oled.drawString(vx + 2, 36, "V");
-  oled.drawString(vx + 3, 36, "V");
-  oled.drawString(vx + 2, 37, "V");
-  oled.drawString(vx + 3, 37, "V");
+  if (status == STATUS_NOSRC) {
+    // No camera battery — say so plainly (the reading is meaningless) and show
+    // the bridge cell that's keeping the node alive to report it.
+    oled.setFont(ArialMT_Plain_16);
+    oled.drawString(0, 28, "NO BATT");
+    oled.drawString(0, 44, li);
+  } else {
+    // Big 7-segment voltage + a small "V", emboldened (overdrawn) for ~2x weight
+    int vx = drawVoltage7(2, 30, voltage);
+    oled.setFont(ArialMT_Plain_16);
+    oled.drawString(vx + 2, 36, "V");
+    oled.drawString(vx + 3, 36, "V");
+    oled.drawString(vx + 2, 37, "V");
+    oled.drawString(vx + 3, 37, "V");
+    // Small bridge-LiPo readout, bottom-left
+    oled.setFont(ArialMT_Plain_10);
+    oled.drawString(0, 53, li);
+  }
 
   // Right column: battery type (where "USB TEST" used to be) + version
   oled.setFont(ArialMT_Plain_10);
@@ -577,6 +601,23 @@ float readVoltage() {
 #endif
 }
 
+// Read the bridge LiPo on the Heltec's onboard battery sense: drive VBAT_CTRL
+// LOW to connect the onboard divider, sample VBAT_ADC, release to save power.
+// VBAT_CAL is the nominal V3 factor (volts/count) — trim against a meter if the
+// reported Li level is off. Informational only; not gated by g_cal.
+float readLipo() {
+  pinMode(VBAT_CTRL, OUTPUT);
+  digitalWrite(VBAT_CTRL, LOW);
+  delay(5);
+  long sum = 0;
+  for (int i = 0; i < ADC_SAMPLES; i++) {
+    sum += analogRead(VBAT_ADC);
+    delayMicroseconds(200);
+  }
+  pinMode(VBAT_CTRL, INPUT);        // release (high-Z) to save power
+  return (float)(sum / ADC_SAMPLES) * VBAT_CAL;
+}
+
 int voltageStatus(float v) {
   if (v < critV()) return 2;
   if (v < warnV()) return 1;
@@ -593,12 +634,17 @@ void loop() {
     lastTx = now;
 
     float voltage = readVoltage();
-    int status = voltageStatus(voltage);
-    drawOLED(voltage, status);
+    float lipo    = readLipo();
+#if USB_TEST_MODE
+    int status = voltageStatus(voltage);             // no-source logic off in test mode
+#else
+    int status = (voltage < SOURCE_MIN_V) ? STATUS_NOSRC : voltageStatus(voltage);
+#endif
+    drawOLED(voltage, status, lipo);
 
     char packet[96];
-    snprintf(packet, sizeof(packet), "T:%s,I:%s,V:%.2f,S:%d,M:%s",
-             g_type(), g_permId.c_str(), voltage, status, g_name.c_str());
+    snprintf(packet, sizeof(packet), "T:%s,I:%s,V:%.2f,S:%d,B:%.2f,M:%s",
+             g_type(), g_permId.c_str(), voltage, status, lipo, g_name.c_str());
 
     Serial.printf("[TX] %s\n", packet);
 

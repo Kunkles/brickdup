@@ -9,7 +9,23 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.2 — current
+## 0.5.3 — current
+
+Bridge-LiPo support / explicit dead-battery reporting:
+- Node reads its bridge LiPo (Heltec onboard sense) and broadcasts it as a new
+  `B:<volts>` packet field, plus a new status `S:3` ("no source") when the
+  camera battery reads below `SOURCE_MIN_V` (5V). Instead of going silent when
+  the camera battery is pulled/dies, the node stays alive on the LiPo and says
+  so. Node OLED shows `NO BATT` + the bridge level in that state.
+- Receiver parses `B:`/`S:3`, shows an **explicit DEAD** (steady inverted bar)
+  for a node reporting no source — distinct from the old *inferred* DEAD
+  (silent-after-CRIT), which still works. DEAD rows show the node's `Li x.xV`
+  in place of a meaningless SoC; SoC/rate aren't updated from a no-source
+  packet. Dashboard JSON gains `lipo`; table shows DEAD + Li level.
+- Packet is forward/backward compatible (prefix-matched fields, unknowns
+  ignored).
+
+## 0.5.2
 
 - Universal node: read GPIO7 with `analogReadMilliVolts()` (ESP32-S3 factory
   ADC calibration) instead of raw `analogRead()` × an assumed 3.3/4095. Much

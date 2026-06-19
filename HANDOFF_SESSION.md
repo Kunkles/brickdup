@@ -16,7 +16,7 @@ on-set use.
 
 - **Repo:** https://github.com/Kunkles/brickdup (local: `~/Documents/brickwatch/`
   — folder name predates the repo rename, that's fine)
-- **Firmware version:** v0.5.2 (`FW_VERSION` in each sketch; CHANGELOG.md)
+- **Firmware version:** v0.5.3 (`FW_VERSION` in each sketch; CHANGELOG.md)
 - **CI:** GitHub Actions builds all sketches on every push; artifacts =
   `brickdup_{universal,onboard,block,receiver}.bin`. Tags `v*` attach bins to a
   GitHub Release.
@@ -43,7 +43,8 @@ hardcoded 915.0).
 
 - **Radio:** 915.0MHz, BW125, SF9, CR4/5, sync 0xAB, 17dBm, preamble 8 — must
   match across all units. TX every 10s.
-- **Packet (ASCII):** `T:<OB|BL>,I:<permId>,V:<float>,S:<0|1|2>[,M:<name>]`
+- **Packet (ASCII):** `T:<OB|BL>,I:<permId>,V:<float>,S:<0|1|2|3>[,B:<lipo>][,M:<name>]`
+  (S:3 = no source / battery removed-dead; B: = node bridge-LiPo volts)
 - **Identity:** permanent id from chip MAC. Universal sketch uses
   **`ND-XXXX`** (type-independent so toggling 4S/6S doesn't spawn a ghost
   node); legacy sketches use `OB-`/`BL-`. The id IS the WiFi AP name
@@ -54,17 +55,19 @@ hardcoded 915.0).
   type is a runtime setting (web dropdown or long-press PRG) that flips
   thresholds (OB: WARN 13.5/CRIT 12.8 · BL: WARN 21.0/CRIT 20.0) and broadcast
   type. Legacy `sensor_onboard`/`sensor_block` kept for reference.
-- **Node power architecture (decided, docs done, firmware TODO):** camera
-  battery → buck → Heltec 5V pin (powers board + charges bridge LiPo via
-  onboard charger); camera battery also → divider → GPIO7 (sense, common
-  ground). The 1100mAh LiPo bridges battery swaps and keeps the node alive to
-  **report** a dead/removed camera battery (vs the receiver inferring it).
+- **Node power architecture (DONE in fw 0.5.3):** camera battery → buck →
+  Heltec 5V pin (powers board + charges bridge LiPo via onboard charger);
+  camera battery also → divider → GPIO7 (sense, common ground). The 1100mAh
+  LiPo bridges swaps and keeps the node alive to **report** a removed/dead
+  camera battery: node reads its LiPo (B:<v>) and sends S:3 ("no source") when
+  the camera reading <5V; receiver shows explicit DEAD + the Li level (vs the
+  older silent-after-CRIT *inferred* DEAD, still supported).
 - **Bench/demo flags now OFF for real monitoring:** universal sketch has
   `USB_TEST_MODE 0` and `DEMO_VOLTAGE_ON 0` — it reads the real divider on
   GPIO7 (via `analogReadMilliVolts`). Set `USB_TEST_MODE 1` only to re-run the
   no-divider USB bench test. Receiver has `DEMO_NODES` (currently 0).
 
-## Feature inventory (all working, v0.5.2)
+## Feature inventory (all working, v0.5.3)
 
 **Nodes:** OLED status (id/SSID top, name, big 7-segment voltage with narrow
 "1" + GAP 6, emboldened "V", type + version bottom), WiFi config portal
@@ -89,12 +92,13 @@ units.
 ## Roadmap (README has full text)
 
 Done: ping test, paging, fuel gauge, calibration, RSSI bars, dashboard, OTA,
-captive portal, universal node, CI, NVS roster.
+captive portal, universal node, CI, NVS roster, bridge-LiPo firmware
+(explicit removed/dead reporting + node LiPo level, fw 0.5.3).
 **Open:** channel/group selection (freq+syncword sets), WiFi STA mode + mDNS,
 trusted-WiFi auto-join list, BLE + **iOS app** (persistent readout + CRIT/DEAD
-notifications, Core Bluetooth background), **bridge-LiPo firmware** (explicit
-camera-removed/dead state + node-battery reporting — docs/architecture done,
-code not), CRIT buzzer (needs piezo), deep sleep, PCB (universal, screw
+notifications, Core Bluetooth background), **VCLX/NiMH block mode** (thresholds
++ honest fuel gauge — needs meter verification), CRIT buzzer (needs piezo),
+deep sleep, PCB (universal, screw
 terminals, buck+divider integrated). Also promised: a **user manual** at some
 point (user asked; deferred until features settle).
 

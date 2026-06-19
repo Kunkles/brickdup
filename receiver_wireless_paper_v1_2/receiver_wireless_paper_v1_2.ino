@@ -22,7 +22,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
 
-#define FW_VERSION "0.5.2"
+#define FW_VERSION "0.5.3"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
@@ -73,6 +73,8 @@
 #define MAX_NODES    12
 #define STALE_MS     15000UL   // ~1-2 missed → STALE (last reading shown, flagged)
 #define LOST_MS      28000UL   // ~3 missed   → LOST  (signal gone)
+#define STATUS_NOSRC 3         // node S: value = camera battery removed/dead
+                               // (node stays alive on its bridge LiPo to report it)
 #define CHECK_MS     1000UL    // re-evaluate freshness every 1s for a prompt redraw
 #define DISPLAY_ROWS 5
 
@@ -84,7 +86,8 @@ struct NodeState {
   char     type[4];     // "OB" or "BL"
   char     name[20];    // friendly name broadcast by the node (empty if none)
   float    voltage;
-  uint8_t  status;      // 0=OK  1=WARN  2=CRIT
+  uint8_t  status;      // 0=OK  1=WARN  2=CRIT  3=NO SOURCE (battery removed/dead)
+  float    lipo;        // node's bridge LiPo volts (B: field; 0 if not reported)
   int16_t  rssi;
   uint32_t lastSeen;
   bool     active;
@@ -283,12 +286,16 @@ int findOrCreateNode(const char* permId, const char* type) {
 }
 
 bool parsePacket(const char* buf, char* type, char* permId, size_t permLen,
-                 float* voltage, uint8_t* status, char* name, size_t nameLen) {
-  // Format: T:<type>,I:<permId>,V:<voltage>,S:<status>[,M:<name>]
+                 float* voltage, uint8_t* status, float* lipo,
+                 char* name, size_t nameLen) {
+  // Format: T:<type>,I:<permId>,V:<voltage>,S:<status>[,B:<lipo>][,M:<name>]
+  // Fields are matched by prefix, so order doesn't matter and unknown fields
+  // (from older/newer firmware) are simply ignored.
   char tmp[128];
   strncpy(tmp, buf, sizeof(tmp) - 1);
   permId[0] = '\0';
   name[0]   = '\0';
+  *lipo     = 0;
 
   char* p = strtok(tmp, ",");
   while (p) {
@@ -296,6 +303,7 @@ bool parsePacket(const char* buf, char* type, char* permId, size_t permLen,
     else if (strncmp(p, "I:", 2) == 0) strncpy(permId, p + 2, permLen - 1);
     else if (strncmp(p, "V:", 2) == 0) *voltage = atof(p + 2);
     else if (strncmp(p, "S:", 2) == 0) *status  = atoi(p + 2);
+    else if (strncmp(p, "B:", 2) == 0) *lipo    = atof(p + 2);
     else if (strncmp(p, "M:", 2) == 0) strncpy(name, p + 2, nameLen - 1);
     p = strtok(nullptr, ",");
   }
@@ -363,6 +371,7 @@ uint32_t displaySignature() {
     for (const char* c = n.name;   *c; c++) sig = (sig ^ (uint8_t)*c) * 16777619u;
     sig = (sig ^ (uint32_t)t) * 16777619u;
     sig = (sig ^ n.status) * 16777619u;   // also distinguishes LOST vs DEAD
+    sig = (sig ^ (uint32_t)(n.lipo * 10)) * 16777619u;  // bridge-Li readout (DEAD rows)
     if (t == FRESH) {
       sig = (sig ^ (uint32_t)(n.voltage * 10)) * 16777619u;  // 0.1V = displayed res
       sig = (sig ^ (uint32_t)(n.soc / 5)) * 16777619u;       // 5% buckets
@@ -450,14 +459,19 @@ void updateDisplay() {
 
     int y = 34 + row * 20;
 
-    // A node gone silent right after a CRIT reading = its battery died (it was
-    // powered by that battery). Otherwise it's a genuine connection loss.
-    bool isDead = (t == LOST && n.status == 2);
+    // Two ways a node reads DEAD:
+    //  • Explicit (S:3): the node is alive on its bridge LiPo and reporting the
+    //    camera battery is gone — DEAD even though it's still transmitting.
+    //  • Inferred: a node that went silent right after a CRIT reading (it was
+    //    powered by that battery).
+    bool noSrc  = (n.status == STATUS_NOSRC);
+    bool isDead = noSrc || (t == LOST && n.status == 2);
 
     // Alert rows invert to read across a room. CRIT and DEAD are steady inverted
     // bars; a true LOST flashes (invert only on alternate phases) to stand out.
-    bool invert = (t == LOST) ? (isDead ? true : flashState)
-                              : (t == FRESH && n.status == 2);
+    bool invert = isDead ? true
+                : (t == LOST) ? flashState
+                : (t == FRESH && n.status == 2);
     if (invert) {
       display.fillRect(0, y - 14, 250, 18, BLACK);
       display.setTextColor(WHITE);
@@ -486,7 +500,13 @@ void updateDisplay() {
     int16_t nbx, nby; uint16_t nbw, nbh;
     display.getTextBounds(nm, 0, 0, &nbx, &nby, &nbw, &nbh);
     int infoX = 10 + nbw + 10;
-    if (t == STALE) {
+    if (noSrc && t != LOST) {
+      // Node alive on its bridge cell — show that instead of a meaningless SoC.
+      char info[20];
+      snprintf(info, sizeof(info), "Li %.1fV", n.lipo);
+      display.setCursor(infoX, y);
+      display.print(info);
+    } else if (t == STALE) {
       display.setCursor(infoX, y);
       display.print("stale");
     } else if (t == FRESH) {
@@ -503,8 +523,11 @@ void updateDisplay() {
     // Right-aligned readout. LOST/DEAD use a smaller bold font so they don't clip.
     char readout[12];
     const GFXfont* vfont;
-    if (t == LOST) {
-      snprintf(readout, sizeof(readout), isDead ? "DEAD" : "LOST");
+    if (isDead) {
+      snprintf(readout, sizeof(readout), "DEAD");
+      vfont = &FreeSansBold9pt7b;
+    } else if (t == LOST) {
+      snprintf(readout, sizeof(readout), "LOST");
       vfont = &FreeSansBold9pt7b;
     } else {
       snprintf(readout, sizeof(readout), "%.1fV", n.voltage);   // e.g. "14.7V"
@@ -575,14 +598,14 @@ td.v{font-weight:700;font-size:18px}
 &nbsp; <a href="/update" style="color:#2dd47a;font-size:13px">firmware update &rarr;</a></p>
 <script>
 function bars(n){let s='';for(let i=0;i<3;i++){let h=4+i*4;s+=`<span class="${i<n?'':'off'}" style="height:${h}px"></span>`}return `<span class=bars>${s}</span>`}
-function stat(d){if(d.tier==2)return d.dead?['DEAD','lost']:['LOST','lost'];if(d.tier==1)return['STALE','stale'];return[['OK','WARN','CRIT'][d.st],['ok','warn','crit'][d.st]]}
+function stat(d){if(d.dead)return['DEAD','lost'];if(d.tier==2)return['LOST','lost'];if(d.tier==1)return['STALE','stale'];return[['OK','WARN','CRIT'][d.st],['ok','warn','crit'][d.st]]}
 async function tick(){try{let j=await(await fetch('/data')).json();
 document.getElementById('sub').textContent=`${j.nodes.length} node(s) · receiver ${j.batt.toFixed(1)}V${j.chg?' (charging)':''}`;
 let h='';if(!j.nodes.length)h='<tr><td colspan=6 class=empty>Waiting for nodes…</td></tr>';
 for(let d of j.nodes){let[t,c]=stat(d);
 let tm=d.eta<0?'':(d.eta>=100?'~'+(d.eta/60).toFixed(1)+'h':'~'+d.eta+'m');
-let pct=d.tier==0?d.soc+'%':'';
-let v=d.tier==2?(d.dead?'DEAD':'LOST'):d.v.toFixed(1)+'V';
+let pct=d.dead?'Li '+d.lipo.toFixed(1)+'V':(d.tier==0?d.soc+'%':'');
+let v=d.dead?'DEAD':(d.tier==2?'LOST':d.v.toFixed(1)+'V');
 h+=`<tr><td>${d.name}</td><td class="v ${c}">${v}</td><td>${pct}</td><td>${tm}</td><td>${bars(d.bars)}</td><td class="${c}">${t}</td></tr>`}
 document.getElementById('rows').innerHTML=h;}catch(e){document.getElementById('sub').textContent='disconnected'}}
 tick();setInterval(tick,2000);
@@ -619,7 +642,7 @@ void handleData() {
   for (int i = 0; i < nodeCount; i++) {
     NodeState& n = nodes[i];
     Tier t = tierOf(n);
-    bool dead = (t == LOST && n.status == 2);
+    bool dead = (n.status == STATUS_NOSRC) || (t == LOST && n.status == 2);
     if (i) j += ',';
     j += "{\"name\":\"";  jsonEsc(j, friendlyName(n));
     j += "\",\"v\":"   + String(n.voltage, 2);
@@ -629,6 +652,7 @@ void handleData() {
     j += ",\"bars\":"  + String(signalLevel(n.rssi));
     j += ",\"rssi\":"  + String(n.rssi);
     j += ",\"tier\":"  + String((int)t);
+    j += ",\"lipo\":"  + String(n.lipo, 2);
     j += ",\"dead\":"  + String(dead ? "true" : "false");
     j += "}";
   }
@@ -821,33 +845,39 @@ void handlePacket() {
     char permId[16] = {};
     float voltage = 0;
     uint8_t status = 0;
+    float lipo = 0;
     char name[20] = {};
 
     if (parsePacket(received.c_str(), type, permId, sizeof(permId),
-                    &voltage, &status, name, sizeof(name))) {
+                    &voltage, &status, &lipo, name, sizeof(name))) {
       int idx = findOrCreateNode(permId, type);
       if (idx >= 0) {
         NodeState& nd = nodes[idx];
         nd.voltage  = voltage;
         nd.status   = status;
+        nd.lipo     = lipo;
         nd.rssi     = rssi;
         nd.lastSeen = millis();
         nd.active   = true;
         if (name[0]) strncpy(nd.name, name, sizeof(nd.name) - 1);
 
-        // Fuel gauge: state of charge, and a smoothed depletion rate (%/min).
-        nd.soc = socFor(nd.type, voltage);
-        uint32_t now = millis();
-        if (nd.lastRateMs == 0) {               // first sample: seed
-          nd.socAtCalc = nd.soc;
-          nd.lastRateMs = now;
-        } else if (now - nd.lastRateMs >= 60000UL) {   // recompute ~once a minute
-          float dtMin = (now - nd.lastRateMs) / 60000.0f;
-          float rate  = (nd.soc - nd.socAtCalc) / dtMin;        // %/min
-          nd.socRate  = (nd.socRate == 0) ? rate
-                                          : nd.socRate * 0.6f + rate * 0.4f;
-          nd.socAtCalc  = nd.soc;
-          nd.lastRateMs = now;
+        // Fuel gauge only means something with a real source present. With no
+        // camera battery (S:3) the camera reading is ~0V, so hold the last SoC
+        // and don't poison the depletion rate.
+        if (status != STATUS_NOSRC) {
+          nd.soc = socFor(nd.type, voltage);
+          uint32_t now = millis();
+          if (nd.lastRateMs == 0) {               // first sample: seed
+            nd.socAtCalc = nd.soc;
+            nd.lastRateMs = now;
+          } else if (now - nd.lastRateMs >= 60000UL) {   // recompute ~once a minute
+            float dtMin = (now - nd.lastRateMs) / 60000.0f;
+            float rate  = (nd.soc - nd.socAtCalc) / dtMin;        // %/min
+            nd.socRate  = (nd.socRate == 0) ? rate
+                                            : nd.socRate * 0.6f + rate * 0.4f;
+            nd.socAtCalc  = nd.soc;
+            nd.lastRateMs = now;
+          }
         }
         rosterDirty = true;   // persist this roster soon
       }

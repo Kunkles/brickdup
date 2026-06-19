@@ -21,7 +21,7 @@ Voltage divider feeds GPIO7. A 100nF ceramic cap between GPIO7 and GND filters A
 
 📐 **Full wiring (both variants, with diagrams): [WIRING.md](WIRING.md)**
 📌 **Pin assignments, button controls & screen layouts: [REFERENCE.md](REFERENCE.md)**
-📝 **Firmware version history: [CHANGELOG.md](CHANGELOG.md)** — current: **v0.5.2**
+📝 **Firmware version history: [CHANGELOG.md](CHANGELOG.md)** — current: **v0.5.3**
 
 ### Pin map
 
@@ -71,15 +71,16 @@ type is a runtime setting, so one firmware truly covers every node.
 ## Packet format
 
 ```
-T:<type>,I:<permId>,V:<voltage>,S:<status>[,M:<name>]
+T:<type>,I:<permId>,V:<voltage>,S:<status>[,B:<lipo>][,M:<name>]
 ```
 
-Example: `T:OB,I:OB-7F3A,V:14.73,S:0,M:Cam A`
+Example: `T:OB,I:OB-7F3A,V:14.73,S:0,B:3.95,M:Cam A`
 
 - `type` — `OB` or `BL`
 - `permId` — permanent unique id (chip-derived), receiver's tracking key
 - `voltage` — float, 2 decimal places
-- `status` — 0=OK, 1=WARN, 2=CRIT
+- `status` — 0=OK, 1=WARN, 2=CRIT, 3=no source (camera battery removed/dead)
+- `lipo` — node bridge-LiPo voltage (optional; the node stays alive on it to report S:3)
 - `name` — optional friendly name (no commas)
 
 ## Naming nodes (WiFi config portal)
