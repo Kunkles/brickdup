@@ -21,7 +21,7 @@ Voltage divider feeds GPIO7. A 100nF ceramic cap between GPIO7 and GND filters A
 
 📐 **Full wiring (both variants, with diagrams): [WIRING.md](WIRING.md)**
 📌 **Pin assignments, button controls & screen layouts: [REFERENCE.md](REFERENCE.md)**
-📝 **Firmware version history: [CHANGELOG.md](CHANGELOG.md)** — current: **v0.5.8**
+📝 **Firmware version history: [CHANGELOG.md](CHANGELOG.md)** — current: **v0.5.9**
 
 ### Pin map
 
@@ -115,7 +115,7 @@ is only the first-ever-boot default.
 on black), then **press the button again to wake** (the unit reboots). The
 receiver e-ink keeps the POWERED DOWN screen visible while asleep.
 
-Thresholds — Onboard: WARN=13.5V, CRIT=12.8V | Block: WARN=21.0V, CRIT=20.0V
+Thresholds (defaults, editable per type in the node portal) — Onboard: WARN=13.5V, CRIT=12.8V | Block: WARN=21.0V, CRIT=20.0V
 
 ## Radio config
 

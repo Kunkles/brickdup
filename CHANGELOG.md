@@ -9,7 +9,15 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.8 — current
+## 0.5.9 — current
+
+- Editable alert thresholds in the node portal. WARN/CRIT are no longer
+  hardcoded — the config page has WARN/CRIT fields for the current battery type,
+  saved per type (OB and BL each keep their own) in NVS. Defaults unchanged
+  (OB 13.5/12.8V, BL 21.0/20.0V); `/thresh` validates WARN > CRIT within a sane
+  range. Switch battery type to edit the other type's pair.
+
+## 0.5.8
 
 - Clear node list now works in the captive-portal popup, not just Safari. The
   form's `onsubmit="return confirm(...)"` was the blocker: iOS's captive

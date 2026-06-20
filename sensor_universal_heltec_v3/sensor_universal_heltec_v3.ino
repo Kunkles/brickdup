@@ -20,7 +20,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.5.8" // shown small in the OLED corner
+#define FW_VERSION "0.5.9" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -45,6 +45,13 @@
 // the source is a single cell ~4V, so single-cell levels are used instead.)
 #define TEST_WARN_V  3.50f
 #define TEST_CRIT_V  3.30f
+
+// Per-type alert thresholds (volts). Editable in the web portal and stored in
+// NVS — these are just the factory defaults. OB = 4S, BL = 6S.
+#define OB_WARN_DEF  13.5f
+#define OB_CRIT_DEF  12.8f
+#define BL_WARN_DEF  21.0f
+#define BL_CRIT_DEF  20.0f
 
 // ── Bridge LiPo / no-source detection ─────────────────────────────────────────
 // The node is also powered by a small 1S bridge LiPo (Heltec battery JST). When
@@ -120,6 +127,8 @@ String      g_permId;               // permanent unique id from chip MAC (SSID)
 String      g_name;                 // editable user name (shown + broadcast)
 float       g_cal   = 1.0f;         // calibration gain factor (1.0 = uncalibrated)
 uint8_t     g_mode  = 0;            // battery type: 0 = OB (4S), 1 = BL (6S)
+float       g_obWarn = OB_WARN_DEF, g_obCrit = OB_CRIT_DEF;  // editable thresholds
+float       g_blWarn = BL_WARN_DEF, g_blCrit = BL_CRIT_DEF;
 bool        portalActive = false;   // is the WiFi portal running?
 bool        pendingWifiOff = false; // request to drop WiFi after a web response
 bool        btnDown = false;        // PRG button state machine
@@ -137,14 +146,14 @@ float warnV() {
 #if USB_TEST_MODE
   return TEST_WARN_V;
 #else
-  return g_mode ? 21.0f : 13.5f;
+  return g_mode ? g_blWarn : g_obWarn;
 #endif
 }
 float critV() {
 #if USB_TEST_MODE
   return TEST_CRIT_V;
 #else
-  return g_mode ? 20.0f : 12.8f;
+  return g_mode ? g_blCrit : g_obCrit;
 #endif
 }
 
@@ -304,12 +313,23 @@ String htmlPage() {
          "<form action='/calreset'><button class=off type=submit>"
          "Reset calibration</button></form>");
 
+  // Alert thresholds for the current battery type (editable)
+  s += F("<label>Alert thresholds — ");
+  s += g_type();
+  s += F(" (volts)</label><form action='/thresh' method='get'>"
+         "<label>WARN</label><input name='warn' type='number' step='0.1' value='");
+  s += String(warnV(), 1);
+  s += F("'><label>CRIT</label><input name='crit' type='number' step='0.1' value='");
+  s += String(critV(), 1);
+  s += F("'><button type=submit>Save thresholds</button></form>");
+
   s += F("<form action='/wifioff'><button class=off type=submit>"
          "Turn off WiFi</button></form>"
          "<p class=n>The WiFi name above is fixed and never changes. Battery type "
-         "sets the thresholds (4S 13.5/12.8V, 6S 21/20V) — you can also LONG-PRESS "
-         "the PRG button to toggle it. To calibrate, enter the true voltage from a "
-         "meter. Tap PRG to turn WiFi back on.</p><p class=n>"
+         "sets which threshold pair is used (defaults 4S 13.5/12.8V, 6S 21/20V — "
+         "editable above, per type) — you can also LONG-PRESS the PRG button to "
+         "toggle type. To calibrate, enter the true voltage from a meter. Tap PRG "
+         "to turn WiFi back on.</p><p class=n>"
          "<a href='/update' style='color:#2dd47a'>Firmware update &rarr;</a></p>"
          "</body></html>");
   return s;
@@ -369,6 +389,26 @@ void handleCal() {
 void handleCalReset() {
   g_cal = 1.0f;
   prefs.putFloat("cal", g_cal);
+  server.sendHeader("Location", "/");
+  server.send(303);
+}
+
+// Save the WARN/CRIT thresholds for the CURRENT battery type. WARN must sit
+// above CRIT, and both within a sane pack range; otherwise the entry is ignored.
+void handleThresh() {
+  if (server.hasArg("warn") && server.hasArg("crit")) {
+    float w = server.arg("warn").toFloat();
+    float c = server.arg("crit").toFloat();
+    if (w >= 1.0f && w <= 30.0f && c >= 1.0f && c < w) {
+      if (g_mode) {
+        g_blWarn = w; g_blCrit = c;
+        prefs.putFloat("blw", w); prefs.putFloat("blc", c);
+      } else {
+        g_obWarn = w; g_obCrit = c;
+        prefs.putFloat("obw", w); prefs.putFloat("obc", c);
+      }
+    }
+  }
   server.sendHeader("Location", "/");
   server.send(303);
 }
@@ -529,6 +569,10 @@ void setup() {
   g_name = prefs.getString("name", g_permId);
   g_cal  = prefs.getFloat("cal", 1.0f);
   g_mode = prefs.getUChar("mode", 0);   // 0 = OB (4S) default
+  g_obWarn = prefs.getFloat("obw", OB_WARN_DEF);
+  g_obCrit = prefs.getFloat("obc", OB_CRIT_DEF);
+  g_blWarn = prefs.getFloat("blw", BL_WARN_DEF);
+  g_blCrit = prefs.getFloat("blc", BL_CRIT_DEF);
 
   // Power and start the onboard OLED
   pinMode(VEXT_PIN, OUTPUT);
@@ -549,6 +593,7 @@ void setup() {
   server.on("/save", handleSave);
   server.on("/cal", handleCal);
   server.on("/calreset", handleCalReset);
+  server.on("/thresh", handleThresh);
   server.on("/wifioff", handleWifiOff);
   server.on("/update", HTTP_GET, handleUpdatePage);
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);

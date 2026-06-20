@@ -16,7 +16,7 @@ on-set use.
 
 - **Repo:** https://github.com/Kunkles/brickdup (local: `~/Documents/brickwatch/`
   — folder name predates the repo rename, that's fine)
-- **Firmware version:** v0.5.8 (`FW_VERSION` in each sketch; CHANGELOG.md)
+- **Firmware version:** v0.5.9 (`FW_VERSION` in each sketch; CHANGELOG.md)
 - **CI:** GitHub Actions builds all sketches on every push; artifacts =
   `brickdup_{universal,onboard,block,receiver}.bin`. Tags `v*` attach bins to a
   GitHub Release.
@@ -53,7 +53,7 @@ hardcoded 915.0).
 - **Universal node** (`sensor_universal_heltec_v3/`) is the recommended node
   firmware: one divider **200k/22k** (2×100k + 22k as built; 6S-safe, 25.2V→~2.5V on GPIO7), battery
   type is a runtime setting (web dropdown or long-press PRG) that flips
-  thresholds (OB: WARN 13.5/CRIT 12.8 · BL: WARN 21.0/CRIT 20.0) and broadcast
+  thresholds (OB: WARN 13.5/CRIT 12.8 · BL: WARN 21.0/CRIT 20.0 — defaults, now editable per type in the portal, NVS) and broadcast
   type. Legacy `sensor_onboard`/`sensor_block` kept for reference.
 - **Node power architecture (DONE in fw 0.5.3):** camera battery → buck →
   Heltec 5V pin (powers board + charges bridge LiPo via onboard charger);
@@ -67,7 +67,7 @@ hardcoded 915.0).
   GPIO7 (via `analogReadMilliVolts`). Set `USB_TEST_MODE 1` only to re-run the
   no-divider USB bench test. Receiver has `DEMO_NODES` (currently 0).
 
-## Feature inventory (all working, v0.5.3)
+## Feature inventory (all working, v0.5.9)
 
 **Nodes:** OLED status (id/SSID top, name, big 7-segment voltage with narrow
 "1" + GAP 6, emboldened "V", type + version bottom), WiFi config portal
