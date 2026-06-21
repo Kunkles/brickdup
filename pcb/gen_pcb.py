@@ -25,27 +25,26 @@ HOLES = [(4.0, 4.0), (32.0, 16.0)]   # diagonal-ish; SE hole pulled in to clear 
 # Power flows W->E: J1 (VBAT, east edge) -> Cin -> U1 -> L1 -> Cout -> 5V -> J2
 # (north-west). Sense divider is isolated in the far west, away from SW.
 PLACE = {
-    # holes at NW (4,4) and SE (34,14) -> central band is free.
-    # Seeds only; the separation solver fine-tunes. Grouped by power flow W->E.
-    # far-west column: sense divider (isolated from SW)
-    "R1":   (2.5, 8, 90), "R2": (2.5, 11.5, 90), "C1": (2.5, 15, 90),
-    # west: FB divider + enable (small 0402s)
-    "RFB1": (6, 14.5, 90), "RFB2": (7.5, 14.5, 90), "Cff": (9, 14.5, 90),
-    "REN1": (6, 9, 90), "REN2": (8, 9, 90),
-    "RDIM": (12, 4, 0),
-    # centre-north: output connector (away from the holes + U1)
-    "J2":   (16, 2.5, 0),    # 5V/SENSE/GND out -> Heltec
-    # centre: regulator
-    "Cbst": (12.5, 9, 90),
-    "U1":   (17, 10, 0),
-    # output (east of U1): catch diode at SW, inductor, output caps below
-    "D1":   (22, 11, 0),
-    "L1":   (26, 7, 0),
-    "Cout1":(19, 16, 0), "Cout2":(23, 16, 0), "Cout3":(27, 16, 0),
-    # input near U1.VIN + J1: HF cap mid, bulk caps + TVS far east
-    "Cin3": (22, 6, 90),
-    "Cin1": (32, 5, 90), "Cin2": (32, 9, 90), "D2": (31, 13, 0),
-    "J1":   (38, 9, 270),    # VBAT/GND in -> LEMO (pinned to east edge)
+    # Hot-loop-aware floorplan. U1 rot 180 -> VIN/BST/FB on its EAST side (toward
+    # the J1 input) and SW/GND on its WEST side (toward the output + J2). Goal:
+    # tight Cin->VIN and SW->D1->L1 loops; FB + sense kept off the SW node.
+    "U1":   (20, 10, 180),
+    # INPUT (east, by VIN + J1): HF cap hugs VIN, bulk caps + TVS toward J1
+    "Cin3": (24, 9.5, 90),
+    "Cin1": (27, 7.5, 90), "Cin2": (27, 12, 90), "D2": (31, 12.5, 0),
+    "Cbst": (24, 6.5, 90),                 # near BST (east-top)
+    "J1":   (38, 9.5, 270),                # VBAT/GND in -> LEMO (east edge)
+    # FB divider near U1.FB (east-bottom), away from SW
+    "RFB1": (24.5, 13, 90), "RFB2": (26.5, 13, 90), "Cff": (28.5, 13, 90),
+    # OUTPUT (west, off SW): catch diode at SW, inductor, output caps -> J2
+    "D1":   (15.5, 7.5, 0),
+    "L1":   (11.5, 9.5, 0),
+    "Cout1":(8, 12.5, 0), "Cout2":(11, 14, 0), "Cout3":(14, 14, 0),
+    "J2":   (8, 2.5, 0),                    # 5V/SENSE/GND out -> Heltec (west-north)
+    # enable + dim near U1's west pins
+    "REN1": (16, 12.5, 90), "REN2": (18, 13.5, 90), "RDIM": (20, 14.5, 0),
+    # sense divider: taps VBAT (east), routes SENSE to J2; clear of SW (west)
+    "R1":   (31, 5, 90), "R2": (33, 5, 90), "C1": (35, 5, 90),
 }
 
 def mm(v): return pcbnew.FromMM(v)
