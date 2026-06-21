@@ -1,6 +1,6 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v11 (2026-06-20) — hosts the combined PSU PCB (32x18 mm custom
+// Version: v11 (2026-06-20) — hosts the combined PSU PCB (38x18 mm custom
 //          buck+divider board, see pcb/README.md): the buck floor-recess is
 //          gone, the south channel is widened (ch_s 13.5 -> 20) to seat the
 //          board on two M2 standoff bosses, and a notch is cut in the south
@@ -46,7 +46,7 @@
 //   z 15..16  Heltec WiFi LoRa 32 V3 on four 13 mm corner towers,
 //             directly above the cell (battery JST is on the board's
 //             underside, so the lead run is tiny)
-//   south ch  PSU PCB (32x18 buck+divider) on two M2 bosses + wire raceway
+//   south ch  PSU PCB (38x18 buck+divider) on two M2 bosses + wire raceway
 //   north ch  wire slack raceway (7 mm wide)
 //   east bay  LEMO panel connector tail (the divider now lives on the PSU PCB)
 //
@@ -121,13 +121,13 @@ lipo_l = 41.4;  lipo_w = 25.15;  lipo_t = 10.25; // measured (v2 print fit);
                                                  // they exit via the bay-rib gap
 
 /* ---------------- PSU PCB (custom buck + divider, pcb/README.md) -------- */
-psu_l = 32.0;   // PCB length, runs east-west along the south channel  MEASURE final
+psu_l = 38.0;   // PCB length, runs east-west along the south channel  MEASURE final
 psu_w = 18.0;   // PCB width, north-south
 psu_t = 1.6;    // PCB thickness (2-layer FR4)
 psu_stand = 2.5;            // standoff height under the PCB (bottom clearance)
 psu_clear = 1.0;            // slip clearance around the board in its bay
-psu_hole_dx = [4.0, 28.0];  // M2 mounting-hole X positions (board-local)
-psu_hole_y  = 9.0;          // M2 mounting-hole Y (board-local, on the centreline)
+psu_holes   = [[4.0, 4.0], [34.0, 14.0]]; // M2 holes (board-local) at diagonal
+                            // corners — keeps the board's centre clear for parts
 psu_gap_e   = 4.0;          // gap from the board's east edge to the bay rib — keeps
                             // the J1 (LEMO) JST + its mating plug clear of the
                             // LEMO's rear solder cups (see clearance echo)
@@ -318,8 +318,8 @@ module base() {
         translate([p[0], p[1], wall]) cylinder(h = inner_h, d = boss_d);
 
       // PSU PCB standoff bosses — the board screws down onto these (M2 self-tap)
-      for (hx = psu_hole_dx)
-        translate([psu_x0 + hx, psu_y0 + psu_hole_y, wall])
+      for (h = psu_holes)
+        translate([psu_x0 + h[0], psu_y0 + h[1], wall])
           cylinder(h = psu_stand, d = boss_d);
     }
 
@@ -366,8 +366,8 @@ module base() {
     // the Heltec sits north of it), and pilot the two M2 standoff bosses.
     translate([psu_x0 + 2, ribS - 0.1, wall])
       cube([10, rib + 2.0, rim_top]);
-    for (hx = psu_hole_dx)
-      translate([psu_x0 + hx, psu_y0 + psu_hole_y, wall - 0.1])
+    for (h = psu_holes)
+      translate([psu_x0 + h[0], psu_y0 + h[1], wall - 0.1])
         cylinder(h = psu_stand + 0.2, d = screw_pilot);
   }
 }

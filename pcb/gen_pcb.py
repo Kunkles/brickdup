@@ -16,31 +16,32 @@ HERE  = os.path.dirname(os.path.abspath(__file__))
 OUT   = os.path.join(HERE, "brickdup_psu.kicad_pcb")
 FPDIR = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/footprints"
 MHDIR = FPDIR + "/MountingHole.pretty"
-W, H = 32.0, 18.0
-HOLES = [(4.0, 9.0), (28.0, 9.0)]
+W, H = 38.0, 18.0
+HOLES = [(4.0, 4.0), (34.0, 14.0)]   # diagonal corners (match enclosure psu_holes)
 
 # First-pass placement: ref -> (x_mm, y_mm, rotation_deg). Power chain across the
 # middle; FB divider by U1; sense divider isolated in the west corner near J2.
-# NOTE: rough first-pass placement only (arrange + route in the GUI). On a 32x18
-# board the JST bodies + parts leave little slack, so courtyards still overlap;
-# this just gets every part on-board, netted, and grouped by function.
+# Rough first-pass placement on the 38x18 board (arrange + route in the GUI).
+# Power flows W->E: J1 (VBAT, east edge) -> Cin -> U1 -> L1 -> Cout -> 5V -> J2
+# (north-west). Sense divider is isolated in the far west, away from SW.
 PLACE = {
-    # west: sense + FB dividers, enable, J2 out (north edge)
-    "R1":   (2.5, 9, 90), "R2": (2.5, 12.5, 90), "C1": (5.5, 12.5, 90),
-    "RFB1": (8.5, 8, 90), "RFB2": (8.5, 11.5, 90), "Cff": (8.5, 15, 90),
-    "REN1": (5.5, 5, 90), "REN2": (8.5, 5, 90),
-    "J2":   (6, 2.5, 0),     # 5V/SENSE/GND out, mouth faces north edge (toward Heltec)
-    # centre: regulator + output
-    "U1":   (14, 10, 0),
-    "Cbst": (11.5, 5, 90), "RDIM": (14, 5, 90),
-    "L1":   (19, 6, 0),
-    "Cout1":(17.5, 14.5, 0), "Cout2":(20.5, 14.5, 0), "Cout3":(23.5, 14.5, 0),
-    # east: input caps, diodes, input connector
-    "Cin3": (23, 6, 90),
-    "D1":   (24, 11, 0),
-    "Cin1": (27.5, 5.5, 90), "Cin2": (27.5, 11, 90),
-    "D2":   (30.5, 5.5, 90),
-    "J1":   (28.5, 13, 270), # VBAT/GND in, mouth faces east edge (toward LEMO)
+    # holes at NW (4,4) and SE (34,14) -> central band is free
+    "J2":   (11, 2.5, 0),    # 5V/SENSE/GND out, mouth faces north edge (toward Heltec)
+    # west edge: sense divider (isolated from SW)
+    "R1":   (2.5, 9.5, 90), "R2": (2.5, 13, 90), "C1": (2.5, 16.5, 90),
+    # lower-west: FB divider + enable
+    "RFB1": (6, 16.5, 90), "RFB2": (8, 16.5, 90), "Cff": (10, 16.5, 90),
+    "REN1": (7, 8.5, 90), "REN2": (9, 8.5, 90),
+    # centre: regulator
+    "Cbst": (13.5, 5.5, 90), "RDIM": (21, 4, 0),
+    "U1":   (17, 9.5, 0),
+    "L1":   (25, 8.5, 0),
+    # output caps along the lower-centre
+    "Cout1":(12.5, 13, 0), "Cout2":(15.5, 13, 0), "Cout3":(18.5, 13, 0),
+    # east: input caps (top row) + diodes (mid) + connector on the edge
+    "Cin1": (31, 4.5, 90), "Cin2": (34, 4.5, 90), "Cin3": (28, 5, 90),
+    "D1":   (30, 9.5, 0), "D2": (30, 12, 0),
+    "J1":   (36.5, 9, 270),  # VBAT/GND in, mouth faces east edge (toward LEMO)
 }
 
 def mm(v): return pcbnew.FromMM(v)

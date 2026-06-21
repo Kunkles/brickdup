@@ -158,11 +158,13 @@ headroom and the LiPo bridges anything transient. Thermals at 25 V→5 V/0.65 A
 
 ## 5. Board outline & stack-up
 
-- **Size:** **32 × 18 mm**, rounded corners (see
-  [`board_outline.svg`](board_outline.svg)).
+- **Size:** **38 × 18 mm**, rounded corners (see
+  [`board_outline.svg`](board_outline.svg)). Width is set by the enclosure's
+  south channel (~20 mm); length has room to grow there if ever needed.
 - **Stack-up:** 2-layer, 1.6 mm FR4, 1 oz copper (JLCPCB default).
-- **Mounting:** 2 × **M2** holes (2.2 mm dia) on the long centerline at
-  X = 4 mm and X = 28 mm (Y = 9 mm). Keep them out of the power loop.
+- **Mounting:** 2 × **M2** holes (2.2 mm dia) at **diagonal corners** —
+  NW (4, 4) and SE (34, 14) board-local — which keeps the central band clear
+  for the regulator + input cluster. Two diagonal points fully locate the board.
 - **Pours:** ground pour both layers, stitched with vias.
 
 ### Layout rules (matter more than the schematic for a switcher)
@@ -197,22 +199,19 @@ headroom and the LiPo bridges anything transient. Thermals at 25 V→5 V/0.65 A
 
 ## 7. Enclosure integration
 
-The current shell ([`enclosure/node_enclosure.scad`](../enclosure/node_enclosure.scad))
-has a **buck recess** in the south-channel floor (`buck_x`, `buck_l`,
-`buck_w`, `buck_recess`) plus a separate divider bay in the east bay. This board
-**consolidates both**, so the enclosure should change to host a single
-32 × 18 mm board. Planned SCAD edits (not yet applied):
+The shell ([`enclosure/node_enclosure.scad`](../enclosure/node_enclosure.scad))
+**v11** hosts this board (changes applied + OpenSCAD-compiled):
 
-- **Remove** the `buck` locating recess block and its variables.
-- **Widen the south channel** from `ch_s` (≈13.5 mm) to ~**20 mm** to seat the
-  18 mm-wide board with clearance — this grows `inner_w`/`outer_w` by ~6 mm
-  (54 → ~60 mm). Acceptable.
-- **Add a board bay:** a recessed floor + 4 short locating ribs (or 2 standoff
-  bosses matching the M2 holes) for the 32 × 18 mm board, with the M2 holes at
-  X = 4/28, Y = 9 (board-local).
-- **Wire routing:** J1 (VBAT/GND) edge faces the LEMO/east bay; J2
-  (5V/SENSE/GND) edge faces the Heltec. Keep the existing vent slots over the
-  buck region.
+- **Removed** the buck locating recess + its variables.
+- **Widened the south channel** `ch_s` 13.5 → **20 mm** to seat the 18 mm board
+  (`inner_w`/`outer_w` grow ~6 mm → outer **75.6 × 60.7 × 24.4 mm**).
+- **Board bay:** two M2 standoff bosses (`psu_holes` at board-local NW (4,4) and
+  SE (34,14)) the 38 × 18 board screws down onto; bosses top at z = 4.5.
+- **South-rib notch** for J2's 5V/SENSE/GND wires to cross to the Heltec.
+- **`psu_gap_e`** holds the board's east edge back so J1 + its JST plug clear the
+  LEMO's rear cups — the model echoes **15.6 mm** clearance.
+- **Wire routing:** J1 (VBAT/GND) faces east into the LEMO/east bay; J2
+  (5V/SENSE/GND) faces north to the Heltec. Vent slots over the south region kept.
 
 ENCLOSURE.md §2 already anticipated this ("the planned sensor PCB combines the
 buck + divider… then this becomes a single board footprint"). The SCAD change is
@@ -226,10 +225,10 @@ a separate task once the board outline is final.
 |---|---|
 | `README.md` | This spec. |
 | `bom.csv` | JLCPCB-format BOM (verify LCSC codes at order). |
-| `board_outline.svg` | Dimensioned 32 × 18 mm outline + hole positions. |
+| `board_outline.svg` | Dimensioned 38 × 18 mm outline + corner hole positions. |
 | `brickdup_psu.kicad_pro` | KiCad 10 project. |
 | `brickdup_psu.kicad_sch` | Schematic — **ERC electrically clean** (0 connectivity errors). |
-| `brickdup_psu.kicad_pcb` | Board: 32 × 18 mm Edge.Cuts + 2× M2 holes, all 22 parts placed + netted, GND pours both layers. **Rough first-pass placement** — arrange + route in the GUI (remaining DRC is tight-placement courtyard/clearance + the unrouted ratsnest). |
+| `brickdup_psu.kicad_pcb` | Board: 38 × 18 mm Edge.Cuts + 2× M2 corner holes, all 22 parts placed + netted, GND pours both layers. **Rough first-pass placement** — arrange + route in the GUI (remaining DRC is tight-placement courtyard/clearance + the unrouted ratsnest). |
 | `gen_kicad.py` / `gen_pcb.py` | Generators that produce the `.kicad_sch` / `.kicad_pcb` (run with KiCad's bundled python). |
 
 ### Using the KiCad project
