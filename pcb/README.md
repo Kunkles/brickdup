@@ -290,8 +290,9 @@ python3 apply_route.py               # import routes + fill -> final board
   model can't show the regulated ripple or loop response (it rings on the LC).
   The switching-ripple component is ~5 mV by calculation, but for the real closed-
   loop behaviour (ripple, transient, startup, AC stability) use **MPSmart** (MPS's
-  free tool, has the actual MP9486A model). Then **bench-test the prototype**
-  (scope SW + Vout ripple, thermals).
+  free tool, has the actual MP9486A model) — copy-paste input sheet with pass/fail
+  targets in [`mpsmart-inputs.md`](mpsmart-inputs.md). Then **bench-test the
+  prototype** (scope SW + Vout ripple, thermals).
 
 > Simulation decks live transiently (not committed): `/tmp/divider.cir`,
 > `/tmp/buck.cir` — trivial to recreate. ngspice + MPSmart notes are in the
