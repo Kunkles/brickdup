@@ -144,7 +144,7 @@ it's assembled — design the bay for whichever you use:
   with a locating lip.
 - **Future PCB:** the planned sensor PCB **combines the buck + divider** on one
   board — then this becomes a single board footprint. Design spec +
-  outline now drafted in [`pcb/README.md`](pcb/README.md) (**38 × 18 mm**,
+  outline now drafted in [`pcb/README.md`](pcb/README.md) (**40 × 20 mm**,
   discrete MP9486A buck); see its §7 for the SCAD changes this implies (drop the
   buck recess, widen the south channel ~13.5 → ~20 mm, add a board bay).
 

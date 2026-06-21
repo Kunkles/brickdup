@@ -158,12 +158,12 @@ headroom and the LiPo bridges anything transient. Thermals at 25 V→5 V/0.65 A
 
 ## 5. Board outline & stack-up
 
-- **Size:** **38 × 18 mm**, rounded corners (see
+- **Size:** **40 × 20 mm**, rounded corners (see
   [`board_outline.svg`](board_outline.svg)). Width is set by the enclosure's
   south channel (~20 mm); length has room to grow there if ever needed.
 - **Stack-up:** 2-layer, 1.6 mm FR4, 1 oz copper (JLCPCB default).
 - **Mounting:** 2 × **M2** holes (2.2 mm dia) at **diagonal corners** —
-  NW (4, 4) and SE (34, 14) board-local — which keeps the central band clear
+  NW (4, 4) and (32, 16) board-local — which keeps the central band + east edge clear
   for the regulator + input cluster. Two diagonal points fully locate the board.
 - **Pours:** ground pour both layers, stitched with vias.
 
@@ -206,7 +206,7 @@ The shell ([`enclosure/node_enclosure.scad`](../enclosure/node_enclosure.scad))
 - **Widened the south channel** `ch_s` 13.5 → **20 mm** to seat the 18 mm board
   (`inner_w`/`outer_w` grow ~6 mm → outer **75.6 × 60.7 × 24.4 mm**).
 - **Board bay:** two M2 standoff bosses (`psu_holes` at board-local NW (4,4) and
-  SE (34,14)) the 38 × 18 board screws down onto; bosses top at z = 4.5.
+  (32,16)) the 40 × 20 board screws down onto; bosses top at z = 4.5.
 - **South-rib notch** for J2's 5V/SENSE/GND wires to cross to the Heltec.
 - **`psu_gap_e`** holds the board's east edge back so J1 + its JST plug clear the
   LEMO's rear cups — the model echoes **15.6 mm** clearance.
@@ -225,10 +225,10 @@ a separate task once the board outline is final.
 |---|---|
 | `README.md` | This spec. |
 | `bom.csv` | JLCPCB-format BOM (verify LCSC codes at order). |
-| `board_outline.svg` | Dimensioned 38 × 18 mm outline + corner hole positions. |
+| `board_outline.svg` | Dimensioned 40 × 20 mm outline + hole positions. |
 | `brickdup_psu.kicad_pro` | KiCad 10 project. |
 | `brickdup_psu.kicad_sch` | Schematic — **ERC electrically clean** (0 connectivity errors). |
-| `brickdup_psu.kicad_pcb` | Board: 38 × 18 mm Edge.Cuts + 2× M2 corner holes, all 22 parts placed + netted, GND pours both layers. **Rough first-pass placement** — arrange + route in the GUI (remaining DRC is tight-placement courtyard/clearance + the unrouted ratsnest). |
+| `brickdup_psu.kicad_pcb` | Board: 40 × 20 mm Edge.Cuts + 2× M2 holes, all 22 parts placed (auto-spread, **0 pad overlaps**) + netted, GND pours both layers. **Routing still to do** (the 41 unconnected DRC items are the ratsnest). |
 | `gen_kicad.py` / `gen_pcb.py` | Generators that produce the `.kicad_sch` / `.kicad_pcb` (run with KiCad's bundled python). |
 
 ### Using the KiCad project
