@@ -7,7 +7,9 @@
 //          rib + retention lip so the board's 5V/SENSE/GND wires reach the
 //          Heltec.  Box grows ~6 mm wider (outer ~76 x 61 x 24).  Only the
 //          south side moves; the Heltec tray, the LEMO/SMA east wall and the
-//          lid are unchanged.
+//          lid are unchanged.  Board I/O is JST-PH (J1 to the LEMO, J2 to the
+//          Heltec); psu_gap_e holds the board's east edge back so J1 + its plug
+//          clear the LEMO's rear cups (~15 mm, see the clearance echo).
 //          v10 (2026-06-18) — east bay bumped to bay_l 20 (~10 mm clear
 //          behind the LEMO).
 //          v9 (2026-06-18) — east bay deepened (bay_l 12 → 18) so the LEMO's
@@ -126,6 +128,10 @@ psu_stand = 2.5;            // standoff height under the PCB (bottom clearance)
 psu_clear = 1.0;            // slip clearance around the board in its bay
 psu_hole_dx = [4.0, 28.0];  // M2 mounting-hole X positions (board-local)
 psu_hole_y  = 9.0;          // M2 mounting-hole Y (board-local, on the centreline)
+psu_gap_e   = 4.0;          // gap from the board's east edge to the bay rib — keeps
+                            // the J1 (LEMO) JST + its mating plug clear of the
+                            // LEMO's rear solder cups (see clearance echo)
+lemo_intrude = 10.0;        // LEMO body depth past the inner wall face (from v9 notes)
 
 /* ---------------- channels & east bay ---------------- */
 ch_s  = psu_w + 2*psu_clear;  // south channel hosts the PSU PCB (+ slip)
@@ -195,8 +201,9 @@ by = wall + ch_s + rib + 0.5;
 ribS    = wall + ch_s;            // south rib (channel | board zone), south face
 ribN    = ribS + rib + hz_w;      // north rib (board zone | channel), south face
 ribX    = wall + pad + hz_l;      // bay rib (board zone | east bay), west face
-psu_x0  = ribX - psu_l - 1.0;     // PSU PCB SW corner: east edge near the bay rib
-psu_y0  = wall + (ch_s - psu_w)/2; // centred across the south channel
+psu_x0  = ribX - psu_l - psu_gap_e; // PSU PCB SW corner (east edge faces the LEMO)
+psu_y0  = wall + (ch_s - psu_w)/2;  // centred across the south channel
+psu_lemo_clear = (wall + inner_l - lemo_intrude) - (psu_x0 + psu_l); // J1 <-> LEMO rear
 board_top = wall + standoff_h + pcb_t;   // PCB top surface (z)
 rim_top   = board_top + 2;               // cradle walls rise 2 mm past the PCB
 pcb_yc  = by + pcb_w/2;           // board centreline: USB, LEMO + tail follow it
@@ -224,6 +231,7 @@ echo(str("outer: ", outer_l, " x ", outer_w, " x ", base_h + lid_t, " mm"));
 echo(str("inner: ", inner_l, " x ", inner_w, " x ", inner_h, " mm"));
 echo(str("PSU bay: ", psu_l, " x ", psu_w, " at SW (", psu_x0, ",", psu_y0,
          "), bosses top z=", wall + psu_stand));
+echo(str("J1(LEMO) <-> LEMO rear clearance = ", psu_lemo_clear, " mm"));
 echo(str("plunger: tube_len ", tube_len, ", stem ",
          lid_top + plunger_gap - btn_z - flare_h - flange_t - taper_h, " mm"));
 

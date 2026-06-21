@@ -23,6 +23,7 @@
   <rect class="box" x="40" y="45" width="70" height="70" rx="4"/>
   <text x="75" y="72" text-anchor="middle">J1</text>
   <text x="75" y="90" text-anchor="middle" class="lbl">LEMO in</text>
+  <text x="75" y="103" text-anchor="middle" class="lbl">JST PH 2p</text>
   <line class="wire" x1="110" y1="70"  x2="110" y2="70"/>
   <line class="wire" x1="110" y1="100" x2="110" y2="510"/>
   <circle class="node" cx="110" cy="70" r="4"/>
@@ -159,7 +160,7 @@
 
   <!-- ===== J2 output to Heltec ===== -->
   <rect class="box" x="840" y="155" width="80" height="120" rx="4"/>
-  <text x="880" y="148" text-anchor="middle">J2 → Heltec</text>
+  <text x="880" y="148" text-anchor="middle">J2 → Heltec (JST PH 3p)</text>
   <!-- 5V -->
   <line class="wire" x1="835" y1="205" x2="835" y2="180"/>
   <line class="wire" x1="835" y1="180" x2="840" y2="180"/>

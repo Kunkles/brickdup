@@ -23,20 +23,18 @@
   <text x="100" y="150" text-anchor="middle" class="lbl">M2 (Ø2.2)</text>
   <text x="340" y="150" text-anchor="middle" class="lbl">M2 (Ø2.2)</text>
 
-  <!-- J2 output pads (west / left short edge) -->
-  <circle class="pad" cx="78" cy="120" r="4"/>
-  <circle class="pad" cx="78" cy="240" r="4"/>
-  <circle class="pad" cx="92" cy="180" r="4"/>
-  <text x="120" y="118" class="lbl" text-anchor="middle">J2: 5V</text>
-  <text x="125" y="244" class="lbl" text-anchor="middle">SENSE / GND</text>
-  <text x="50" y="300" class="lbl">← to Heltec</text>
+  <!-- J2 output (JST PH 3-pin) on the north long edge (toward Heltec) -->
+  <circle class="pad" cx="100" cy="100" r="4"/>
+  <circle class="pad" cx="120" cy="100" r="4"/>
+  <circle class="pad" cx="140" cy="100" r="4"/>
+  <text x="120" y="86" class="lbl" text-anchor="middle">J2 JST: 5V · SENSE · GND  ↑ to Heltec</text>
 
-  <!-- J1 input pads (east / right short edge) -->
-  <circle class="pad" cx="362" cy="135" r="4"/>
-  <circle class="pad" cx="362" cy="225" r="4"/>
-  <text x="320" y="118" class="lbl" text-anchor="middle">J1: VBAT</text>
-  <text x="328" y="252" class="lbl" text-anchor="middle">GND</text>
-  <text x="320" y="300" class="lbl">from LEMO →</text>
+  <!-- J1 input (JST PH 2-pin) on the east short edge (toward LEMO) -->
+  <circle class="pad" cx="362" cy="150" r="4"/>
+  <circle class="pad" cx="362" cy="210" r="4"/>
+  <text x="318" y="150" class="lbl" text-anchor="end">J1 JST: VBAT</text>
+  <text x="330" y="214" class="lbl" text-anchor="end">GND</text>
+  <text x="318" y="300" class="lbl">from LEMO →</text>
 
   <!-- width dimension 32mm -->
   <line class="dim" x1="60" y1="60" x2="380" y2="60"/>

@@ -112,18 +112,31 @@ Authoritative schematic: [`docs/pcb_schematic.svg`](../docs/pcb_schematic.svg).
 GPIO7 = 25.2 V × 22/222 ≈ **2.50 V** (6S full) — same headroom under the 3.3 V
 ADC ceiling as today. Keep the SENSE net **away from the SW node**.
 
-### 3.4 Connectors / wire pads
+### 3.4 Connectors (JST-PH, SMD side-entry)
 
-Hand-soldered wire pads (not placed by JLCPCB — leave off the CPL):
+Both I/O points are **JST-PH 2.0 mm SMD side-entry** connectors so the board is
+plug-in / serviceable and stays single-side SMD for JLCPCB (no THT surcharge).
+PH is rated ~2 A/contact — fine for the ~1 A rails.
 
-| Ref | Pads | To |
-|---|---|---|
-| J1 | **VBAT**, **GND** | LEMO leads (raw pack) |
-| J2 | **5V**, **SENSE**, **GND** | Heltec 5V pin, GPIO7, GND |
+| Ref | Type | Pins | To |
+|---|---|---|---|
+| J1 | S2B-PH-SM4-TB | **VBAT**, **GND** | LEMO lead cable (raw pack) |
+| J2 | S3B-PH-SM4-TB | **5V**, **SENSE**, **GND** | Heltec 5V pin, GPIO7, GND |
 
-Use plated through-hole pads (~2 mm) sized for the wire gauge, clearly
-silk-labeled. Optional JST-PH footprints can be added in parallel if you prefer
-connectors over solder-and-go.
+**Mating cables (off-board, buy or build — not in the PCB BOM):**
+- **J1 ↔ LEMO:** crimp the LEMO's two leads into a **PHR-2** housing with **SPH-002T-P0.5S**
+  contacts → *zero solder* on this link.
+- **J2 ↔ Heltec:** a 3-wire pigtail — **PHR-3** housing + 3 crimp contacts on the
+  board end; the other end's three wires solder **once** to the Heltec `5V`,
+  `GPIO7`, and `GND` pads (the Heltec is a bare module, so its side is always a
+  solder joint — but the board side now unplugs).
+
+So the only remaining hand-soldering is the 3 wires at the Heltec; the LEMO link
+is crimp-only and everything is serviceable.
+
+> **Soldering reduced, not eliminated:** JLC solders J1/J2 to the board; you crimp
+> the cables. The Heltec module itself has no mating connector, so its 3 pads are
+> the one unavoidable solder point.
 
 ---
 
@@ -170,8 +183,8 @@ headroom and the LiPo bridges anything transient. Thermals at 25 V→5 V/0.65 A
 ## 6. JLCPCB ordering
 
 - **Fab:** 2-layer, 1.6 mm, HASL or ENIG, default copper.
-- **Assembly:** "Economic/Standard PCBA," **top side only** (all parts are on
-  F.Cu). J1/J2 wire pads are hand-soldered — exclude them from the CPL.
+- **Assembly:** "Economic/Standard PCBA," **top side only** (all parts incl. the
+  J1/J2 SMD JST connectors are on F.Cu — single-side, no THT surcharge).
 - **Files to generate from KiCad** once the project is captured:
   - Gerbers + drill (`kicad-cli pcb export gerbers` / `drill`)
   - BOM (`bom.csv`, see [`bom.csv`](bom.csv))

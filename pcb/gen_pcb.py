@@ -21,12 +21,15 @@ HOLES = [(4.0, 9.0), (28.0, 9.0)]
 
 # First-pass placement: ref -> (x_mm, y_mm, rotation_deg). Power chain across the
 # middle; FB divider by U1; sense divider isolated in the west corner near J2.
+# NOTE: rough first-pass placement only (arrange + route in the GUI). On a 32x18
+# board the JST bodies + parts leave little slack, so courtyards still overlap;
+# this just gets every part on-board, netted, and grouped by function.
 PLACE = {
-    # west: sense + FB dividers, J2 out, enable
+    # west: sense + FB dividers, enable, J2 out (north edge)
     "R1":   (2.5, 9, 90), "R2": (2.5, 12.5, 90), "C1": (5.5, 12.5, 90),
     "RFB1": (8.5, 8, 90), "RFB2": (8.5, 11.5, 90), "Cff": (8.5, 15, 90),
     "REN1": (5.5, 5, 90), "REN2": (8.5, 5, 90),
-    "J2":   (4.5, 2, 0),     # 5V/SENSE/GND out, north edge (toward Heltec)
+    "J2":   (6, 2.5, 0),     # 5V/SENSE/GND out, mouth faces north edge (toward Heltec)
     # centre: regulator + output
     "U1":   (14, 10, 0),
     "Cbst": (11.5, 5, 90), "RDIM": (14, 5, 90),
@@ -37,7 +40,7 @@ PLACE = {
     "D1":   (24, 11, 0),
     "Cin1": (27.5, 5.5, 90), "Cin2": (27.5, 11, 90),
     "D2":   (30.5, 5.5, 90),
-    "J1":   (31, 12.5, 90),  # VBAT/GND in, east short edge (toward LEMO)
+    "J1":   (28.5, 13, 270), # VBAT/GND in, mouth faces east edge (toward LEMO)
 }
 
 def mm(v): return pcbnew.FromMM(v)

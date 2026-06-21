@@ -19,6 +19,6 @@ Comment,Designator,Footprint,LCSC Part #,Notes
 "200k 1% 0805",R1,R_0805,,"Sense divider top (VBAT->SENSE). 0805 for voltage rating."
 "22k 1% 0805",R2,R_0805,,"Sense divider bottom (SENSE->GND)."
 "100nF 50V X7R",C1,C_0603,,"ADC filter, parallel with R2 (SENSE->GND)."
-"Wire pads VBAT/GND in",J1,Pads_THT_2mm,,"Hand-soldered. EXCLUDE from CPL."
-"Wire pads 5V/SENSE/GND out",J2,Pads_THT_2mm,,"Hand-soldered. EXCLUDE from CPL."
+"JST PH 2-pin SMD side-entry (VBAT/GND in)",J1,JST_PH_S2B-PH-SM4-TB,,"Mates the LEMO lead cable. SMD = stays single-side assembly. SELECT JST S2B-PH-SM4-TB(LF)(SN) on JLC."
+"JST PH 3-pin SMD side-entry (5V/SENSE/GND out)",J2,JST_PH_S3B-PH-SM4-TB,,"Pigtail to the Heltec. SELECT JST S3B-PH-SM4-TB(LF)(SN) on JLC."
 "P-FET reverse polarity (opt)",Q1,SOT-23,,"DNP. Fit only if connector-miswire protection wanted."

@@ -126,8 +126,8 @@ COMPS = {
     "R1":  ("Device:R",                             "200k 1%",    FP["0805"],                             (300, 70),  False),
     "R2":  ("Device:R",                             "22k 1%",     FP["0805"],                             (300, 95),  False),
     "C1":  ("Device:C",                             "100nF/50V",  FP["c0603"],                            (320, 95),  False),
-    "J1":  ("Connector_Generic:Conn_01x02",         "VBAT/GND in","Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical", (350, 150), False),
-    "J2":  ("Connector_Generic:Conn_01x03",         "5V/SENSE/GND","Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical", (40, 170), False),
+    "J1":  ("Connector_Generic:Conn_01x02",         "VBAT/GND (JST PH)", "Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal", (350, 150), False),
+    "J2":  ("Connector_Generic:Conn_01x03",         "5V/SENSE/GND (JST PH)", "Connector_JST:JST_PH_S3B-PH-SM4-TB_1x03-1MP_P2.00mm_Horizontal", (40, 170), False),
 }
 
 # ---- nets: name -> [(ref, pin), ...] ----
