@@ -1221,6 +1221,12 @@
         (name "NC" (effects (font (size 1.0 1.0))))
         (number "2" (effects (font (size 1.0 1.0))))
       )
+      (pin passive line
+        (at 0 0 0)
+        (length 2.54)
+        (name "EP" (effects (font (size 1.0 1.0))))
+        (number "9" (effects (font (size 1.0 1.0))))
+      )
     )
   )
   )
@@ -1232,7 +1238,7 @@
     (uuid "49168028-fa5c-5933-8f2f-9191e817704c")
     (property "Reference" "U1" (at 162.56 109.22 0) (effects (font (size 1.27 1.27)) (justify left)))
     (property "Value" "MP9486A" (at 162.56 111.75999999999999 0) (effects (font (size 1.27 1.27)) (justify left)))
-    (property "Footprint" "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.3mm_ThermalVias" (at 160.02 110.49 0) (effects (font (size 1.27 1.27)) (hide yes)))
+    (property "Footprint" "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.3mm" (at 160.02 110.49 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (property "Datasheet" "" (at 160.02 110.49 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (pin "3" (uuid "5e320e0d-14d6-5af1-a09c-0706e35443b3"))
     (pin "7" (uuid "8405ea9a-1c05-511c-bdf5-63e2bf321a74"))
@@ -1242,6 +1248,7 @@
     (pin "4" (uuid "7fa74c48-54d9-5254-bd98-fec83459b808"))
     (pin "1" (uuid "06aa7dd2-4b5c-507b-866c-f4abf9965c75"))
     (pin "2" (uuid "93ced884-1f77-541e-889a-b832f7471cd4"))
+    (pin "9" (uuid "0f1b3c23-db2b-52d0-8ec5-125a5a321b55"))
     (instances
       (project "brickdup_psu"
         (path "/6e3bc9d9-b743-593a-8e81-87e97b73fbe4" (reference "U1") (unit 1))))
@@ -1632,6 +1639,11 @@
     (at 147.32 118.11 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid "3346bf0c-900c-5745-9884-be56d782ecc3")
+  )
+  (label "GND"
+    (at 160.02 110.49 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "48a01349-298c-55c6-8add-a394b2ef7088")
   )
   (label "GND"
     (at 39.37 93.98 0)

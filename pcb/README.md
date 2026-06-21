@@ -5,12 +5,15 @@ onto one board, sized to drop into the sensor-node enclosure. It replaces the
 Pololu D24V10F5 module + hand-built inline divider with a single JLCPCB-assembled
 board.
 
-> **Status: design spec / v0.1 (pre-layout).** Component values below are
-> engineering selections grounded in the MP9486A datasheet + Würth
-> EV9486A-N-00A reference design. **Nothing here has been built or simulated.**
-> Treat every value as "verify before fab" — especially the MP9486A pinout
-> (see the warning in §3) and the LCSC part numbers (stock/Basic status drifts;
-> confirm at order time).
+> **Status: v0.1 — auto-placed + auto-routed draft.** The KiCad board is fully
+> placed (0 pad overlaps) and **fully routed** (0 unconnected, 0 shorts) via the
+> scripted pipeline in §8; GND is poured on both layers and gerbers/CPL/BOM are
+> exported to [`fab/`](fab/). 3D render: [`docs/pcb_routed_3d.png`](../docs/pcb_routed_3d.png).
+> **Still a draft — not validated silicon.** Component values are engineering
+> selections from the MP9486A datasheet + Würth EV9486A-N-00A reference design;
+> nothing has been built or simulated. **Verify before fab** — especially the
+> MP9486A pinout (§3), the LCSC part numbers, and review the auto-route + the
+> remaining minor DRC notes (§8) in the KiCad GUI.
 
 ---
 
@@ -227,30 +230,50 @@ a separate task once the board outline is final.
 | `bom.csv` | JLCPCB-format BOM (verify LCSC codes at order). |
 | `board_outline.svg` | Dimensioned 40 × 20 mm outline + hole positions. |
 | `brickdup_psu.kicad_pro` | KiCad 10 project. |
-| `brickdup_psu.kicad_sch` | Schematic — **ERC electrically clean** (0 connectivity errors). |
-| `brickdup_psu.kicad_pcb` | Board: 40 × 20 mm Edge.Cuts + 2× M2 holes, all 22 parts placed (auto-spread, **0 pad overlaps**) + netted, GND pours both layers. **Routing still to do** (the 41 unconnected DRC items are the ratsnest). |
-| `gen_kicad.py` / `gen_pcb.py` | Generators that produce the `.kicad_sch` / `.kicad_pcb` (run with KiCad's bundled python). |
+| `brickdup_psu.kicad_sch` | Schematic — ERC electrically clean. |
+| `brickdup_psu.kicad_pcb` | Board: 40 × 20 mm, all 22 parts placed (**0 pad overlaps**) + **fully routed** (0 unconnected, 0 shorts), GND pours both layers. |
+| `gen_kicad.py` | Generates the schematic (symbols + net-label connectivity). |
+| `gen_pcb.py` | Generates the board: outline, M2 holes, separation-solver placement, nets, GND zones. |
+| `export_dsn.py` | Exports a zone-stripped Specctra DSN for the router. |
+| `apply_route.py` | Imports the freerouting SES, normalizes vias, hides silk refs, fills zones. |
+| `fab/` | **JLCPCB upload set:** `gerbers/` + `brickdup_psu-gerbers.zip`, `*-cpl.csv` (pick-and-place), `*-bom.csv`. Regenerable; verify before ordering. |
 
-### Using the KiCad project
+### How the board was generated (reproducible pipeline)
 
-1. **Open `brickdup_psu.kicad_pro` in KiCad 10.** The schematic uses **net-label
-   connectivity** (no drawn wires) — every pin carries a local net label, which is
-   a valid KiCad style and keeps the generated file robust. The human-readable
-   schematic is [`docs/pcb_schematic.svg`](../docs/pcb_schematic.svg).
-2. **Verify the MP9486A pinout** against the official datasheet/footprint and fix
-   `gen_kicad.py`'s `PINS["brickdup:MP9486A"]` + symbol if needed, then re-run, OR
-   swap in the SnapEDA MP9486A symbol. **Run ERC.**
-3. In the PCB editor: parts are already placed (rough) and netted, with GND pours
-   on both layers. **Arrange the placement, then route** per §5, then press `B`
-   to fill the pours. After any schematic change, run **Update PCB from schematic**.
-   (Re-run `gen_pcb.py` to regenerate the board from scratch if you prefer.)
-4. Export Gerbers + drill + BOM + CPL for JLCPCB (§6).
+```
+python3 gen_kicad.py                 # schematic
+python3 gen_pcb.py                   # placed + netted board (deterministic)
+python3 export_dsn.py                # -> /tmp/brickdup.dsn (zones stripped)
+java -jar freerouting.jar -de /tmp/brickdup.dsn -do /tmp/brickdup.ses -mp 40
+python3 apply_route.py               # import routes + fill -> final board
+```
+(Use KiCad 10's bundled python for the `pcbnew` module. freerouting v2.x.)
 
-> The headless `kicad-cli` ERC reports ~44 *warnings* of the form "configuration
-> does not include the symbol/footprint library 'Device'/'Capacitor_SMD'/…".
-> These are an artifact of running ERC with no initialized KiCad config — they
-> **disappear when you open the project in the KiCad GUI** (which has those
-> standard libraries registered). They are not electrical errors.
+### Opening it in KiCad (you don't need much GUI skill)
+
+1. **Open `brickdup_psu.kicad_pro`** (double-click). It opens the schematic +
+   board, already routed.
+2. **Sanity-check the auto-route** in the PCB editor: `Inspect → Net Inspector`,
+   and run **`Inspect → Design Rules Checker`**. Expect ~30 items, all minor:
+   - *silk over copper / silk overlap* — cosmetic (part outlines); JLC prints fine.
+   - *courtyards overlap / NPTH inside courtyard* — a few parts sit close to a
+     neighbour or a mounting hole; nudge them if you like.
+   - *3 copper-edge* — GND tracks ~0.3 mm from the edge (JLC-safe; nudge in or
+     delete — GND is also poured).
+   - *1 starved thermal* — a GND pad's thermal spokes; harmless.
+   None are shorts or opens.
+3. **Verify the MP9486A pinout** (see §3) — the one thing that must be right
+   before fab. If it differs, fix `gen_kicad.py` and re-run the pipeline.
+4. **Optional:** add a few thermal vias under U1's exposed pad (it's grounded via
+   the top pour, but vias to the bottom plane improve heat-spreading; keep them
+   off the bottom-layer tracks routed under U1).
+5. **To order:** upload [`fab/brickdup_psu-gerbers.zip`](fab/brickdup_psu-gerbers.zip)
+   to JLCPCB, and the `fab/*-cpl.csv` + `fab/*-bom.csv` for assembly (§6). Re-export
+   from KiCad (`File → Fabrication Outputs`) after any edits.
+
+> Headless `kicad-cli` ERC also lists ~44 *warnings* ("configuration does not
+> include symbol/footprint library 'Device'…") — an artifact of running with no
+> KiCad config; they vanish in the GUI and are not errors.
 
 ---
 

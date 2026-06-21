@@ -160,6 +160,7 @@ def solve_placement():
 
 b = pcbnew.CreateEmptyBoard()
 b.SetCopperLayerCount(2)
+b.GetDesignSettings().m_CopperEdgeClearance = pcbnew.FromMM(0.3)  # JLC-safe copper-to-edge
 
 # --- Edge.Cuts rectangle ---
 corners = [(0, 0), (W, 0), (W, H), (0, H)]
