@@ -1,6 +1,14 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v10 (2026-06-18) — east bay bumped to bay_l 20 (~10 mm clear
+// Version: v11 (2026-06-20) — hosts the combined PSU PCB (32x18 mm custom
+//          buck+divider board, see pcb/README.md): the buck floor-recess is
+//          gone, the south channel is widened (ch_s 13.5 -> 20) to seat the
+//          board on two M2 standoff bosses, and a notch is cut in the south
+//          rib + retention lip so the board's 5V/SENSE/GND wires reach the
+//          Heltec.  Box grows ~6 mm wider (outer ~76 x 61 x 24).  Only the
+//          south side moves; the Heltec tray, the LEMO/SMA east wall and the
+//          lid are unchanged.
+//          v10 (2026-06-18) — east bay bumped to bay_l 20 (~10 mm clear
 //          behind the LEMO).
 //          v9 (2026-06-18) — east bay deepened (bay_l 12 → 18) so the LEMO's
 //          rear solder cups/wires clear the board/tray.  Because USB,
@@ -36,15 +44,15 @@
 //   z 15..16  Heltec WiFi LoRa 32 V3 on four 13 mm corner towers,
 //             directly above the cell (battery JST is on the board's
 //             underside, so the lead run is tiny)
-//   south ch  buck recess in the floor + wire raceway (tracks buck width)
-//   north ch  divider / wire slack raceway (7 mm wide)
-//   east bay  LEMO panel connector tail + divider
+//   south ch  PSU PCB (32x18 buck+divider) on two M2 bosses + wire raceway
+//   north ch  wire slack raceway (7 mm wide)
+//   east bay  LEMO panel connector tail (the divider now lives on the PSU PCB)
 //
 // The board sits ~2.5 mm from the west wall, so USB-C is a normal
 // chamfered port hole (~4 mm recess), not a deep slot.  All four M2
 // screws are internal corner bosses, in the channel corners.  Channels
-// open into the east bay, so wires run LEMO → channel → buck → board
-// without rib gaps.  Outer ≈ 76 x 54 x 24 mm.
+// open into the east bay, so wires run LEMO → channel → PSU board → Heltec
+// (south-rib notch).  Outer ≈ 76 x 61 x 24 mm.
 //
 // part = "both" renders base + lid + plungers in print orientation.
 //
@@ -110,13 +118,17 @@ lipo_l = 41.4;  lipo_w = 25.15;  lipo_t = 10.25; // measured (v2 print fit);
                                                  // length excludes the leads —
                                                  // they exit via the bay-rib gap
 
-/* ---------------- buck (Pololu D24V10F5) ---------------- */
-buck_l = 12.7;  buck_w = 12.0;   // width measured; length from datasheet 0.5"
-buck_recess = 0.6;               // floor recess to locate it (foam-tape it in)
-buck_x = 20.0;                   // recess position along the south channel
+/* ---------------- PSU PCB (custom buck + divider, pcb/README.md) -------- */
+psu_l = 32.0;   // PCB length, runs east-west along the south channel  MEASURE final
+psu_w = 18.0;   // PCB width, north-south
+psu_t = 1.6;    // PCB thickness (2-layer FR4)
+psu_stand = 2.5;            // standoff height under the PCB (bottom clearance)
+psu_clear = 1.0;            // slip clearance around the board in its bay
+psu_hole_dx = [4.0, 28.0];  // M2 mounting-hole X positions (board-local)
+psu_hole_y  = 9.0;          // M2 mounting-hole Y (board-local, on the centreline)
 
 /* ---------------- channels & east bay ---------------- */
-ch_s  = buck_w + 1.5;  // south channel: buck + wires (tracks the buck recess)
+ch_s  = psu_w + 2*psu_clear;  // south channel hosts the PSU PCB (+ slip)
 ch_n  = 7.0;    // north channel: divider / wire slack
 bay_l = 20.0;   // east bay: LEMO tail (10 into cavity) + wire bend + divider.
                 // Deeper than the tail needs (was 12) to keep the LEMO's rear
@@ -183,6 +195,8 @@ by = wall + ch_s + rib + 0.5;
 ribS    = wall + ch_s;            // south rib (channel | board zone), south face
 ribN    = ribS + rib + hz_w;      // north rib (board zone | channel), south face
 ribX    = wall + pad + hz_l;      // bay rib (board zone | east bay), west face
+psu_x0  = ribX - psu_l - 1.0;     // PSU PCB SW corner: east edge near the bay rib
+psu_y0  = wall + (ch_s - psu_w)/2; // centred across the south channel
 board_top = wall + standoff_h + pcb_t;   // PCB top surface (z)
 rim_top   = board_top + 2;               // cradle walls rise 2 mm past the PCB
 pcb_yc  = by + pcb_w/2;           // board centreline: USB, LEMO + tail follow it
@@ -208,6 +222,8 @@ if (plungers && base_h - btn_z < seat_h + 0.2)
 
 echo(str("outer: ", outer_l, " x ", outer_w, " x ", base_h + lid_t, " mm"));
 echo(str("inner: ", inner_l, " x ", inner_w, " x ", inner_h, " mm"));
+echo(str("PSU bay: ", psu_l, " x ", psu_w, " at SW (", psu_x0, ",", psu_y0,
+         "), bosses top z=", wall + psu_stand));
 echo(str("plunger: tube_len ", tube_len, ", stem ",
          lid_top + plunger_gap - btn_z - flare_h - flange_t - taper_h, " mm"));
 
@@ -292,6 +308,11 @@ module base() {
       // internal corner screw bosses (channel corners, clear of everything)
       for (p = boss_pos)
         translate([p[0], p[1], wall]) cylinder(h = inner_h, d = boss_d);
+
+      // PSU PCB standoff bosses — the board screws down onto these (M2 self-tap)
+      for (hx = psu_hole_dx)
+        translate([psu_x0 + hx, psu_y0 + psu_hole_y, wall])
+          cylinder(h = psu_stand, d = boss_d);
     }
 
     // boss pilot holes (M2 self-tap)
@@ -332,10 +353,14 @@ module base() {
     vent_row(25, 7);
     vent_row(25, 7, yw = outer_w - wall);
 
-    // buck locating recess, south channel floor — wires run along the
-    // channel: LEMO (east) → buck VIN, buck VOUT → board 5V pin
-    translate([buck_x, wall + 0.2, wall - buck_recess])
-      cube([buck_l + 1, buck_w + 1, buck_recess + 0.1]);
+    // PSU PCB: notch the south rib + retention lip so the board's
+    // 5V/SENSE/GND wires reach the Heltec (board sits south of the rib;
+    // the Heltec sits north of it), and pilot the two M2 standoff bosses.
+    translate([psu_x0 + 2, ribS - 0.1, wall])
+      cube([10, rib + 2.0, rim_top]);
+    for (hx = psu_hole_dx)
+      translate([psu_x0 + hx, psu_y0 + psu_hole_y, wall - 0.1])
+        cylinder(h = psu_stand + 0.2, d = screw_pilot);
   }
 }
 

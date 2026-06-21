@@ -1,0 +1,60 @@
+<svg width="520" height="380" viewBox="0 0 520 380" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>brickdup_psu board outline — 32 x 18 mm</title>
+  <desc>Rectangular PCB outline 32 mm by 18 mm with 2 mm rounded corners. Two M2 mounting holes (2.2 mm diameter) on the long centerline at X=4 mm and X=28 mm, Y=9 mm. J1 input wire pads (VBAT, GND) on the right/east short edge facing the LEMO; J2 output wire pads (5V, SENSE, GND) on the left/west short edge facing the Heltec. Scale 10 px per mm.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 12px; fill: #8a8a85; }
+    .lbl { font-size: 11px; }
+    .edge { stroke: #8a8a85; stroke-width: 2.5; fill: none; }
+    .dim  { stroke: #4a8bc4; stroke-width: 1; fill: none; }
+    .hole { stroke: #d85a30; stroke-width: 2; fill: none; }
+    .pad  { fill: #d85a30; }
+    .ctr  { stroke: #b9b9b4; stroke-width: 0.75; stroke-dasharray: 5 4; fill: none; }
+  </style>
+
+  <!-- board: origin at (60,90), 1mm=10px, 32x18mm => 320x180px -->
+  <rect class="edge" x="60" y="90" width="320" height="180" rx="20"/>
+
+  <!-- centerline Y=9mm -->
+  <line class="ctr" x1="40" y1="180" x2="400" y2="180"/>
+
+  <!-- mounting holes: X=4 (=> 60+40=100), X=28 (=> 60+280=340), Y=9 (=>180) -->
+  <circle class="hole" cx="100" cy="180" r="11"/>
+  <circle class="hole" cx="340" cy="180" r="11"/>
+  <text x="100" y="150" text-anchor="middle" class="lbl">M2 (Ø2.2)</text>
+  <text x="340" y="150" text-anchor="middle" class="lbl">M2 (Ø2.2)</text>
+
+  <!-- J2 output pads (west / left short edge) -->
+  <circle class="pad" cx="78" cy="120" r="4"/>
+  <circle class="pad" cx="78" cy="240" r="4"/>
+  <circle class="pad" cx="92" cy="180" r="4"/>
+  <text x="120" y="118" class="lbl" text-anchor="middle">J2: 5V</text>
+  <text x="125" y="244" class="lbl" text-anchor="middle">SENSE / GND</text>
+  <text x="50" y="300" class="lbl">← to Heltec</text>
+
+  <!-- J1 input pads (east / right short edge) -->
+  <circle class="pad" cx="362" cy="135" r="4"/>
+  <circle class="pad" cx="362" cy="225" r="4"/>
+  <text x="320" y="118" class="lbl" text-anchor="middle">J1: VBAT</text>
+  <text x="328" y="252" class="lbl" text-anchor="middle">GND</text>
+  <text x="320" y="300" class="lbl">from LEMO →</text>
+
+  <!-- width dimension 32mm -->
+  <line class="dim" x1="60" y1="60" x2="380" y2="60"/>
+  <line class="dim" x1="60" y1="54" x2="60" y2="66"/>
+  <line class="dim" x1="380" y1="54" x2="380" y2="66"/>
+  <text x="220" y="52" text-anchor="middle">32 mm</text>
+
+  <!-- height dimension 18mm -->
+  <line class="dim" x1="410" y1="90" x2="410" y2="270"/>
+  <line class="dim" x1="404" y1="90" x2="416" y2="90"/>
+  <line class="dim" x1="404" y1="270" x2="416" y2="270"/>
+  <text x="430" y="184">18 mm</text>
+
+  <!-- hole spacing 24mm -->
+  <line class="dim" x1="100" y1="300" x2="340" y2="300"/>
+  <line class="dim" x1="100" y1="294" x2="100" y2="306"/>
+  <line class="dim" x1="340" y1="294" x2="340" y2="306"/>
+  <text x="220" y="318" text-anchor="middle">24 mm (hole spacing)</text>
+
+  <text x="60" y="350" class="lbl">2-layer, 1.6 mm FR4, 1 oz Cu · 2 mm corner radius · all parts on top (F.Cu) · GND pour both sides</text>
+</svg>
