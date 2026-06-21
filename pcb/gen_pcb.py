@@ -42,7 +42,7 @@ PLACE = {
     "Cout1":(8, 12.5, 0), "Cout2":(11, 14, 0), "Cout3":(14, 14, 0),
     "J2":   (8, 2.5, 0),                    # 5V/SENSE/GND out -> Heltec (west-north)
     # enable + dim near U1's west pins
-    "REN1": (16, 12.5, 90), "REN2": (18, 13.5, 90), "RDIM": (20, 14.5, 0),
+    "REN1": (16, 12.5, 90), "REN2": (18, 13.5, 90),
     # sense divider: taps VBAT (east), routes SENSE to J2; clear of SW (west)
     "R1":   (31, 5, 90), "R2": (33, 5, 90), "C1": (35, 5, 90),
 }

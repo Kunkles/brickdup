@@ -69,11 +69,11 @@ a bigger design lift. Stick with the MP9486A for the first board.
 
 Authoritative schematic: [`docs/pcb_schematic.svg`](../docs/pcb_schematic.svg).
 
-> ⚠️ **MP9486A pinout must be taken from the official symbol, not from this
-> doc.** Two datasheet mirrors disagree on the SOIC-8 pin *numbering* (they agree
-> on pin *functions*: VIN, GND, SW, BST, FB, EN, DIM). When you capture the
-> schematic, use the MPS/SnapEDA MP9486A symbol+footprint and **run ERC**. The
-> functional connections below are what matter.
+> ✅ **MP9486A pinout verified against the official MPS datasheet** (SOIC-8-EP):
+> **1 FB · 2 NC · 3 VIN · 4 BST · 5 SW · 6 DIM · 7 EN · 8 GND · EP→GND.** This is
+> what the KiCad symbol + board use. The datasheet also specifies: for a normal
+> (non-dimming) buck, **tie DIM (6) to EN (7)** — done on the board (the old DNP
+> RDIM pull-up was removed).
 
 ### 3.1 Buck stage (MP9486A)
 
@@ -92,7 +92,7 @@ Authoritative schematic: [`docs/pcb_schematic.svg`](../docs/pcb_schematic.svg).
 | Cff | FB feedforward | 22 pF, 0402 | **DNP** (fit only if transient response needs it). |
 | REN1 | Enable pull-up | 100 kΩ, 0402 | VBAT→EN (keeps it enabled; add REN2 to set a UVLO). |
 | REN2 | Enable divider bottom | — | **DNP**. Populate to set a turn-on UVLO if desired. |
-| RDIM | DIM-pin set | per datasheet | **Verify** how DIM must be tied for steady full output (it's a PWM-dimming pin in LED use). Placeholder/DNP until confirmed. |
+| (DIM) | DIM pin | — | **Tied to EN** (no part) per datasheet — full output, no dimming. |
 
 > **FB reference = 0.2 V** (confirmed by two datasheet mirrors). If a final
 > datasheet check shows a different VFB, recompute RFB1 = RFB2 × (Vout/VFB − 1).
@@ -274,6 +274,28 @@ python3 apply_route.py               # import routes + fill -> final board
 > Headless `kicad-cli` ERC also lists ~44 *warnings* ("configuration does not
 > include symbol/footprint library 'Device'…") — an artifact of running with no
 > KiCad config; they vanish in the GUI and are not errors.
+
+---
+
+## 9. Validation done so far
+
+- **Pinout** — verified against the official MPS datasheet (§3). DIM→EN fix applied.
+- **Divider (ngspice DC sweep)** — GPIO7 sense across the pack range:
+  16.8 V → **1.66 V**, 25.2 V → **2.50 V**. Matches the divider math; comfortably
+  under the 3.3 V ADC ceiling. ✓
+- **Inductor (ngspice ideal-buck transient)** — at 25 V→5 V/1 A: inductor peak
+  **≈1.30 A** (33 µH part rated ≥1.7 A → ~1.3× margin; consider a 2 A part for more),
+  ripple ΔIL **≈0.39 A (~39 %)** — healthy. ✓
+- **Output ripple / loop stability — NOT yet validated.** An ideal open-loop SPICE
+  model can't show the regulated ripple or loop response (it rings on the LC).
+  The switching-ripple component is ~5 mV by calculation, but for the real closed-
+  loop behaviour (ripple, transient, startup, AC stability) use **MPSmart** (MPS's
+  free tool, has the actual MP9486A model). Then **bench-test the prototype**
+  (scope SW + Vout ripple, thermals).
+
+> Simulation decks live transiently (not committed): `/tmp/divider.cir`,
+> `/tmp/buck.cir` — trivial to recreate. ngspice + MPSmart notes are in the
+> `pcb-toolchain` memory.
 
 ---
 

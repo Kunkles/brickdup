@@ -68,8 +68,9 @@
   <circle class="node" cx="265" cy="70" r="4"/>
   <!-- DIM -->
   <text x="308" y="324" class="pin">DIM</text>
-  <line class="wire" x1="300" y1="320" x2="278" y2="320"/>
-  <text x="274" y="324" text-anchor="end" class="lbl">tie per datasheet</text>
+  <line class="wire" x1="300" y1="320" x2="288" y2="320"/>
+  <line class="wire" x1="288" y1="320" x2="288" y2="250"/>
+  <text x="284" y="338" text-anchor="end" class="lbl">DIM tied to EN</text>
   <!-- GND / EP -->
   <text x="385" y="356" text-anchor="middle" class="pin">GND / EP</text>
   <line class="wire" x1="385" y1="370" x2="385" y2="510"/>

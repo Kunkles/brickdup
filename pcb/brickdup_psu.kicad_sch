@@ -1495,22 +1495,6 @@
   )
   (symbol
     (lib_id "Device:R")
-    (at 180.34 149.86 0)
-    (unit 1)
-    (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp yes)
-    (uuid "87d4f682-2522-5c9b-902d-abab4b50f082")
-    (property "Reference" "RDIM" (at 182.88 148.59 0) (effects (font (size 1.27 1.27)) (justify left)))
-    (property "Value" "DNP" (at 182.88 151.13000000000002 0) (effects (font (size 1.27 1.27)) (justify left)))
-    (property "Footprint" "Resistor_SMD:R_0402_1005Metric" (at 180.34 149.86 0) (effects (font (size 1.27 1.27)) (hide yes)))
-    (property "Datasheet" "" (at 180.34 149.86 0) (effects (font (size 1.27 1.27)) (hide yes)))
-    (pin "1" (uuid "8e077e64-2597-5094-9a1a-1f55dbc76509"))
-    (pin "2" (uuid "f735cd6b-9fcf-5435-a050-9cf5fc822489"))
-    (instances
-      (project "brickdup_psu"
-        (path "/6e3bc9d9-b743-593a-8e81-87e97b73fbe4" (reference "RDIM") (unit 1))))
-  )
-  (symbol
-    (lib_id "Device:R")
     (at 299.72 69.85 0)
     (unit 1)
     (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)
@@ -1629,11 +1613,6 @@
     (at 345.44 149.86 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid "6215d9d9-e44a-5e82-b694-ad08905c8811")
-  )
-  (label "VBAT"
-    (at 180.34 153.67 0)
-    (effects (font (size 1.27 1.27)) (justify left bottom))
-    (uuid "c8990708-576e-5931-996a-6c6d8147d517")
   )
   (label "GND"
     (at 147.32 118.11 0)
@@ -1806,6 +1785,11 @@
     (uuid "4cea96b2-4672-5616-bf2f-43186f0e2717")
   )
   (label "EN"
+    (at 147.32 113.03 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "05faa92e-0b17-5e95-9f07-9dd43f5b2975")
+  )
+  (label "EN"
     (at 110.49 73.66 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid "1d21fd0b-592a-586e-9bde-c2e189300bba")
@@ -1814,16 +1798,6 @@
     (at 110.49 146.05 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid "440e2bbf-8b24-56d4-8ca5-95fd91da17b4")
-  )
-  (label "DIM"
-    (at 147.32 113.03 0)
-    (effects (font (size 1.27 1.27)) (justify left bottom))
-    (uuid "65ff0e61-ea7d-565a-bec5-4f4f2fad3e59")
-  )
-  (label "DIM"
-    (at 180.34 146.05 0)
-    (effects (font (size 1.27 1.27)) (justify left bottom))
-    (uuid "d3a57c95-0be3-5049-a7c3-7504dd11162d")
   )
   (label "SENSE"
     (at 299.72 73.66 0)

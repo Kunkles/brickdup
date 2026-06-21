@@ -15,7 +15,6 @@ Comment,Designator,Footprint,LCSC Part #,Notes
 "10k 1% 0402",RFB2,R_0402,,"FB bottom."
 "100k 0402",REN1,R_0402,,"Enable pull-up VBAT->EN."
 "DNP enable bottom",REN2,R_0402,,"DNP. Populate to set UVLO."
-"DIM set (per datasheet)",RDIM,R_0402,,"DNP placeholder. Confirm DIM tie for full output."
 "200k 1% 0805",R1,R_0805,,"Sense divider top (VBAT->SENSE). 0805 for voltage rating."
 "22k 1% 0805",R2,R_0805,,"Sense divider bottom (SENSE->GND)."
 "100nF 50V X7R",C1,C_0603,,"ADC filter, parallel with R2 (SENSE->GND)."
