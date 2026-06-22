@@ -17,7 +17,7 @@ OUT   = os.path.join(HERE, "brickdup_psu.kicad_pcb")
 FPDIR = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/footprints"
 MHDIR = FPDIR + "/MountingHole.pretty"
 W, H = 40.0, 20.0
-HOLES = [(4.0, 4.0), (32.0, 16.0)]   # diagonal-ish; SE hole pulled in to clear J1 (match enclosure psu_holes)
+HOLES = [(5.0, 16.0), (35.0, 16.0)]  # south band, clear of J2 (north) + J1 (east) (match enclosure psu_holes)
 
 # First-pass placement: ref -> (x_mm, y_mm, rotation_deg). Power chain across the
 # middle; FB divider by U1; sense divider isolated in the west corner near J2.
@@ -40,7 +40,7 @@ PLACE = {
     "D1":   (15.5, 7.5, 0),
     "L1":   (11.5, 9.5, 0),
     "Cout1":(8, 12.5, 0), "Cout2":(11, 14, 0), "Cout3":(14, 14, 0),
-    "J2":   (8, 2.5, 0),                    # 5V/SENSE/GND out -> Heltec (west-north)
+    "J2":   (14, 2.5, 0),                   # 5V/SENSE/GND out -> Heltec (north, clear of NW hole)
     # enable + dim near U1's west pins
     "REN1": (16, 12.5, 90), "REN2": (18, 13.5, 90),
     # sense divider: taps VBAT (east), routes SENSE to J2; clear of SW (west)

@@ -39,7 +39,10 @@ print("vias normalized:", nv)
 for fp in b.GetFootprints():
     fp.Reference().SetVisible(False)
 
-# fill the GND zones now that copper is routed
+# drop isolated GND-pour islands (fragments cut off by traces), then fill
+for z in b.Zones():
+    try: z.SetIslandRemovalMode(pcbnew.ISLAND_REMOVAL_MODE_ALWAYS)
+    except Exception: pass
 pcbnew.ZONE_FILLER(b).Fill(b.Zones())
 print("zones filled:", b.GetAreaCount())
 

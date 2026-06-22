@@ -126,8 +126,8 @@ psu_w = 20.0;   // PCB width, north-south
 psu_t = 1.6;    // PCB thickness (2-layer FR4)
 psu_stand = 2.5;            // standoff height under the PCB (bottom clearance)
 psu_clear = 1.0;            // slip clearance around the board in its bay
-psu_holes   = [[4.0, 4.0], [32.0, 16.0]]; // M2 holes (board-local), diagonal-ish;
-                            // SE hole pulled in to clear the east-edge J1 connector
+psu_holes   = [[5.0, 16.0], [35.0, 16.0]]; // M2 holes (board-local) on the south
+                            // band — clear of the J2 (north) + J1 (east) connectors
 psu_gap_e   = 3.5;          // gap from the board's east edge to the bay rib — keeps
                             // the J1 (LEMO) JST + its mating plug clear of the
                             // LEMO's rear solder cups (see clearance echo)
@@ -364,8 +364,8 @@ module base() {
     // PSU PCB: notch the south rib + retention lip so the board's
     // 5V/SENSE/GND wires reach the Heltec (board sits south of the rib;
     // the Heltec sits north of it), and pilot the two M2 standoff bosses.
-    translate([psu_x0 + 2, ribS - 0.1, wall])
-      cube([10, rib + 2.0, rim_top]);
+    translate([psu_x0 + 8, ribS - 0.1, wall])
+      cube([12, rib + 2.0, rim_top]);
     for (h = psu_holes)
       translate([psu_x0 + h[0], psu_y0 + h[1], wall - 0.1])
         cylinder(h = psu_stand + 0.2, d = screw_pilot);
