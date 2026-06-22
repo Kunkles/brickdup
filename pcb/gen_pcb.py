@@ -57,6 +57,8 @@ PIN_EDGE = {"J1": "E", "J2": "N"}   # connectors pinned to a board edge
 
 def load_fp(fpid):
     lib, name = fpid.split(":")
+    if lib == "brickdup":                       # project-local footprints
+        return pcbnew.FootprintLoad(os.path.join(HERE, "brickdup.pretty"), name)
     return pcbnew.FootprintLoad(f"{FPDIR}/{lib}.pretty", name)
 
 def half_extents(fpid, rot):

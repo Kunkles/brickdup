@@ -1,6 +1,6 @@
 Comment,Designator,Footprint,LCSC Part #,Library,Notes
 "MP9486AGN-Z 100V buck",U1,SOIC-8-EP,C404013,Extended,"Confirmed."
-"33uH 3A inductor",L1,Inductor_SMD:L_12x12mm_H8mm,C2929502,Extended,"SHOU HAN CYH127-33UH, 33uH/3A (12.3mm). Footprint swapped to 12x12, board re-routed. 3A vs 1.30A peak = ample. Verify land vs datasheet."
+"33uH 6A inductor",L1,brickdup:L_CYA0850,C19268648,Extended,"SHOU HAN CYA0850-33UH 33uH/3A rated/6A sat, 9.2x8mm molded. Custom footprint pcb/brickdup.pretty/L_CYA0850 - verify land vs datasheet."
 "Schottky 100V 2A",D1,SMA (DO-214AC),C14996,Extended,"MDD SS210. Confirmed."
 "TVS SMBJ45A",D2,SMB (DO-214AA),C42371744,Extended,"Confirmed."
 "2.2uF 100V X7R",Cin1,C_1210,C106115,Extended,"VERIFY on paste: must be 1210 / 100V / X7R(or X7S)."

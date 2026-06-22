@@ -109,7 +109,7 @@ FP = {
 COMPS = {
     # ref:        (lib_id,                          value,        footprint,                              pos,        dnp)
     "U1":  ("brickdup:MP9486A",                     "MP9486A",    "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.3mm", (160, 110), False),
-    "L1":  ("Device:L",                             "33uH 3A",    "Inductor_SMD:L_12x12mm_H8mm",          (210, 70),  False),
+    "L1":  ("Device:L",                             "33uH 6A",    "brickdup:L_CYA0850",                   (210, 70),  False),
     "D1":  ("Device:D_Schottky",                    "SS210 100V", "Diode_SMD:D_SMA",                      (210, 120), False),
     "D2":  ("Device:D_TVS",                         "SMBJ45A",    "Diode_SMD:D_SMB",                      (60, 150),  False),
     "Cin1":("Device:C",                             "2.2uF/100V", FP["c1210"],                            (40, 90),   False),
