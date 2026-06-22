@@ -23,7 +23,7 @@ with open(out, "w", newline="") as f:
         if r["Ref"] in DNP:
             continue
         w.writerow([r["Ref"], f'{float(r["PosX"]):.4f}', f'{float(r["PosY"]):.4f}',
-                    r["Side"], f'{float(r["Rot"]):.2f}'])
+                    r["Side"].capitalize(), f'{float(r["Rot"]):.2f}'])
         kept += 1
 print("wrote", out, f"({kept} placements; DNP excluded)")
 
