@@ -150,6 +150,8 @@ usb_w = 12.0;  usb_h = 7.0;      // port hole, chamfered  MEASURE plug nose
 usb_y_off = -1.0;                // port sits ~1 mm south of the board
                                  // centreline (print fit)
 lemo_hole_d = 8.9;   // measured
+lemo_nut = 13.0;     // panel-nut clearance width — sets the lid-lip relief over
+                     // the LEMO so the lid seats without hitting the nut  MEASURE
 lemo_flat = 8.2;     // measured across the LEMO's two flats (double-D hole,
                      // flats left + right since v6)
 lemo_y = 14.0;       // LEMO at the SE spot (swapped with the SMA): its rear
@@ -402,6 +404,12 @@ module lid() {
     // path, so clear it across the port width (tracks usb_y_off)
     translate([-0.1, pcb_yc + usb_y_off - usb_w/2, base_h - 3.1])
       cube([wall + pad + 0.2, usb_w, 3.2]);
+
+    // lip notch over the LEMO nut (east wall) — the panel nut rides up near the
+    // lid lip; relieve the lip across the nut width so the lid seats fully
+    // (parametric version of the manual shave from the first print).
+    translate([outer_l - wall - 2, lemo_y - lemo_nut/2, base_h - 3.1])
+      cube([wall + 2.1, lemo_nut, 3.2]);
 
     // boss clearance notches in the lip
     for (p = boss_pos)
