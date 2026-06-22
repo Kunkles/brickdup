@@ -43,9 +43,9 @@
 // STACKED + SIDE-CHANNEL layout:
 //
 //   z 2..12   1100 mAh bridge LiPo (41.4x25.15x10.25) flat on the floor
-//   z 15..16  Heltec WiFi LoRa 32 V3 on four 13 mm corner towers,
-//             directly above the cell (battery JST is on the board's
-//             underside, so the lead run is tiny)
+//   z 18..19  Heltec WiFi LoRa 32 V3 on four 16 mm corner towers, directly
+//             above the cell with ~5.75 mm clearance over it for the J2 wires
+//             (battery JST is on the board's underside, so the lead run is tiny)
 //   south ch  PSU PCB (40x20 buck+divider) on two M2 bosses + wire raceway
 //   north ch  wire slack raceway (7 mm wide)
 //   east bay  LEMO panel connector tail (the divider now lives on the PSU PCB)
