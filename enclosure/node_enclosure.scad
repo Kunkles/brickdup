@@ -317,9 +317,12 @@ module base() {
       for (p = boss_pos)
         translate([p[0], p[1], wall]) cylinder(h = inner_h, d = boss_d);
 
-      // PSU PCB standoff bosses — the board screws down onto these (M2 self-tap)
+      // PSU PCB standoff bosses — the board screws down onto these (M2 self-tap).
+      // Board is inserted with its KiCad TOP edge (the J2 / Heltec side) toward
+      // the enclosure NORTH so J2 faces the Heltec and J1 faces the LEMO (east).
+      // KiCad measures Y downward, OpenSCAD upward, so flip Y: psu_w - h[1].
       for (h = psu_holes)
-        translate([psu_x0 + h[0], psu_y0 + h[1], wall])
+        translate([psu_x0 + h[0], psu_y0 + (psu_w - h[1]), wall])
           cylinder(h = psu_stand, d = boss_d);
     }
 
@@ -364,10 +367,10 @@ module base() {
     // PSU PCB: notch the south rib + retention lip so the board's
     // 5V/SENSE/GND wires reach the Heltec (board sits south of the rib;
     // the Heltec sits north of it), and pilot the two M2 standoff bosses.
-    translate([psu_x0 + 8, ribS - 0.1, wall])
-      cube([12, rib + 2.0, rim_top]);
+    translate([psu_x0 + 5, ribS - 0.1, wall])
+      cube([12, rib + 2.0, rim_top]);                 // notch over J2 (board X~6-14)
     for (h = psu_holes)
-      translate([psu_x0 + h[0], psu_y0 + h[1], wall - 0.1])
+      translate([psu_x0 + h[0], psu_y0 + (psu_w - h[1]), wall - 0.1])
         cylinder(h = psu_stand + 0.2, d = screw_pilot);
   }
 }
