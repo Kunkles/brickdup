@@ -5,7 +5,7 @@
 //          gone, the south channel is widened (ch_s 13.5 -> 20) to seat the
 //          board on two M2 standoff bosses, and a notch is cut in the south
 //          rib + retention lip so the board's 5V/SENSE/GND wires reach the
-//          Heltec.  Box grows ~8 mm wider (outer ~76 x 63 x 24).  Only the
+//          Heltec.  Box grows ~8 mm wider (outer ~76 x 63 x 27).  Only the
 //          south side moves; the Heltec tray, the LEMO/SMA east wall and the
 //          lid are unchanged.  Board I/O is JST-PH (J1 to the LEMO, J2 to the
 //          Heltec); psu_gap_e holds the board's east edge back so J1 + its plug
@@ -54,7 +54,7 @@
 // chamfered port hole (~4 mm recess), not a deep slot.  All four M2
 // screws are internal corner bosses, in the channel corners.  Channels
 // open into the east bay, so wires run LEMO → channel → PSU board → Heltec
-// (south-rib notch).  Outer ≈ 76 x 63 x 24 mm.
+// (south-rib notch).  Outer ≈ 76 x 63 x 27 mm.
 //
 // part = "both" renders base + lid + plungers in print orientation.
 //
@@ -113,7 +113,11 @@ tab_gap    = 18.0;  // bay-rib gap for the board's u.FL antenna tab (+ wires),
 pcb_w      = 25.5;  // MEASURE
 pcb_t      = 1.0;
 comp_h     = 4.0;   // tallest part above PCB (OLED/USB)  MEASURE
-standoff_h = 13.0;  // tower height: LiPo (10) + 1 air + 2 wire room underneath
+standoff_h = 16.0;  // tower height: LiPo (10.25) + ~5.75 mm above it so the J2
+                    // plug + 3 wires can route up and over the LiPo to the Heltec
+                    // pads (was 13; raised for connector/wire clearance). The
+                    // cleaner fix (a horizontal wire trench between the south rib
+                    // and the LiPo) is a dry-fit refinement once the parts are in hand.
 
 /* ---------------- bridge LiPo (MakerHawk 1100 mAh) ---------------- */
 lipo_l = 41.4;  lipo_w = 25.15;  lipo_t = 10.25; // measured (v2 print fit);
