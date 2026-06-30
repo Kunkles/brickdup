@@ -27,7 +27,29 @@ Goal: a JLCPCB-assembled board that drops into the 3D-printed sensor-node enclos
 - **KiCad 10 project:** fully placed + **auto-routed** (0 unconnected, 0 shorts).
   DRC = cosmetic silk + a few courtyard warnings only.
 - **JLCPCB order: PLACED** (assembled, qty 5). A duplicate first order was refunded.
-- **NOT yet done:** DFM rotation check, bench bring-up, MPSmart sim, enclosure dry-fit.
+- **Boards received + bench bring-up started 2026-06-30** (see §2a).
+- **NOT yet done:** MPSmart sim, enclosure dry-fit, full bring-up (buck regulation fault open).
+
+## 2a. v0.1 bench bring-up — 2026-06-30 (boards in hand)
+
+- **Sense divider: GOOD.** 14 V in → **1.36 V at GPIO7** (ratio ~10.3 vs design 10.09).
+  No firmware/calibration change needed.
+- **JLC parts placement confirmed:** D1 polarity correct, U1 pin-1 correct. **D2 (TVS)
+  de-populated** at JLC's request (engineer flagged D2 vs D1/L1 clearance) — board works
+  without it; footprint remains for optional hand-fit. **J1/J2 wire-mouths placed reversed**
+  (face inward) — electrically fine (nets follow pads), accepted for v0.1; rotate 180° in v0.2.
+- **Buck regulation — FAULT, open:**
+  - *No load:* output wanders **5–6.5 V** (rides high). Classic hysteretic light-load
+    pulse-skipping with all-ceramic Cout (no FB ripple for the comparator).
+  - *Under ~100–250 mA load:* voltage **stabilizes**, BUT then audible **screech/squeak**,
+    **heats up fast**, and behavior **changes when pressing the output connector**
+    (mechanical sensitivity → suspect cold joint). Heltec orange charge LED blinks in sync
+    with the erratic screech (5 V rail browning out / cycling).
+  - *Next steps:* (1) identify which part heats — U1 vs L1 vs just the load resistor;
+    (2) reflow suspect joints, esp. **U1 exposed-pad ground**, J2, Cout1/2, L1, D1;
+    (3) populate **Cff** (start ~100 pF, up to ~1 nF) for hysteretic ripple injection /
+    loop stability; (4) scope SW + Vout. Don't reconnect the Heltec as load until the
+    rail is steady + cool on a plain resistor.
 
 ## 3. Key files (all in the repo)
 
