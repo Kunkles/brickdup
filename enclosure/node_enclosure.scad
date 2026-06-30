@@ -1,6 +1,16 @@
 // brickdup — sensor-node enclosure (parametric OpenSCAD)
 // =================================================================
-// Version: v10 (2026-06-18) — east bay bumped to bay_l 20 (~10 mm clear
+// Version: v11 (2026-06-20) — hosts the combined PSU PCB (40x20 mm custom
+//          buck+divider board, see pcb/README.md): the buck floor-recess is
+//          gone, the south channel is widened (ch_s 13.5 -> 20) to seat the
+//          board on two M2 standoff bosses, and a notch is cut in the south
+//          rib + retention lip so the board's 5V/SENSE/GND wires reach the
+//          Heltec.  Box grows ~8 mm wider (outer ~76 x 63 x 27).  Only the
+//          south side moves; the Heltec tray, the LEMO/SMA east wall and the
+//          lid are unchanged.  Board I/O is JST-PH (J1 to the LEMO, J2 to the
+//          Heltec); psu_gap_e holds the board's east edge back so J1 + its plug
+//          clear the LEMO's rear cups (~15 mm, see the clearance echo).
+//          v10 (2026-06-18) — east bay bumped to bay_l 20 (~10 mm clear
 //          behind the LEMO).
 //          v9 (2026-06-18) — east bay deepened (bay_l 12 → 18) so the LEMO's
 //          rear solder cups/wires clear the board/tray.  Because USB,
@@ -33,18 +43,18 @@
 // STACKED + SIDE-CHANNEL layout:
 //
 //   z 2..12   1100 mAh bridge LiPo (41.4x25.15x10.25) flat on the floor
-//   z 15..16  Heltec WiFi LoRa 32 V3 on four 13 mm corner towers,
-//             directly above the cell (battery JST is on the board's
-//             underside, so the lead run is tiny)
-//   south ch  buck recess in the floor + wire raceway (tracks buck width)
-//   north ch  divider / wire slack raceway (7 mm wide)
-//   east bay  LEMO panel connector tail + divider
+//   z 18..19  Heltec WiFi LoRa 32 V3 on four 16 mm corner towers, directly
+//             above the cell with ~5.75 mm clearance over it for the J2 wires
+//             (battery JST is on the board's underside, so the lead run is tiny)
+//   south ch  PSU PCB (40x20 buck+divider) on two M2 bosses + wire raceway
+//   north ch  wire slack raceway (7 mm wide)
+//   east bay  LEMO panel connector tail (the divider now lives on the PSU PCB)
 //
 // The board sits ~2.5 mm from the west wall, so USB-C is a normal
 // chamfered port hole (~4 mm recess), not a deep slot.  All four M2
 // screws are internal corner bosses, in the channel corners.  Channels
-// open into the east bay, so wires run LEMO → channel → buck → board
-// without rib gaps.  Outer ≈ 76 x 54 x 24 mm.
+// open into the east bay, so wires run LEMO → channel → PSU board → Heltec
+// (south-rib notch).  Outer ≈ 76 x 63 x 27 mm.
 //
 // part = "both" renders base + lid + plungers in print orientation.
 //
@@ -103,20 +113,32 @@ tab_gap    = 18.0;  // bay-rib gap for the board's u.FL antenna tab (+ wires),
 pcb_w      = 25.5;  // MEASURE
 pcb_t      = 1.0;
 comp_h     = 4.0;   // tallest part above PCB (OLED/USB)  MEASURE
-standoff_h = 13.0;  // tower height: LiPo (10) + 1 air + 2 wire room underneath
+standoff_h = 16.0;  // tower height: LiPo (10.25) + ~5.75 mm above it so the J2
+                    // plug + 3 wires can route up and over the LiPo to the Heltec
+                    // pads (was 13; raised for connector/wire clearance). The
+                    // cleaner fix (a horizontal wire trench between the south rib
+                    // and the LiPo) is a dry-fit refinement once the parts are in hand.
 
 /* ---------------- bridge LiPo (MakerHawk 1100 mAh) ---------------- */
 lipo_l = 41.4;  lipo_w = 25.15;  lipo_t = 10.25; // measured (v2 print fit);
                                                  // length excludes the leads —
                                                  // they exit via the bay-rib gap
 
-/* ---------------- buck (Pololu D24V10F5) ---------------- */
-buck_l = 12.7;  buck_w = 12.0;   // width measured; length from datasheet 0.5"
-buck_recess = 0.6;               // floor recess to locate it (foam-tape it in)
-buck_x = 20.0;                   // recess position along the south channel
+/* ---------------- PSU PCB (custom buck + divider, pcb/README.md) -------- */
+psu_l = 40.0;   // PCB length, runs east-west along the south channel  MEASURE final
+psu_w = 20.0;   // PCB width, north-south
+psu_t = 1.6;    // PCB thickness (2-layer FR4)
+psu_stand = 2.5;            // standoff height under the PCB (bottom clearance)
+psu_clear = 1.0;            // slip clearance around the board in its bay
+psu_holes   = [[5.0, 16.0], [35.0, 16.0]]; // M2 holes (board-local) on the south
+                            // band — clear of the J2 (north) + J1 (east) connectors
+psu_gap_e   = 3.5;          // gap from the board's east edge to the bay rib — keeps
+                            // the J1 (LEMO) JST + its mating plug clear of the
+                            // LEMO's rear solder cups (see clearance echo)
+lemo_intrude = 10.0;        // LEMO body depth past the inner wall face (from v9 notes)
 
 /* ---------------- channels & east bay ---------------- */
-ch_s  = buck_w + 1.5;  // south channel: buck + wires (tracks the buck recess)
+ch_s  = psu_w + 2*psu_clear;  // south channel hosts the PSU PCB (+ slip)
 ch_n  = 7.0;    // north channel: divider / wire slack
 bay_l = 20.0;   // east bay: LEMO tail (10 into cavity) + wire bend + divider.
                 // Deeper than the tail needs (was 12) to keep the LEMO's rear
@@ -128,6 +150,8 @@ usb_w = 12.0;  usb_h = 7.0;      // port hole, chamfered  MEASURE plug nose
 usb_y_off = -1.0;                // port sits ~1 mm south of the board
                                  // centreline (print fit)
 lemo_hole_d = 8.9;   // measured
+lemo_nut = 13.0;     // panel-nut clearance width — sets the lid-lip relief over
+                     // the LEMO so the lid seats without hitting the nut  MEASURE
 lemo_flat = 8.2;     // measured across the LEMO's two flats (double-D hole,
                      // flats left + right since v6)
 lemo_y = 14.0;       // LEMO at the SE spot (swapped with the SMA): its rear
@@ -183,6 +207,9 @@ by = wall + ch_s + rib + 0.5;
 ribS    = wall + ch_s;            // south rib (channel | board zone), south face
 ribN    = ribS + rib + hz_w;      // north rib (board zone | channel), south face
 ribX    = wall + pad + hz_l;      // bay rib (board zone | east bay), west face
+psu_x0  = ribX - psu_l - psu_gap_e; // PSU PCB SW corner (east edge faces the LEMO)
+psu_y0  = wall + (ch_s - psu_w)/2;  // centred across the south channel
+psu_lemo_clear = (wall + inner_l - lemo_intrude) - (psu_x0 + psu_l); // J1 <-> LEMO rear
 board_top = wall + standoff_h + pcb_t;   // PCB top surface (z)
 rim_top   = board_top + 2;               // cradle walls rise 2 mm past the PCB
 pcb_yc  = by + pcb_w/2;           // board centreline: USB, LEMO + tail follow it
@@ -208,6 +235,9 @@ if (plungers && base_h - btn_z < seat_h + 0.2)
 
 echo(str("outer: ", outer_l, " x ", outer_w, " x ", base_h + lid_t, " mm"));
 echo(str("inner: ", inner_l, " x ", inner_w, " x ", inner_h, " mm"));
+echo(str("PSU bay: ", psu_l, " x ", psu_w, " at SW (", psu_x0, ",", psu_y0,
+         "), bosses top z=", wall + psu_stand));
+echo(str("J1(LEMO) <-> LEMO rear clearance = ", psu_lemo_clear, " mm"));
 echo(str("plunger: tube_len ", tube_len, ", stem ",
          lid_top + plunger_gap - btn_z - flare_h - flange_t - taper_h, " mm"));
 
@@ -292,6 +322,14 @@ module base() {
       // internal corner screw bosses (channel corners, clear of everything)
       for (p = boss_pos)
         translate([p[0], p[1], wall]) cylinder(h = inner_h, d = boss_d);
+
+      // PSU PCB standoff bosses — the board screws down onto these (M2 self-tap).
+      // Board is inserted with its KiCad TOP edge (the J2 / Heltec side) toward
+      // the enclosure NORTH so J2 faces the Heltec and J1 faces the LEMO (east).
+      // KiCad measures Y downward, OpenSCAD upward, so flip Y: psu_w - h[1].
+      for (h = psu_holes)
+        translate([psu_x0 + h[0], psu_y0 + (psu_w - h[1]), wall])
+          cylinder(h = psu_stand, d = boss_d);
     }
 
     // boss pilot holes (M2 self-tap)
@@ -332,10 +370,14 @@ module base() {
     vent_row(25, 7);
     vent_row(25, 7, yw = outer_w - wall);
 
-    // buck locating recess, south channel floor — wires run along the
-    // channel: LEMO (east) → buck VIN, buck VOUT → board 5V pin
-    translate([buck_x, wall + 0.2, wall - buck_recess])
-      cube([buck_l + 1, buck_w + 1, buck_recess + 0.1]);
+    // PSU PCB: notch the south rib + retention lip so the board's
+    // 5V/SENSE/GND wires reach the Heltec (board sits south of the rib;
+    // the Heltec sits north of it), and pilot the two M2 standoff bosses.
+    translate([psu_x0 + 5, ribS - 0.1, wall])
+      cube([12, rib + 2.0, rim_top]);                 // notch over J2 (board X~6-14)
+    for (h = psu_holes)
+      translate([psu_x0 + h[0], psu_y0 + (psu_w - h[1]), wall - 0.1])
+        cylinder(h = psu_stand + 0.2, d = screw_pilot);
   }
 }
 
@@ -362,6 +404,12 @@ module lid() {
     // path, so clear it across the port width (tracks usb_y_off)
     translate([-0.1, pcb_yc + usb_y_off - usb_w/2, base_h - 3.1])
       cube([wall + pad + 0.2, usb_w, 3.2]);
+
+    // lip notch over the LEMO nut (east wall) — the panel nut rides up near the
+    // lid lip; relieve the lip across the nut width so the lid seats fully
+    // (parametric version of the manual shave from the first print).
+    translate([outer_l - wall - 2, lemo_y - lemo_nut/2, base_h - 3.1])
+      cube([wall + 2.1, lemo_nut, 3.2]);
 
     // boss clearance notches in the lip
     for (p = boss_pos)

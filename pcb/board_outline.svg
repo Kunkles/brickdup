@@ -1,0 +1,48 @@
+<svg width="600" height="380" viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>brickdup_psu board outline — 40 x 20 mm</title>
+  <desc>Rectangular PCB outline 40 mm by 20 mm with 2 mm rounded corners. Two M2 mounting holes (2.2 mm diameter): NW at (4,4) and SE-ish at (32,16) board-local, diagonal to locate the board while keeping the centre clear and clear of the east-edge connector. J1 input connector (VBAT, GND) on the east short edge facing the LEMO; J2 output connector (5V, SENSE, GND) on the north long edge facing the Heltec. Scale 10 px per mm.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 12px; fill: #8a8a85; }
+    .lbl { font-size: 11px; }
+    .edge { stroke: #8a8a85; stroke-width: 2.5; fill: none; }
+    .dim  { stroke: #4a8bc4; stroke-width: 1; fill: none; }
+    .hole { stroke: #d85a30; stroke-width: 2; fill: none; }
+    .pad  { fill: #d85a30; }
+  </style>
+
+  <!-- board: origin (60,90), 1mm=10px, 40x20mm => 400x200px -->
+  <rect class="edge" x="60" y="90" width="400" height="200" rx="20"/>
+
+  <!-- mounting holes: NW (4,4)->(100,130), SE-ish (32,16)->(380,250) -->
+  <circle class="hole" cx="100" cy="130" r="11"/>
+  <circle class="hole" cx="380" cy="250" r="11"/>
+  <text x="100" y="118" text-anchor="middle" class="lbl">M2 (Ø2.2) NW (4,4)</text>
+  <text x="380" y="272" text-anchor="middle" class="lbl">M2 (Ø2.2) (32,16)</text>
+
+  <!-- J2 output (JST PH 3-pin) on the north long edge (toward Heltec) -->
+  <circle class="pad" cx="180" cy="100" r="4"/>
+  <circle class="pad" cx="200" cy="100" r="4"/>
+  <circle class="pad" cx="220" cy="100" r="4"/>
+  <text x="200" y="86" text-anchor="middle" class="lbl">J2 JST: 5V · SENSE · GND  ↑ to Heltec</text>
+
+  <!-- J1 input (JST PH 2-pin) on the east short edge (toward LEMO) -->
+  <circle class="pad" cx="450" cy="160" r="4"/>
+  <circle class="pad" cx="450" cy="200" r="4"/>
+  <text x="475" y="160" class="lbl">J1 JST: VBAT</text>
+  <text x="475" y="204" class="lbl">GND  → from LEMO</text>
+
+  <!-- width dimension 40mm -->
+  <line class="dim" x1="60" y1="60" x2="460" y2="60"/>
+  <line class="dim" x1="60" y1="54" x2="60" y2="66"/>
+  <line class="dim" x1="460" y1="54" x2="460" y2="66"/>
+  <text x="260" y="52" text-anchor="middle">40 mm</text>
+
+  <!-- height dimension 20mm -->
+  <line class="dim" x1="490" y1="90" x2="490" y2="290"/>
+  <line class="dim" x1="484" y1="90" x2="496" y2="90"/>
+  <line class="dim" x1="484" y1="290" x2="496" y2="290"/>
+  <text x="510" y="194">20 mm</text>
+
+  <text x="60" y="338" class="lbl">2-layer, 1.6 mm FR4, 1 oz Cu · 2 mm corner radius · all parts on top (F.Cu) · GND pour both sides</text>
+  <text x="60" y="356" class="lbl">Diagonal holes keep the central band + east connector edge clear.</text>
+</svg>
