@@ -36,12 +36,14 @@ lid ─────────────────────────�
    OLED window
    ~2–3 mm clearance over Heltec top
 Heltec module (~3.5 mm incl. OLED)
-socket standoff  ~8.5 mm   ← L1 (~5 mm) + all buck parts live here
+socket standoff  ~8.5 mm   ← L1 (~5 mm) + all buck parts + LiPo JST plug
 carrier PCB       1.6 mm
-M2 boss           ~3 mm
+M2 boss           ~8 mm    ← LiPo bay under the carrier's WEST half (§5a)
 base ─────────────────────────────
 ```
-Inner height ≈ **19–21 mm** — shorter than v11 despite the socket.
+Inner height ≈ **26–28 mm** with the under-board LiPo bay (§5a) — still in
+v11's ballpark, and the footprint stays at board size instead of growing a
+side bay.
 
 ## 4. Buttons — the flexure concept (Ryan's preference)
 
@@ -54,18 +56,57 @@ Inner height ≈ **19–21 mm** — shorter than v11 despite the socket.
 - **SW1 power switch**: small panel slide/toggle in the south or east wall
   (rated ≥30 V DC / 1 A), or bridge JP1 and omit.
 
-## 5. LiPo
+## 5. Reserved volumes — hard requirements (battery, LEMO, RF)
 
-Heltec's bridge LiPo keeps its JST-1.25 on the module. Pouch pocket in the
-base **west of the buck island / under the antenna end**, longer leads OK
-(per Ryan: no LiPo on the PCB, longer lead is fine). Never compress the pouch;
-retention lip, not squeeze.
+These three MUST have dedicated space in the shell; everything else designs
+around them.
+
+### 5a. Bridge LiPo bay
+
+- Battery: 1S ~1100 mAh pouch, plan for **~50 × 34 × 7 mm** (e.g. 603450)
+  plus lead + strain relief. JST-1.25 plug goes to the connector on the
+  **underside of the Heltec module** — the 8.5 mm socket gap is exactly where
+  the plug and lead live, so the lead routes up over the carrier's west edge
+  into that gap. Longer lead is fine (Ryan's call — no LiPo on the PCB).
+- **Recommended spot: UNDER the carrier, west half.** Raise the M2 bosses to
+  ~8 mm and the pouch lies flat beneath the board. The west half is under the
+  sense divider (cool); the buck island (U1/L1, the only warm parts) is the
+  east half — keep the pouch out from under it. Adds ~7 mm to the Z-stack
+  (total inner ≈ 26–28 mm, still comparable to v11).
+- Alternative if under-board is rejected at dry-fit: a side bay west of the
+  carrier (grows the footprint ~36 mm — much bigger box; not preferred).
+- Rules unchanged: **never compress the pouch** — retention lip + foam pad,
+  no squeeze; keep it off the antenna coax.
+
+### 5b. LEMO panel connector (battery input)
+
+- **East wall** (the service wall), directly outboard of **J1's mouth**
+  (J1 centre is at board y ≈ 19.5, mid-height of the east wall). Short
+  2-wire pigtail J1 → LEMO, crimped JST-PH one end.
+- Carry over the v11 parametrics: panel hole + **`lemo_nut = 13` lid-lip
+  relief** (the v11 fix) so the nut clears the lid. Leave finger/wrench room
+  around the nut inside.
+
+### 5c. RF jack (LoRa antenna)
+
+- **SMA bulkhead jack in the WEST wall** (antenna end of the Heltec — the
+  u.FL is right there, shortest pigtail, and it keeps RF on the opposite wall
+  from the LEMO/USB service side).
+- Reserve: ~6.5 mm panel hole, nut + wrench clearance inside, plus a **service
+  loop** for the u.FL→SMA pigtail so the lid can open without yanking the u.FL
+  (u.FL connectors are ~30-cycle rated — don't make the pigtail taut).
+- Keep the LiPo pouch and its lead clear of the coax run.
+- If a second RF jack is ever needed (WiFi ext antenna), there's west-wall
+  room beside the SMA — note it, don't cut it yet.
 
 ## 6. Open ‹MEASURE› items for the SCAD pass
 
 1. Socket standoff height (8.5 mm typ female header) + Heltec total height.
 2. USB-C port XY on the module east face (offset from board centreline).
-3. u.FL position / antenna clearance west.
+3. u.FL position on the module (west end) → SMA jack height in the west wall.
 4. LEMO panel hole + nut (carry over v11 values `lemo_nut=13` etc.).
 5. Lid flexure tab dimensions after a print test (tab length/thickness/boss).
-6. Confirm ROW_SPACING 22.86 mm (also gates the PCB order).
+6. ~~ROW_SPACING~~ ✓ verified 22.86 mm with calipers (2026-07-02).
+7. Actual LiPo pouch dimensions + lead length (§5a assumes 603450, 50×34×7).
+8. Heltec underside battery-JST position (sets where the LiPo lead enters the
+   socket gap from the west edge).
