@@ -42,10 +42,10 @@ FIXED = {
     "HDRB": (PIN1_X, ROWB_Y, -90),  # Heltec J2 row (power side)
     "BRK2": (38.0, 2.8, -90),       # ADC breakout, north strip (pads 38 -> 20.2)
     "BRK3": (50.0, 2.8, -90),       # I2C breakout, north strip (pads 50 -> 42.4)
-    "BRK1": (38.0, 34.5, 90),       # SPI breakout, south strip (pads 38 -> 55.8)
+    "BRK1": (38.0, 35.2, 90),       # SPI breakout, south strip (pads 38 -> 55.8)
     "SW1":  (11.0, 39.0, 0),        # power-switch JST, south edge, mouth south
-    "BTN1": (20.5, 39.0, 0),        # PRG button JST
-    "BTN2": (30.0, 39.0, 0),        # RST button JST
+    "BTN1": (21.0, 39.0, 0),        # PRG button JST
+    "BTN2": (31.0, 39.0, 0),        # RST button JST
     "J1":   (57.1, 19.5, 90),       # VBAT in JST, east edge, mouth EAST (fixed!)
     "JP1":  (47.5, 27.0, 0),        # SW1 bypass solder jumper, near J1
 }

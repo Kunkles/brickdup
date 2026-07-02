@@ -43,5 +43,9 @@ for z in b.Zones():
 pcbnew.ZONE_FILLER(b).Fill(b.Zones())
 print("zones filled")
 
+# NOTE: starved-thermal DRC errors (routing crowding a GND pad's spokes) are
+# fixed by fix_thermals.py, driven by kicad-cli's DRC json — WriteDRCReport
+# crashes in standalone pcbnew python, so the loop lives at pipeline level.
+
 pcbnew.SaveBoard(BOARD, b)
 print("saved", BOARD)

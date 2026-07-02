@@ -124,6 +124,8 @@ python3 gen_pcb.py                    # outline+socket+solver placement (courtya
 python3 ../export_dsn.py brickdup_carrier.kicad_pcb /tmp/carrier.dsn
 java -jar /tmp/freerouting224.jar -de /tmp/carrier.dsn -do /tmp/carrier.ses -mp 12
 python3 apply_route.py                # import + vias + solid GND on connectors + fill
+kicad-cli pcb drc brickdup_carrier.kicad_pcb -o /tmp/drc.json --format json --severity-error
+python3 fix_thermals.py brickdup_carrier.kicad_pcb /tmp/drc.json   # heal starved thermals
 kicad-cli pcb drc brickdup_carrier.kicad_pcb   # -> 0 violations, 0 unconnected
 ```
 
