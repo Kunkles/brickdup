@@ -33,8 +33,8 @@ v0.1 pending the Cff bench result and any findings from the v0.1 design review.
 ## 2. Socket pin map (verified vs Heltec HTIT-WB32LA(F)_V3 pin map, 2026-07)
 
 Rows are 18-pin, 2.54 mm pitch. **Pin 1 = GND, at the USB end (board EAST).**
-`ROW_SPACING = 22.86 mm` ‹**MEASURE-VERIFY with calipers on a real Heltec
-before ordering**› (inferred: 25.5 mm board − 2×1.32 mm).
+`ROW_SPACING = 22.86 mm` — **✓ VERIFIED 2026-07-02** with calipers on a real
+Heltec V3 (measured 22.77–22.93 mm across holes; pitch measured 2.55 mm).
 
 ### HDRA — Heltec header J3 (GPIO side, board NORTH row)
 
@@ -134,8 +134,9 @@ routing and then hangs waiting on a GUI handoff instead of saving.
 
 ## 7. Open items before ordering
 
-1. ‹MEASURE-VERIFY› **ROW_SPACING** (22.86 mm assumed) and pin-1 end against a
-   physical Heltec V3 with calipers. One wrong assumption = unusable board.
+1. ~~ROW_SPACING~~ **✓ verified 22.86 mm** (calipers, 2026-07-02). Still worth
+   eyeballing **pin-1/GND at the USB end** when the sockets arrive (test-fit the
+   Heltec on loose sockets before soldering them).
 2. **Cff value** from the v0.1 bench test → update BOM + populate.
 3. Fold in any v0.1 **design-review findings** (EN threshold, EP thermal vias).
 4. **Enclosure v2** dry-fit plan — see `enclosure/CARRIER_ENCLOSURE.md`.

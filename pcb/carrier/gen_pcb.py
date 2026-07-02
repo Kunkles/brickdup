@@ -29,8 +29,9 @@ W, H = 62.0, 44.0
 HOLES = [(3.5, 3.5), (58.5, 3.5), (3.5, 40.5), (58.5, 40.5)]   # M2 x4 corners
 
 # Heltec socket geometry. Rows are 2.54mm-pitch, 18 pins (span 43.18mm).
-# ROW_SPACING is the J3<->J2 row distance: MEASURE-VERIFY on a physical Heltec
-# with calipers before ordering (inferred 22.86mm = 25.5mm board - 2x1.32mm).
+# ROW_SPACING (J3<->J2 row distance) VERIFIED 2026-07-02: calipers on a real
+# Heltec V3 read 22.77-22.93mm across holes -> 22.86mm (0.9") confirmed.
+# Pin pitch also verified: 2.55mm measured (= 2.54mm nominal).
 ROW_SPACING = 22.86
 PIN1_X, ROWA_Y = 52.2, 8.0          # pin 1 (GND, USB end) sits EAST
 ROWB_Y = ROWA_Y + ROW_SPACING       # 30.86
