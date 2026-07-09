@@ -48,21 +48,23 @@ FIXED = {
     "BTN2": (31.0, 39.0, 0),        # RST button JST
     "J1":   (57.1, 19.5, 90),       # VBAT in JST, east edge, mouth EAST (fixed!)
     "JP1":  (47.5, 27.0, 0),        # SW1 bypass solder jumper, near J1
+    # -- buck HOT LOOP pinned rigid (SW node must stay tight: v0.1 rule #1) --
+    # U1 rot180: SW/GND pads west (toward D1+L1), VIN/BST/FB pads east (to Cin)
+    "U1":   (39.5, 20.0, 180),      # SW pad -> (37.0, 18.1)
+    "D1":   (31.5, 15.3, 0),        # SW pad (29.5, 15.3), GND (33.5, 15.3)
+    "L1":   (26.5, 22.0, 180),      # SW pad east (29.6, 22), +5V pad west (23.4, 22)
+    "Cbst": (44.2, 17.5, 90),       # bootstrap cap by U1's BST pin (42.0, 18.1)
 }
 
 # ---- solver seeds for the buck/divider island (between the socket rows). ----
 # Same relative floorplan as v0.1 (hot-loop aware), shifted into the channel.
 # U1 rot 180 -> VIN/BST/FB east (toward J1), SW/GND west (toward L1/output).
 PLACE = {
-    "U1":   (38, 20, 180),
-    "Cin3": (42, 19.5, 90),
-    "Cin1": (45, 16.5, 90), "Cin2": (45, 22, 90), "D2": (49, 12.5, 0),
-    "Cbst": (42, 15.5, 90),
-    "RFB1": (42.5, 24.5, 90), "RFB2": (44.5, 24.5, 90), "Cff": (46.5, 24.5, 90),
-    "D1":   (33, 16.5, 0),
-    "L1":   (28, 19.5, 0),
-    "Cout1":(22.5, 23, 0), "Cout2":(26, 25, 0), "Cout3":(29.5, 25, 0),
-    "REN1": (34.5, 24, 90), "REN2": (36.5, 24.5, 90),
+    "Cin3": (43.5, 20.5, 90),
+    "Cin1": (46.5, 16.5, 90), "Cin2": (46.5, 22.5, 90), "D2": (50.5, 13, 0),
+    "RFB1": (41, 24.5, 90), "RFB2": (43, 24.5, 90), "Cff": (45, 24.5, 90),
+    "Cout1":(20, 20, 90), "Cout2":(19, 24, 0), "Cout3":(22.5, 24.5, 0),
+    "REN1": (33, 24, 90), "REN2": (35, 24.5, 90),
     # sense divider isolated WEST (away from SW node), short hop to HDRA.18
     "R1":   (12, 19, 90), "R2": (14.5, 19, 90), "C1": (17, 19, 90),
 }
