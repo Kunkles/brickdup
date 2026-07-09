@@ -2582,7 +2582,7 @@
     (uuid "5893e755-a288-5f57-b4d7-962f5f2c867b")
     (property "Reference" "Cff" (at 232.41 63.49999999999999 0) (effects (font (size 1.27 1.27)) (justify left)))
     (property "Value" "470pF" (at 232.41 66.03999999999999 0) (effects (font (size 1.27 1.27)) (justify left)))
-    (property "Footprint" "Capacitor_SMD:C_0402_1005Metric" (at 229.87 64.77 0) (effects (font (size 1.27 1.27)) (hide yes)))
+    (property "Footprint" "Capacitor_SMD:C_0603_1608Metric" (at 229.87 64.77 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (property "Datasheet" "" (at 229.87 64.77 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (pin "1" (uuid "ad6074a3-5c5b-5807-a84d-58d40ede48e3"))
     (pin "2" (uuid "560a74aa-d4e0-5271-b796-f8af9cc441db"))
