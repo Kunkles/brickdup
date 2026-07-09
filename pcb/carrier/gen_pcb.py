@@ -47,33 +47,35 @@ FIXED = {
     "BTN1": (21.0, 39.0, 0),        # PRG button JST
     "BTN2": (31.0, 39.0, 0),        # RST button JST
     "J1":   (57.1, 19.5, 90),       # VBAT in JST, east edge, mouth EAST (fixed!)
-    "JP1":  (47.5, 27.0, 0),        # SW1 bypass solder jumper, near J1
+    "JP1":  (53.5, 26.5, 0),        # SW1 bypass solder jumper, near J1
     # -- buck HOT LOOP pinned rigid (SW node must stay tight: v0.1 rule #1) --
     # U1 rot180: SW/GND pads west (toward D1+L1), VIN/BST/FB pads east (to Cin)
     "U1":   (39.5, 20.0, 180),      # SW pad -> (37.0, 18.1)
     "D1":   (31.5, 15.3, 0),        # SW pad (29.5, 15.3), GND (33.5, 15.3)
     "L1":   (26.5, 22.0, 180),      # SW pad east (29.6, 22), +5V pad west (23.4, 22)
     "Cbst": (44.2, 17.5, 90),       # bootstrap cap by U1's BST pin (42.0, 18.1)
+    # ---- rest of the buck island, hand-floorplanned + envelope-audited ----
+    "Cin3": (44.6, 21.0, 90),       # HF input cap on VIN (42.0, 19.4)
+    "Cin1": (48.0, 21.0, 90),       # input bulk
+    "Cin2": (52.5, 12.2, 90),       # input bulk (north input row)
+    "D2":   (47.0, 13.0, 0),        # TVS across VBAT
+    "RFB1": (44.3, 24.8, 90), "RFB2": (46.1, 24.8, 90),   # FB divider by U1.FB
+    "Cff":  (42.3, 25.2, 90),       # ripple-injection cap beside RFB1
+    "Cout1":(19.2, 20.5, 90), "Cout2":(15.4, 20.5, 90), "Cout3":(12.2, 20.5, 90),
+    "REN1": (34.5, 24.6, 90), "REN2": (32.6, 24.6, 90),   # EN divider
+    "R1":   (12.0, 14.0, 90), "R2": (14.5, 14.0, 90), "C1": (16.8, 14.0, 90),
 }
 
 # ---- solver seeds for the buck/divider island (between the socket rows). ----
 # Same relative floorplan as v0.1 (hot-loop aware), shifted into the channel.
 # U1 rot 180 -> VIN/BST/FB east (toward J1), SW/GND west (toward L1/output).
-PLACE = {
-    "Cin3": (43.5, 20.5, 90),
-    "Cin1": (46.5, 16.5, 90), "Cin2": (46.5, 22.5, 90), "D2": (50.5, 13, 0),
-    "RFB1": (41, 24.5, 90), "RFB2": (43, 24.5, 90), "Cff": (45, 24.5, 90),
-    "Cout1":(20, 20, 90), "Cout2":(19, 24, 0), "Cout3":(22.5, 24.5, 0),
-    "REN1": (33, 24, 90), "REN2": (35, 24.5, 90),
-    # sense divider isolated WEST (away from SW node), short hop to HDRA.18
-    "R1":   (12, 19, 90), "R2": (14.5, 19, 90), "C1": (17, 19, 90),
-}
+PLACE = {}   # everything is deterministically FIXED; solver is a no-op
 
 def mm(v): return pcbnew.FromMM(v)
 def tomm(v): return pcbnew.ToMM(v)
 
 EDGE = 0.6
-GAP  = 0.75
+GAP  = 0.5
 HOLE_KO = 2.8
 
 def load_fp(fpid):
@@ -192,6 +194,11 @@ def solve_placement():
         for r in movable: clamp(r)
         relax(1500)
         sc = overlap_score()
+        if attempt == 0 and sc < 0.3:
+            # the hand floorplan is functionally grouped — prefer it over any
+            # random restart (which scores overlap only, not electrical sense)
+            best, best_score = {r: dict(P[r]) for r in refs}, sc
+            break
         if best_score is None or sc < best_score:
             best, best_score = {r: dict(P[r]) for r in refs}, sc
         if sc < 1e-6:
@@ -224,6 +231,31 @@ for name, nodes in g.NETS.items():
 
 # --- footprints ---
 SOLVED = solve_placement()
+
+# envelope audit: no pad+courtyard AABB overlaps anywhere (incl. fixed-fixed),
+# and nothing off-board except the edge-connector mouths (intentional overhang)
+EDGE_OK = {"J1", "SW1", "BTN1", "BTN2"}
+_envs = {}
+for _r, _s in SOLVED.items():
+    hw, hh, ox, oy = half_extents(g.COMPS[_r][2], _s["rot"])
+    cx, cy = _s["x"] + ox, _s["y"] + oy
+    _envs[_r] = (cx - hw, cy - hh, cx + hw, cy + hh)
+_fails = []
+_refs = list(_envs)
+for _i in range(len(_refs)):
+    for _j in range(_i + 1, len(_refs)):
+        a, c = _refs[_i], _refs[_j]
+        a0, a1, a2, a3 = _envs[a]; c0, c1, c2, c3 = _envs[c]
+        gp = max(max(c0 - a2, a0 - c2), max(c1 - a3, a1 - c3))
+        if gp < -0.001:
+            _fails.append(f"overlap {gp:.2f}mm: {a} <-> {c}")
+for _r, (_e0, _e1, _e2, _e3) in _envs.items():
+    if _r in EDGE_OK: continue
+    if _e0 < 0.05 or _e1 < 0.05 or _e2 > W - 0.05 or _e3 > H - 0.05:
+        _fails.append(f"off-board: {_r} envelope ({_e0:.1f},{_e1:.1f})-({_e2:.1f},{_e3:.1f})")
+if _fails:
+    raise SystemExit("ENVELOPE AUDIT FAILURES:\n  " + "\n  ".join(_fails))
+print(f"envelope audit: {len(_refs)} parts, no overlaps  OK")
 
 for ref, (lib_id, val, fpid, _pos, dnp) in g.COMPS.items():
     fp = load_fp(fpid)
@@ -311,6 +343,10 @@ silk_text("VBAT IN", 56.5, 13.5, 0.8)
 silk_text("SPI", 33.2, 34.5, 0.8)
 silk_text("ADC", 17.5, 2.8, 0.8)
 silk_text("I2C", 40.0, 2.8, 0.8)
+
+# electrical-layout rules (hot loop, bootstrap, divider isolation, input cap)
+import check_layout
+check_layout.check(b)
 
 pcbnew.SaveBoard(OUT, b)
 print("wrote", OUT, "with", len(g.COMPS), "parts and", len(g.NETS), "nets")
