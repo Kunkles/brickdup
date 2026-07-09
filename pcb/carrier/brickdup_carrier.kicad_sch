@@ -2578,7 +2578,7 @@
     (lib_id "Device:C")
     (at 229.87 64.77 0)
     (unit 1)
-    (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp yes)
+    (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)
     (uuid "5893e755-a288-5f57-b4d7-962f5f2c867b")
     (property "Reference" "Cff" (at 232.41 63.49999999999999 0) (effects (font (size 1.27 1.27)) (justify left)))
     (property "Value" "470pF" (at 232.41 66.03999999999999 0) (effects (font (size 1.27 1.27)) (justify left)))

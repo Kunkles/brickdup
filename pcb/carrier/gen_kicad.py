@@ -131,7 +131,7 @@ COMPS = {
     "Cout1":("Device:C",        "22uF/25V",   FP["c1206"],           (240, 100), False),
     "Cout2":("Device:C",        "22uF/25V",   FP["c1206"],           (260, 100), False),
     "Cout3":("Device:C",        "100nF/50V",  FP["c0402"],           (280, 100), True),
-    "Cff": ("Device:C",         "470pF",      FP["c0603"],           (230, 65),  True),
+    "Cff": ("Device:C",         "470pF",      FP["c0603"],           (230, 65),  False),
     "RFB1":("Device:R",         "240k 1%",    FP["0402"],            (240, 65),  False),
     "RFB2":("Device:R",         "10k 1%",     FP["0402"],            (240, 82),  False),
     "REN1":("Device:R",         "100k",       FP["0402"],            (105, 55),  False),

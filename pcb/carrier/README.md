@@ -23,7 +23,7 @@ covers only what v0.2 adds/changes.
 | GPIO breakout | none | BRK1 SPI ×8, BRK2 ADC ×8, BRK3 I2C ×4 (unpopulated THT) |
 | J1/JST orientation | mouths faced inward (v0.1 bug) | **mouths face off-board** (J1 east, SW1/BTN1/BTN2 south) — asserted in gen_pcb.py |
 | D2 clearance | flagged by JLC, de-populated | solver is **courtyard-aware**; D2 placeable |
-| Cff | 22 pF DNP | footprint kept, BOM value ‹**BENCH — set from v0.1 Cff test**› |
+| Cff | 22 pF DNP | **populated, 470 pF 0603, machine-placed** (bench may still tune the value) |
 | Mounting | 2× M2 | 4× M2 (board = enclosure tray) |
 | Board | 40×20 mm | **62×44 mm** |
 
@@ -107,12 +107,17 @@ Heltec V3 (measured 22.77–22.93 mm across holes; pitch measured 2.55 mm).
 
 ## 5. Assembly notes
 
-- Socket rows = THT **female pin sockets** (2×18-pin 1×18 strips): either JLC
-  hand-solder service or solder them yourself (easiest THT job there is).
+- Socket rows = THT **female pin sockets** (2×18-pin 1×18 strips, **8.5 mm
+  standard height — not low-profile**, that height is what clears L1 under the
+  module). Order with **JLC's THT/hand-solder assembly** so the board arrives
+  fully built — the design goal is zero soldering for us (no SMD by hand).
   Heltec ships with matching male pins.
+- **No-switch option without soldering:** instead of bridging the JP1 solder
+  jumper, crimp a wire loop into a 2-pin JST-PH plug and park it in SW1.
 - BRK1–3 are **DNP** — solder headers only when a project needs them.
 - JSTs (J1, SW1, BTN1, BTN2) are the same S2B-PH-SM4-TB as v0.1 (LCSC C295747).
-- Cff: populate with the **bench-validated value** from the v0.1 whine fix.
+- Cff ships **JLC-populated at 470 pF** (no hand-soldering). If the v0.1 bench test
+  lands on a different value, update the BOM line before ordering.
 
 ## 6. Reproducible pipeline
 
@@ -139,7 +144,7 @@ routing and then hangs waiting on a GUI handoff instead of saving.
 1. ~~ROW_SPACING~~ **✓ verified 22.86 mm** (calipers, 2026-07-02). Still worth
    eyeballing **pin-1/GND at the USB end** when the sockets arrive (test-fit the
    Heltec on loose sockets before soldering them).
-2. **Cff value** from the v0.1 bench test → update BOM + populate.
+2. Cff is populated at **470 pF** — if the v0.1 bench test says otherwise, change the BOM value before ordering.
 3. Fold in any v0.1 **design-review findings** (EN threshold, EP thermal vias).
 4. **Enclosure v2** dry-fit plan — see `enclosure/CARRIER_ENCLOSURE.md`.
 5. LCSC codes for: pin sockets 1×18 (e.g. C2337recheck), pin headers (DNP —
