@@ -17,8 +17,8 @@ TVS SMBJ45A,D2,SMB (DO-214AA),C42371744
 22k 1% 0805,R2,R_0805,C17560
 100nF 50V X7R,C1,C_0603,C14663
 JST PH 2-pin SMD side (VBAT in),J1,JST_PH_S2B-PH-SM4-TB,C295747
-JST PH 2-pin SMD side (power switch),SW1,JST_PH_S2B-PH-SM4-TB,C295747
-JST PH 2-pin SMD side (PRG button),BTN1,JST_PH_S2B-PH-SM4-TB,C295747
-JST PH 2-pin SMD side (RST button),BTN2,JST_PH_S2B-PH-SM4-TB,C295747
+JST PH 2-pin THT vertical (power switch),SW1,JST_PH_B2B-PH-K_Vertical,C131337
+JST PH 2-pin THT vertical (PRG button),BTN1,JST_PH_B2B-PH-K_Vertical,C131337
+JST PH 2-pin THT vertical (RST button),BTN2,JST_PH_B2B-PH-K_Vertical,C131337
 "Female header 1x18 2.54mm THT, 8.5mm height (NOT low-profile) - PICK IN JLC BOM MATCHER",HDRA,PinSocket_1x18_P2.54mm_Vertical,
 "Female header 1x18 2.54mm THT, 8.5mm height (NOT low-profile) - PICK IN JLC BOM MATCHER",HDRB,PinSocket_1x18_P2.54mm_Vertical,

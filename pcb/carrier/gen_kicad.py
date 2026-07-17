@@ -115,6 +115,7 @@ FP = {
     "hdr8":  "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical",
     "hdr4":  "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
     "sj":    "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm",
+    "jstph2v": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
 }
 
 # ---- components: ref -> (lib_id, value, footprint, sch_pos, dnp) ----
@@ -141,10 +142,10 @@ COMPS = {
     "C1":  ("Device:C",         "100nF/50V",  FP["c0603"],           (320, 80),  False),
     # ---------------- power in + wired switch/buttons ------------------------
     "J1":  ("Connector_Generic:Conn_01x02", "VBAT IN (JST PH)",   FP["jstph2"], (40, 160),  False),
-    "SW1": ("Connector_Generic:Conn_01x02", "PWR SWITCH (JST PH)",FP["jstph2"], (80, 160),  False),
+    "SW1": ("Connector_Generic:Conn_01x02", "PWR SWITCH (JST PH vert)",FP["jstph2v"], (80, 160),  False),
     "JP1": ("Jumper:SolderJumper_2_Open",   "SW bypass",          FP["sj"],     (80, 180),  False),
-    "BTN1":("Connector_Generic:Conn_01x02", "PRG BTN (JST PH)",   FP["jstph2"], (130, 160), False),
-    "BTN2":("Connector_Generic:Conn_01x02", "RST BTN (JST PH)",   FP["jstph2"], (170, 160), False),
+    "BTN1":("Connector_Generic:Conn_01x02", "PRG BTN (JST PH vert)",   FP["jstph2v"], (130, 160), False),
+    "BTN2":("Connector_Generic:Conn_01x02", "RST BTN (JST PH vert)",   FP["jstph2v"], (170, 160), False),
     # ---------------- Heltec socket rows -------------------------------------
     # HDRA = Heltec "J3" row (GPIO side). Pin 1 = GND at the USB end.
     "HDRA":("Connector_Generic:Conn_01x18", "HELTEC J3 (GPIO side)",  FP["sock18"], (370, 90),  False),

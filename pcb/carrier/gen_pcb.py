@@ -43,9 +43,9 @@ FIXED = {
     "BRK2": (38.0, 2.8, -90),       # ADC breakout, north strip (pads 38 -> 20.2)
     "BRK3": (50.0, 2.8, -90),       # I2C breakout, north strip (pads 50 -> 42.4)
     "BRK1": (38.0, 35.2, 90),       # SPI breakout, south strip (pads 38 -> 55.8)
-    "SW1":  (11.0, 39.0, 0),        # power-switch JST, south edge, mouth south
-    "BTN1": (21.0, 39.0, 0),        # PRG button JST
-    "BTN2": (31.0, 39.0, 0),        # RST button JST
+    "SW1":  (11.0, 38.5, 0),        # power-switch JST, THT vertical (top-entry)
+    "BTN1": (21.0, 38.5, 0),        # PRG button JST, THT vertical
+    "BTN2": (30.0, 38.5, 0),        # RST button JST, THT vertical
     "J1":   (57.1, 19.5, 90),       # VBAT in JST, east edge, mouth EAST (fixed!)
     "JP1":  (53.5, 26.5, 0),        # SW1 bypass solder jumper, near J1
     # -- buck HOT LOOP pinned rigid (SW node must stay tight: v0.1 rule #1) --
@@ -234,7 +234,7 @@ SOLVED = solve_placement()
 
 # envelope audit: no pad+courtyard AABB overlaps anywhere (incl. fixed-fixed),
 # and nothing off-board except the edge-connector mouths (intentional overhang)
-EDGE_OK = {"J1", "SW1", "BTN1", "BTN2"}
+EDGE_OK = {"J1"}
 _envs = {}
 for _r, _s in SOLVED.items():
     hw, hh, ox, oy = half_extents(g.COMPS[_r][2], _s["rot"])
@@ -336,9 +336,9 @@ r.SetStart(pcbnew.VECTOR2I(mm(mod_w), mm(mod_n))); r.SetEnd(pcbnew.VECTOR2I(mm(m
 b.Add(r)
 silk_text("HELTEC V3  USB->", 44, mid_y, 0.9)
 silk_text("ANT", 8, mid_y - 8, 0.9)
-silk_text("PWR SW", 11, 36.6, 0.8)
-silk_text("PRG", 20.5, 36.6, 0.8)
-silk_text("RST", 30.0, 36.6, 0.8)
+silk_text("PWR SW", 11, 35.3, 0.8)
+silk_text("PRG", 21, 35.3, 0.8)
+silk_text("RST", 30, 35.3, 0.8)
 silk_text("VBAT IN", 56.5, 13.5, 0.8)
 silk_text("SPI", 33.2, 34.5, 0.8)
 silk_text("ADC", 17.5, 2.8, 0.8)
