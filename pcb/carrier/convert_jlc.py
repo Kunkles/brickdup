@@ -15,6 +15,12 @@ import csv, os
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXCLUDE = {"JP1", "Cout3", "REN2", "BRK1", "BRK2", "BRK3"}
 
+# JLC reads Mid X/Y as the part CENTRE; KiCad's pos export gives the footprint
+# ORIGIN. For PinSocket_1x18 the origin is pin 1, so the body renders shifted
+# half its length (~21.59mm). Both rows are rot -90 (pins run west), so the
+# centre is origin_x - 21.59. All other parts on this board are centre-origin.
+CENTRE_FIX = {"HDRA": (-21.59, 0.0), "HDRB": (-21.59, 0.0)}
+
 src = os.path.join(HERE, "fab", "brickdup_carrier-cpl.csv")
 out = os.path.join(HERE, "fab", "jlc_cpl.csv")
 rows = list(csv.DictReader(open(src)))
@@ -25,7 +31,8 @@ with open(out, "w", newline="") as f:
     for r in rows:
         if r["Ref"] in EXCLUDE:
             continue
-        w.writerow([r["Ref"], f'{float(r["PosX"]):.4f}', f'{float(r["PosY"]):.4f}',
+        dx, dy = CENTRE_FIX.get(r["Ref"], (0.0, 0.0))
+        w.writerow([r["Ref"], f'{float(r["PosX"]) + dx:.4f}', f'{float(r["PosY"]) + dy:.4f}',
                     r["Side"].capitalize(), f'{float(r["Rot"]):.2f}'])
         kept += 1
 print("wrote", out, f"({kept} placements; excluded {sorted(EXCLUDE)})")
