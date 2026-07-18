@@ -7,8 +7,9 @@
 //
 // Layout (verified facts wired in):
 //   board 62 x 44 x 1.6, M2 @ (3.5,3.5)(58.5,3.5)(3.5,40.5)(58.5,40.5)
-//   socket stack ~15.5 over the board; LiPo bay under WEST half sized for
-//   the actual MakerHawk 1100 (41.4 x 25.15 x 10.25 calipered) -> boss_h 11
+//   socket stack ~15.5 over the board; LiPo bay = FULL board footprint under
+//   the standoffs — MakerHawk 1100 (41.4 x 25.15 x 10.25 calipered) + THT
+//   stub clearance -> boss_h 12.5; pouch placeable anywhere (west preferred)
 //   antenna: full-width north compartment — covered front/ends/roof, roof
 //   FLUSH with lid top, underside OPEN; SMA saddle + horn at the WEST end
 //   (H1-style cradle); 50mm whip (incl SMA male), D8
@@ -19,7 +20,10 @@ part = "assembly"; // [assembly, base, lid]
 /* ---------------- board + stack (verified) ------------------------------- */
 bw = 62;  bd = 44;  bt = 1.6;
 hole_in = 3.5;
-boss_h  = 11;                           // LiPo 10.25 thick under the board
+// Full-board under-floor LiPo bay: pouch 10.25 thick + THT pin stubs
+// protruding below the board (sockets/JSTs, ~1.5 assumed ‹MEASURE›) + margin.
+// Never let stubs touch the pouch.
+boss_h  = 12.5;
 stack_h = 15.5;                         // ‹MEASURE›
 top_air = 2.5;
 

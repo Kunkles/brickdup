@@ -47,8 +47,8 @@ lid ─────────────────────────�
 Heltec module (~3.5 mm incl. OLED)
 socket standoff  ~8.5 mm   ← L1 (~5 mm) + all buck parts + LiPo JST plug
 carrier PCB       1.6 mm
-M2 boss          ~11 mm    ← LiPo bay under the carrier's WEST half (§5a);
-                              actual MakerHawk 1100 is 10.25 thick
+M2 boss          ~12.5 mm  ← full-footprint LiPo bay under the board (§5a):
+                              pouch 10.25 + THT stub clearance ~1.5 + margin
 base ─────────────────────────────
 ```
 Inner height ≈ **26–28 mm** with the under-board LiPo bay (§5a) — still in
@@ -78,12 +78,17 @@ around them.
   on the **underside of the Heltec module** — the socket gap is exactly where
   the plug and lead live, so the lead routes up over the carrier's west edge
   into that gap. Longer lead is fine (Ryan's call — no LiPo on the PCB).
-- **Recommended spot: UNDER the carrier, west half.** M2 bosses at **~11 mm**
-  (the pouch is 10.25 thick — the earlier 8 mm/603450 assumption was wrong)
-  and the pouch lies flat beneath the board. The west half is under the
-  sense divider (cool); the buck island (U1/L1, the only warm parts) is the
-  east half — keep the pouch out from under it. Adds ~10 mm to the Z-stack
-  (total inner ≈ 29–31 mm).
+- **UNDER the carrier, full board footprint** (decided 2026-07-17): the whole
+  under-board volume is battery space, so the pouch can land wherever the
+  dry-fit says — no west-half-only rule. M2 bosses at **~12.5 mm**: pouch
+  10.25 (the earlier 8 mm/603450 assumption was wrong) **+ clearance for the
+  THT pin stubs protruding below the board** (socket rows + JST legs, ~1.5 mm
+  assumed, ‹MEASURE› on real boards — stubs must never press the pouch; a
+  thin foam pad on the floor is cheap insurance). Adds ~12 mm to the Z-stack
+  (total inner ≈ 31–33 mm).
+- Soft preference still WEST: shortest lead run to the west-edge socket gap,
+  and it keeps the pouch away from under the buck island (U1/L1, the only
+  warm parts, east) — but that's placement guidance, not geometry.
 - Alternative if under-board is rejected at dry-fit: a side bay west of the
   carrier (grows the footprint ~36 mm — much bigger box; not preferred).
 - Rules unchanged: **never compress the pouch** — retention lip + foam pad,
@@ -143,3 +148,5 @@ perpendicular bulkhead:
    1100); lead length still to confirm.
 8. Heltec underside battery-JST position (sets where the LiPo lead enters the
    socket gap from the west edge).
+9. THT stub protrusion below the board on real JLC-assembled carriers
+   (socket rows + JST legs; boss_h assumes ≤1.5 mm — sets pouch clearance).
