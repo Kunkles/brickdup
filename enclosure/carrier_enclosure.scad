@@ -1,18 +1,13 @@
-// carrier_enclosure.scad — ROUGH v0.2 shell for the brickdup v0.2 carrier board
+// carrier_enclosure.scad — ROUGH v0.3 shell for the brickdup v0.2 carrier board
 // ---------------------------------------------------------------------------
-// Rounded "pillowed" styling pass (ref: enclosure/reference/antenna_mount_ref.png)
-// on the concept model per enclosure/CARRIER_ENCLOSURE.md. Still NOT print-ready:
-// every ‹MEASURE› default needs calipers when boards + hardware arrive.
+// Antenna per reference (enclosure/reference/antenna_mount_ref.png):
+//   a FULL-WIDTH antenna compartment integrated into the body's north side.
+//   Covered on the front (north face), ends, and top — the compartment roof is
+//   FLUSH with the lid's top plane. The whole UNDERSIDE is open: whip, SMA
+//   male and the bulkhead connection are all reached from the back/bottom.
+// Still NOT print-ready: every ‹MEASURE› default needs calipers.
 //
 //   part = "assembly" | "base" | "lid"
-//
-// Key facts wired in from the project:
-//   board 62 x 44 x 1.6, M2 holes at (3.5,3.5)(58.5,3.5)(3.5,40.5)(58.5,40.5)
-//   socket stack: 8.5 socket + 2.5 header plastic + 1.6 heltec pcb + ~3.5 OLED
-//   LiPo bay under WEST half of board, bosses 8 tall (pouch 50x34x7)
-//   antenna: SMA bulkhead in NW pocket, axis EAST, 50mm whip (incl male, D8)
-//            riding a FULL-LENGTH guard channel outside the north wall
-//   east wall: LEMO entry + USB-C access;  buttons/switch: wired, lid flexures
 
 part = "assembly"; // [assembly, base, lid]
 
@@ -29,17 +24,16 @@ floor_t = 2.0;
 tol     = 0.5;
 lid_t   = 3.0;
 lip_h   = 4;
-r_out   = 4.0;                          // outer pillow radius (the sexy)
-r_in    = 2.0;                          // cavity corner radius
+r_out   = 4.0;                          // outer pillow radius
+r_in    = 2.0;
 
-/* ---------------- antenna channel (north wall) --------------------------- */
+/* ---------------- antenna compartment (north side) ----------------------- */
 ant_d      = 8;      // whip diameter (listing) ‹MEASURE›
 ant_len    = 50;     // whip incl. SMA male (listing)
 sma_hole   = 6.5;    // ‹MEASURE›
 sma_barrel = 8;      // ‹MEASURE›
-ch_w       = ant_d + 3;
-ch_wall    = 2.4;
-pocket_l   = 14;
+comp_d     = ant_d + 4.5;               // compartment depth beyond the tub (y)
+end_cap    = 4;                         // solid ends of the compartment
 
 /* ---------------- east wall features ------------------------------------- */
 lemo_hole = 12;      // ‹MEASURE — carry v11›
@@ -55,64 +49,60 @@ flex_l = 14; flex_w = 9;
 iw = bw + 2*tol;
 id = bd + 2*tol;
 ow = iw + 2*wall;
-od = id + 2*wall;
+od = id + 2*wall;                       // tub depth (south wall .. shared wall)
+od2 = od + comp_d;                      // total depth incl. antenna compartment
 inner_h = boss_h + bt + stack_h + top_air;
-base_h  = floor_t + inner_h;
-ant_z   = floor_t + boss_h + bt + 9;    // ‹MEASURE›
+base_h  = floor_t + inner_h;            // tub rim (lid seats here)
+z_top   = base_h + lid_t;               // lid top plane == compartment roof
+z_ceil  = z_top - wall;                 // compartment ceiling (roof underside)
+z_ax    = z_ceil - ant_d/2 - 0.6;       // whip axis, hanging under the roof
+y_ax    = od + (comp_d - wall)/2;       // whip axis depth (mid-channel)
+tower_l = 14;                           // west jack tower length (x)
 bx0 = wall + tol;
 by0 = wall + tol;
-wing_d = ch_w + ch_wall;                // antenna lobe depth beyond north wall
 
 $fn = $preview ? 28 : 56;
 
 /* ============ rounded primitives ========================================= */
-// pillowed open-top tub solid: rounded bottom edges, vertical rim
-module pillow_solid(w, d, h, r) {
+module pillow_solid(w, d, h, r) {       // rounded bottom edges, vertical rim
     hull() for (x = [r, w - r], y = [r, d - r]) {
         translate([x, y, r]) sphere(r);
         translate([x, y, h - 1]) cylinder(r = r, h = 1);
     }
 }
-// rounded-plan slab (vertical corners only)
-module rslab(w, d, h, r) {
+module rslab(w, d, h, r) {              // rounded-plan slab
     hull() for (x = [r, w - r], y = [r, d - r])
         translate([x, y, 0]) cylinder(r = r, h = h);
 }
-// capsule along X (rounded-end slot cutter)
-module capsule_x(x0, x1, y, z, r) {
-    hull() { translate([x0, y, z]) sphere(r); translate([x1, y, z]) sphere(r); }
+module dome_slab(w, d, h, r) {          // slab with domed top edges (lid style)
+    hull() for (x = [r, w - r], y = [r, d - r]) {
+        translate([x, y, h - r/1.6]) scale([1, 1, 0.6]) sphere(r);
+        translate([x, y, 0]) cylinder(r = r, h = 1);
+    }
 }
 
 /* ============ base ======================================================== */
-// antenna geometry: whip lies BEHIND a smooth front fin that is simply the
-// north wall continued upward (same plane -> zero seam). Back side fully open
-// down to the SMA connection, reference-style.
-fin_top = base_h + ant_d + 3.0;            // fin crest above the whip
-z_ax    = base_h + ant_d/2 + 0.8;          // whip axis, just above the rim
-y_ax    = od - wall - ant_d/2 - 0.6;       // whip hugs the fin back face
-tower_l = 12;                               // NW jack tower length (x)
-
-module base_solid() {
-    // main pillowed tub
-    pillow_solid(ow, od, base_h, r_out);
-    // front fin: north wall continued upward, rounded ends + crest
-    hull() for (x = [r_out, ow - r_out], z = [base_h - 2, fin_top - 2])
-        translate([x, od - wall/2, z]) rotate([90, 0, 0]) cylinder(r = min(wall/2, 2), h = wall, center = true);
-    // NW jack tower: cradles the SMA, open from the back
-    hull() for (x = [3, tower_l - 2], z = [base_h - 3, fin_top - 2])
-        translate([x, od - 5, z]) rotate([90, 0, 0]) cylinder(r = 2, h = 9, center = true);
-}
-
 module base() {
     difference() {
-        base_solid();
-        // cavity (rounded corners)
-        translate([wall, wall, floor_t]) rslab(iw, id, base_h, r_in);
-        // SMA bulkhead bore through the tower's east face
-        translate([tower_l - 6, y_ax, z_ax])
+        union() {
+            // pillowed tub spanning the FULL footprint incl. compartment strip
+            pillow_solid(ow, od2, base_h, r_out);
+            // compartment riser: north strip rising to the lid-top plane,
+            // domed like the lid so the roof reads flush + continuous
+            translate([0, od - 2, 0]) dome_slab(ow, comp_d + 2, z_top, r_out);
+        }
+        // main cavity (tub only — shared wall stays between cavity & channel)
+        translate([wall, wall, floor_t]) rslab(iw, id, base_h + lid_t, r_in);
+        // antenna channel: full width, open BOTTOM (cut from below through
+        // everything except roof, north face, end caps, shared south wall)
+        translate([end_cap, od, -1])
+            cube([ow - 2*end_cap, comp_d - wall, z_ceil + 1]);
+        // SMA bulkhead bore through the west tower's east face
+        translate([tower_l - 8, y_ax, z_ax])
             rotate([0, 90, 0]) cylinder(d = sma_hole, h = 10);
-        // pigtail notch in the north rim at the NW corner (under the lid edge)
-        translate([2, od - wall - 4, base_h - 5]) cube([7, wall + 5, 6]);
+        // pigtail bore through the shared wall into the cavity (NW, high)
+        translate([9, od - wall - 2, z_ax - 6])
+            cube([6, wall + 4, 5]);
         // LEMO hole, east wall (south half)
         translate([ow + 1, wall + 11, lemo_z])
             rotate([0, -90, 0]) cylinder(d = lemo_hole, h = wall + 4);
@@ -120,6 +110,16 @@ module base() {
         hull() for (yy = [od/2 - usb_w/2 + usb_h/2, od/2 + usb_w/2 - usb_h/2])
             translate([ow - wall - 2, yy, floor_t + boss_h + bt + 11.5 + usb_h/2])
                 rotate([0, 90, 0]) cylinder(d = usb_h, h = wall + 4);
+    }
+    // west jack tower inside the channel (hangs from the roof, holds the SMA)
+    difference() {
+        translate([end_cap - 0.5, od, z_ax - 7])
+            cube([tower_l - end_cap + 0.5, comp_d - wall, z_ceil - z_ax + 7]);
+        translate([tower_l - 8.5, y_ax, z_ax])
+            rotate([0, 90, 0]) cylinder(d = sma_hole, h = 12);
+        // keep the underside reachable: hollow the tower below the jack line
+        translate([end_cap + 1, od + 1.5, z_ax - 8])
+            cube([tower_l - end_cap - 4, comp_d - wall - 3, 6]);
     }
     // 4x M2 bosses
     for (p = [[hole_in, hole_in], [bw - hole_in, hole_in],
@@ -132,16 +132,11 @@ module base() {
 }
 
 /* ============ lid ========================================================= */
-lid_d = od - wall - ant_d - 1.8;   // stops short of the fin: open antenna bay
+lid_d = od - wall - 0.3;                // abuts the compartment's shared wall
 
 module lid() {
     difference() {
-        // pillowed cap: vertical skirt below, rounded top edges above
-        hull() for (x = [r_out, ow - r_out], y = [r_out, lid_d - r_out]) {
-            translate([x, y, lid_t - r_out/1.6])
-                scale([1, 1, 0.6]) sphere(r_out);
-            translate([x, y, 0]) cylinder(r = r_out, h = 1);
-        }
+        dome_slab(ow, lid_d, lid_t, r_out);
         // OLED window (rounded)
         translate([bx0 + 30 - oled_w/2, by0 + 22 - oled_d/2, -1])
             rslab(oled_w, oled_d, lid_t + 3, oled_r);
@@ -152,11 +147,10 @@ module lid() {
                 translate([2, 2, -1]) rslab(flex_l, flex_w, lid_t + 5, 1.5);
             }
     }
-    // inner skirt (engages the tub rim; full cavity depth)
-    translate([wall/2 + 0.2, wall/2 + 0.2, -lip_h]) difference() {
-        rslab(ow - wall - 0.4, od - wall - 0.4, lip_h, r_in);
-        translate([wall/2, wall/2, -1])
-            rslab(ow - 2*wall - 0.4, od - 2*wall - 0.4, lip_h + 2, r_in);
+    // inner skirt (sits just inside the cavity walls)
+    translate([wall + 0.3, wall + 0.3, -lip_h]) difference() {
+        rslab(iw - 0.6, id - 0.6, lip_h, r_in);
+        translate([wall, wall, -1]) rslab(iw - 0.6 - 2*wall, id - 0.6 - 2*wall, lip_h + 2, r_in);
     }
     // press bosses under the flexure tabs
     for (fx = [18, 36])
@@ -165,12 +159,11 @@ module lid() {
 
 /* ============ ghosts ====================================================== */
 module antenna_ghost() {
-    // SMA male base + whip, threaded onto the tower jack
-    color("gold", 0.8)
-        translate([tower_l - 6 + 10, y_ax, z_ax])
-            rotate([0, 90, 0]) cylinder(d = 7.5, h = 8);
-    color("black", 0.7)
-        translate([tower_l - 6 + 10 + 8, y_ax, z_ax])
+    color("gold", 0.85)
+        translate([tower_l - 8 + 10, y_ax, z_ax])
+            rotate([0, 90, 0]) cylinder(d = 7.5, h = sma_barrel);
+    color("black", 0.75)
+        translate([tower_l - 8 + 10 + sma_barrel, y_ax, z_ax])
             rotate([0, 90, 0]) cylinder(d = ant_d, h = ant_len - 8);
 }
 
@@ -178,7 +171,7 @@ if (part == "base") base();
 if (part == "lid") lid();
 if (part == "assembly") {
     base();
-    color("steelblue", 0.5) translate([0, 0, base_h + lip_h + 3]) lid();
+    color("steelblue", 0.55) translate([0, 0, base_h]) lid();
     antenna_ghost();
     color("green", 0.4) translate([bx0, by0, floor_t + boss_h]) cube([bw, bd, bt]);
     color("orange", 0.3)
