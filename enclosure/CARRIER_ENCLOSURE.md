@@ -20,6 +20,15 @@ brief captures the direction before any OpenSCAD work; the existing
 - **East wall**: J1 VBAT JST mouth (LEMO pigtail) + the Heltec **USB-C**
   (module east end) → USB access port goes in the east wall, above the LEMO
   entry. Both on one wall = one "service side".
+  - **USB is recessed ~9 mm** behind the outer wall face (module east edge is
+    6.3 mm inboard of the board edge, + gap + 2.4 wall). A cable's overmold
+    must pass THROUGH the wall to seat the plug → the wall slot is
+    overmold-sized (~13 × 8), not shell-sized. Best-effort access: chunky
+    overmolds won't reach → lid-off USB; OTA covers field updates.
+  - **J1 stacks almost directly below the USB port** (both at board y ≈ 19.5;
+    JST at board level, USB ~12–15 mm up → ~5 mm daylight). The J1→LEMO
+    harness must turn south immediately out of the JST — no slack bowing up
+    into the USB path. Verify at dry-fit.
 - **South wall**: SW1 / BTN1 / BTN2 JST mouths at x ≈ 11 / 20.5 / 30 — wires
   rise from these to the lid flexures or a south-wall switch.
 - **West end**: Heltec antenna (u.FL) — keep the antenna pocket/SMA pigtail
@@ -38,7 +47,8 @@ lid ─────────────────────────�
 Heltec module (~3.5 mm incl. OLED)
 socket standoff  ~8.5 mm   ← L1 (~5 mm) + all buck parts + LiPo JST plug
 carrier PCB       1.6 mm
-M2 boss           ~8 mm    ← LiPo bay under the carrier's WEST half (§5a)
+M2 boss          ~11 mm    ← LiPo bay under the carrier's WEST half (§5a);
+                              actual MakerHawk 1100 is 10.25 thick
 base ─────────────────────────────
 ```
 Inner height ≈ **26–28 mm** with the under-board LiPo bay (§5a) — still in
@@ -63,16 +73,17 @@ around them.
 
 ### 5a. Bridge LiPo bay
 
-- Battery: 1S ~1100 mAh pouch, plan for **~50 × 34 × 7 mm** (e.g. 603450)
-  plus lead + strain relief. JST-1.25 plug goes to the connector on the
-  **underside of the Heltec module** — the 8.5 mm socket gap is exactly where
+- Battery: MakerHawk 1100 mAh 1S pouch, **41.4 × 25.15 × 10.25 mm
+  (calipered)** plus lead + strain relief. JST-1.25 plug goes to the connector
+  on the **underside of the Heltec module** — the socket gap is exactly where
   the plug and lead live, so the lead routes up over the carrier's west edge
   into that gap. Longer lead is fine (Ryan's call — no LiPo on the PCB).
-- **Recommended spot: UNDER the carrier, west half.** Raise the M2 bosses to
-  ~8 mm and the pouch lies flat beneath the board. The west half is under the
+- **Recommended spot: UNDER the carrier, west half.** M2 bosses at **~11 mm**
+  (the pouch is 10.25 thick — the earlier 8 mm/603450 assumption was wrong)
+  and the pouch lies flat beneath the board. The west half is under the
   sense divider (cool); the buck island (U1/L1, the only warm parts) is the
-  east half — keep the pouch out from under it. Adds ~7 mm to the Z-stack
-  (total inner ≈ 26–28 mm, still comparable to v11).
+  east half — keep the pouch out from under it. Adds ~10 mm to the Z-stack
+  (total inner ≈ 29–31 mm).
 - Alternative if under-board is rejected at dry-fit: a side bay west of the
   carrier (grows the footprint ~36 mm — much bigger box; not preferred).
 - Rules unchanged: **never compress the pouch** — retention lip + foam pad,
@@ -121,11 +132,14 @@ perpendicular bulkhead:
 ## 6. Open ‹MEASURE› items for the SCAD pass
 
 1. Socket standoff height (8.5 mm typ female header) + Heltec total height.
-2. USB-C port XY on the module east face (offset from board centreline).
+2. USB-C port XY on the module east face (offset from board centreline) +
+   plug-axis height over the board (SCAD assumes 13.6) + widest overmold that
+   must fit the wall scoop.
 3. u.FL position on the module (west end) → SMA jack height in the west wall.
 4. LEMO panel hole + nut (carry over v11 values `lemo_nut=13` etc.).
 5. Lid flexure tab dimensions after a print test (tab length/thickness/boss).
 6. ~~ROW_SPACING~~ ✓ verified 22.86 mm with calipers (2026-07-02).
-7. Actual LiPo pouch dimensions + lead length (§5a assumes 603450, 50×34×7).
+7. ~~Actual LiPo pouch dimensions~~ ✓ calipered 41.4×25.15×10.25 (MakerHawk
+   1100); lead length still to confirm.
 8. Heltec underside battery-JST position (sets where the LiPo lead enters the
    socket gap from the west edge).

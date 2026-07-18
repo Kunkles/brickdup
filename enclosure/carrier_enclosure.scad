@@ -7,7 +7,8 @@
 //
 // Layout (verified facts wired in):
 //   board 62 x 44 x 1.6, M2 @ (3.5,3.5)(58.5,3.5)(3.5,40.5)(58.5,40.5)
-//   socket stack ~15.5 over the board; LiPo bay (50x34x7) under WEST half
+//   socket stack ~15.5 over the board; LiPo bay under WEST half sized for
+//   the actual MakerHawk 1100 (41.4 x 25.15 x 10.25 calipered) -> boss_h 11
 //   antenna: full-width north compartment — covered front/ends/roof, roof
 //   FLUSH with lid top, underside OPEN; SMA saddle + horn at the WEST end
 //   (H1-style cradle); 50mm whip (incl SMA male), D8
@@ -18,7 +19,7 @@ part = "assembly"; // [assembly, base, lid]
 /* ---------------- board + stack (verified) ------------------------------- */
 bw = 62;  bd = 44;  bt = 1.6;
 hole_in = 3.5;
-boss_h  = 8;
+boss_h  = 11;                           // LiPo 10.25 thick under the board
 stack_h = 15.5;                         // ‹MEASURE›
 top_air = 2.5;
 
@@ -42,7 +43,12 @@ end_cap    = 5;
 /* ---------------- east wall ------------------------------------------------ */
 lemo_hole = 12;      // ‹MEASURE — carry v11›
 lemo_z    = 12;      // ‹MEASURE›
-usb_w = 11; usb_h = 5;                  // ‹MEASURE›
+// USB-C port face sits ~9mm behind the outer wall (module 6.3mm inboard of
+// board edge + gap + wall) -> the cable OVERMOLD must pass through the wall
+// to seat the plug. Slot is overmold-sized, centred on the plug axis.
+// Best-effort: chunky overmolds won't fit -> lid-off USB, OTA for the field.
+usb_w = 13; usb_h = 8;                  // ‹MEASURE - overmold, not shell›
+usb_z = 13.6;                           // ‹MEASURE - plug axis above board top›
 
 /* ---------------- lid (H1 face language) ----------------------------------- */
 oled_w = 28; oled_d = 13; oled_r = 2.5; // ‹MEASURE›
@@ -114,9 +120,10 @@ module base() {
         // LEMO hole, east wall (south half)
         translate([ow + 1, wall + 11, lemo_z])
             rotate([0, -90, 0]) cylinder(d = lemo_hole, h = wall + 4);
-        // USB-C pill slot, east wall
+        // USB-C pill slot, east wall — overmold passes through; bottom edge
+        // kept clear of the J1 JST plug + harness below (~5mm daylight)
         hull() for (yy = [od/2 - usb_w/2 + usb_h/2, od/2 + usb_w/2 - usb_h/2])
-            translate([ow - wall - 2, yy, floor_t + boss_h + bt + 11.5 + usb_h/2])
+            translate([ow - wall - 2, yy, floor_t + boss_h + bt + usb_z])
                 rotate([0, 90, 0]) cylinder(d = usb_h, h = wall + 4);
         // finger scallops on the south wall (H1 grip coves)
         for (sx = [20, 48])
