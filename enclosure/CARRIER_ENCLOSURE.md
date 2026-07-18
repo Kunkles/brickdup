@@ -87,17 +87,30 @@ around them.
   relief** (the v11 fix) so the nut clears the lid. Leave finger/wrench room
   around the nut inside.
 
-### 5c. RF jack (LoRa antenna)
+### 5c. RF jack (LoRa antenna) — protected parallel mount
 
-- **SMA bulkhead jack in the WEST wall** (antenna end of the Heltec — the
-  u.FL is right there, shortest pigtail, and it keeps RF on the opposite wall
-  from the LEMO/USB service side).
-- Reserve: ~6.5 mm panel hole, nut + wrench clearance inside, plus a **service
-  loop** for the u.FL→SMA pigtail so the lid can open without yanking the u.FL
-  (u.FL connectors are ~30-cycle rated — don't make the pigtail taut).
+**Design reference: `enclosure/reference/antenna_mount_ref.png`** (Meshtastic
+handheld case, 2026-07-17). Ryan wants that antenna treatment, not a plain
+perpendicular bulkhead:
+
+- **SMA jack recessed in a corner pocket** at the WEST end (u.FL is right
+  there — shortest pigtail), with the jack axis turned so the **antenna runs
+  PARALLEL to the case lengthwise** instead of sticking straight out.
+- A **molded shoulder/wing wraps the SMA base** — the case itself shields the
+  connector joint (the fragile point) from knocks; the whip lies alongside
+  the body in a shallow protective channel formed by the case rim.
+- Concretely for our 62×44 tray: pocket at the NW or SW corner, jack axis
+  pointing along the long (east-west) axis, antenna lying along the north or
+  south wall exterior. Pick the wall at SCAD time based on which face the
+  camera-mount side is (antenna goes on the *away* side).
+- Still reserve: nut + wrench access in the pocket, finger room to thread the
+  antenna on, and the **u.FL→SMA pigtail service loop** (u.FL is ~30-cycle
+  rated — never taut).
 - Keep the LiPo pouch and its lead clear of the coax run.
-- If a second RF jack is ever needed (WiFi ext antenna), there's west-wall
-  room beside the SMA — note it, don't cut it yet.
+- ‹MEASURE›: SMA barrel length/diameter, antenna whip diameter + length
+  (sets channel length), pocket depth so the antenna's bend point clears.
+- If a second RF jack is ever needed (WiFi ext antenna), leave conceptual
+  room beside the pocket — note it, don't cut it yet.
 
 ## 6. Open ‹MEASURE› items for the SCAD pass
 
