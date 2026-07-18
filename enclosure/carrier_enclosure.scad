@@ -39,13 +39,15 @@ r_in    = 2.5;
 /* ---------------- antenna compartment (north) ----------------------------- */
 ant_d      = 8;      // ‹MEASURE›
 ant_len    = 50;
-sma_hole   = 6.5;    // ‹MEASURE›
+sma_d      = 6.5;    // measured (v11) — bulkhead pass-through
+sma_flat   = 5.9;    // measured (v11) — single flat, on the bottom
 sma_barrel = 8;      // ‹MEASURE›
 comp_d     = ant_d + 4.5;
 end_cap    = 5;
 
 /* ---------------- east wall ------------------------------------------------ */
-lemo_hole = 12;      // ‹MEASURE — carry v11›
+lemo_d    = 8.9;     // measured (v11) — double-D panel hole
+lemo_flat = 8.2;     // measured (v11) — across the flats, LEFT+RIGHT of hole
 lemo_z    = 12;      // ‹MEASURE›
 // USB-C port face sits ~9mm behind the outer wall (module 6.3mm inboard of
 // board edge + gap + wall) -> the cable OVERMOLD must pass through the wall
@@ -103,6 +105,21 @@ module round_cap(w, d, h, r, re) {
     }
 }
 
+/* ============ v11 measured connector holes (carried over 1:1) ============= */
+// Both cut along +x from the translate origin (hole centre on the axis).
+module lemo_hole_dd(len) {              // double-D: flats left+right
+    intersection() {
+        rotate([0, 90, 0]) cylinder(d = lemo_d, h = len);
+        translate([0, -lemo_flat/2, -lemo_d/2]) cube([len, lemo_flat, lemo_d]);
+    }
+}
+module sma_hole_flat(len) {             // single flat on the bottom
+    intersection() {
+        rotate([0, 90, 0]) cylinder(d = sma_d, h = len);
+        translate([0, -sma_d/2, sma_d/2 - sma_flat]) cube([len, sma_d, sma_flat]);
+    }
+}
+
 /* ============ base ======================================================== */
 module base() {
     difference() {
@@ -116,14 +133,12 @@ module base() {
         // antenna channel: full width, OPEN underside
         translate([end_cap, od, -1])
             cube([ow - 2*end_cap, comp_d - wall, z_ceil + 1]);
-        // SMA bore through the saddle's seat plate
-        translate([saddle_x - 6, y_ax, z_ax])
-            rotate([0, 90, 0]) cylinder(d = sma_hole, h = 8);
+        // SMA bore through the saddle's seat plate (v11 keyed shape)
+        translate([saddle_x - 6, y_ax, z_ax]) sma_hole_flat(8);
         // pigtail pass through the shared wall (NW, high)
         translate([9, od - wall - 2, z_ax - 6]) cube([6, wall + 4, 5]);
-        // LEMO hole, east wall (south half)
-        translate([ow + 1, wall + 11, lemo_z])
-            rotate([0, -90, 0]) cylinder(d = lemo_hole, h = wall + 4);
+        // LEMO hole, east wall (south half) — v11 double-D, nut inside
+        translate([ow - wall - 2, wall + 11, lemo_z]) lemo_hole_dd(wall + 4);
         // USB-C pill slot, east wall — overmold passes through; bottom edge
         // kept clear of the J1 JST plug + harness below (~5mm daylight)
         hull() for (yy = [od/2 - usb_w/2 + usb_h/2, od/2 + usb_w/2 - usb_h/2])
@@ -144,9 +159,8 @@ module base() {
             translate([end_cap - 1, od, z_ax - 6.5])
                 cube([saddle_x - end_cap + 9, comp_d - wall, z_ceil - z_ax + 6.5]);
         }
-        // the bulkhead bore
-        translate([saddle_x - 6.5, y_ax, z_ax])
-            rotate([0, 90, 0]) cylinder(d = sma_hole, h = 10);
+        // the bulkhead bore (v11 keyed shape)
+        translate([saddle_x - 6.5, y_ax, z_ax]) sma_hole_flat(10);
         // saddle scoop: half-cylinder opening DOWNWARD around the barrel/nut
         translate([saddle_x - 0.5, y_ax, z_ax])
             rotate([0, 90, 0]) cylinder(d = 13, h = 10);

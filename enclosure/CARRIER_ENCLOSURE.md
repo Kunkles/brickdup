@@ -99,9 +99,11 @@ around them.
 - **East wall** (the service wall), directly outboard of **J1's mouth**
   (J1 centre is at board y ≈ 19.5, mid-height of the east wall). Short
   2-wire pigtail J1 → LEMO, crimped JST-PH one end.
-- Carry over the v11 parametrics: panel hole + **`lemo_nut = 13` lid-lip
-  relief** (the v11 fix) so the nut clears the lid. Leave finger/wrench room
-  around the nut inside.
+- **v11 measured hole carried over 1:1**: double-D, Ø8.9 with the two flats
+  8.2 across, flats LEFT+RIGHT of the hole (anti-rotation). The v11
+  `lemo_nut = 13` lid-lip relief is NOT needed here — the carrier wall is
+  much taller, so the nut (top ≈ z 18.5) sits well below the lid lip. Leave
+  finger/wrench room around the nut inside.
 
 ### 5c. RF jack (LoRa antenna) — protected parallel mount
 
@@ -117,8 +119,9 @@ perpendicular bulkhead:
   the body in a shallow protective channel formed by the case rim.
 - **DECIDED (2026-07-17): NORTH wall.** Pocket at the **NW corner**, jack
   axis pointing EAST — antenna lies along the north wall exterior.
-- **SMA hardware: same bulkhead jack as originally planned** (~6.5 mm panel
-  hole, nut inside the pocket).
+- **SMA hardware: same bulkhead jack as originally planned** — v11 measured
+  hole carried over 1:1: Ø6.5 with a single flat on the bottom (5.9
+  flat-to-round), nut inside the pocket.
 - **Antenna whip = 50 mm, protected FULL LENGTH**: the guard channel runs the
   entire north wall — SMA barrel (~11 mm) + 50 mm whip ≈ 61 mm vs the 62 mm
   case length, so the whip tip lands at the NE corner and nothing pokes past
@@ -141,7 +144,8 @@ perpendicular bulkhead:
    plug-axis height over the board (SCAD assumes 13.6) + widest overmold that
    must fit the wall scoop.
 3. u.FL position on the module (west end) → SMA jack height in the west wall.
-4. LEMO panel hole + nut (carry over v11 values `lemo_nut=13` etc.).
+4. ~~LEMO panel hole~~ ✓ v11 measured double-D (8.9/8.2) + SMA flat (6.5/5.9)
+   carried over; only lemo_z (wall height position) still ‹MEASURE›.
 5. Lid flexure tab dimensions after a print test (tab length/thickness/boss).
 6. ~~ROW_SPACING~~ ✓ verified 22.86 mm with calipers (2026-07-02).
 7. ~~Actual LiPo pouch dimensions~~ ✓ calipered 41.4×25.15×10.25 (MakerHawk
