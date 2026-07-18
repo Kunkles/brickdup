@@ -84,14 +84,23 @@ module capsule_x(x0, x1, y, z, r) {
 }
 
 /* ============ base ======================================================== */
+// antenna geometry: whip lies BEHIND a smooth front fin that is simply the
+// north wall continued upward (same plane -> zero seam). Back side fully open
+// down to the SMA connection, reference-style.
+fin_top = base_h + ant_d + 3.0;            // fin crest above the whip
+z_ax    = base_h + ant_d/2 + 0.8;          // whip axis, just above the rim
+y_ax    = od - wall - ant_d/2 - 0.6;       // whip hugs the fin back face
+tower_l = 12;                               // NW jack tower length (x)
+
 module base_solid() {
-    // main pillowed tub blended with the antenna lobe via a shared hull-lobe
+    // main pillowed tub
     pillow_solid(ow, od, base_h, r_out);
-    // antenna lobe: pillowed bar riding the north wall, blended into the body
-    hull() {
-        translate([0, od - 6, 0]) pillow_solid(ow, 6, base_h, 3);
-        translate([0, od - 1, 0]) pillow_solid(ow, wing_d + 1, ant_z + ch_w/2 + 3, 3);
-    }
+    // front fin: north wall continued upward, rounded ends + crest
+    hull() for (x = [r_out, ow - r_out], z = [base_h - 2, fin_top - 2])
+        translate([x, od - wall/2, z]) rotate([90, 0, 0]) cylinder(r = min(wall/2, 2), h = wall, center = true);
+    // NW jack tower: cradles the SMA, open from the back
+    hull() for (x = [3, tower_l - 2], z = [base_h - 3, fin_top - 2])
+        translate([x, od - 5, z]) rotate([90, 0, 0]) cylinder(r = 2, h = 9, center = true);
 }
 
 module base() {
@@ -99,17 +108,11 @@ module base() {
         base_solid();
         // cavity (rounded corners)
         translate([wall, wall, floor_t]) rslab(iw, id, base_h, r_in);
-        // antenna trough: capsule bore + open top, x from pocket face to east
-        capsule_x(pocket_l - 2, ow - 2, od + ch_w/2, ant_z, ch_w/2);
-        translate([pocket_l - 2, od + ch_w/2 - ant_d/2 - 0.5, ant_z])
-            cube([ow - pocket_l, ant_d + 1, base_h]);           // top opening
-        // SMA bulkhead bore through the pocket's east face
-        translate([pocket_l - 8, od + ch_w/2, ant_z])
-            rotate([0, 90, 0]) cylinder(d = sma_hole, h = 8);
-        // pocket void (nut + pigtail room) inside the lobe's west end
-        translate([2.5, od + 1.5, ant_z - 6]) cube([pocket_l - 12, ch_w - 2, 12]);
-        // pigtail pass from case interior into the pocket void
-        translate([wall + 2, od - wall - 1, ant_z - 4]) cube([8, wall + 3, 8]);
+        // SMA bulkhead bore through the tower's east face
+        translate([tower_l - 6, y_ax, z_ax])
+            rotate([0, 90, 0]) cylinder(d = sma_hole, h = 10);
+        // pigtail notch in the north rim at the NW corner (under the lid edge)
+        translate([2, od - wall - 4, base_h - 5]) cube([7, wall + 5, 6]);
         // LEMO hole, east wall (south half)
         translate([ow + 1, wall + 11, lemo_z])
             rotate([0, -90, 0]) cylinder(d = lemo_hole, h = wall + 4);
@@ -129,10 +132,12 @@ module base() {
 }
 
 /* ============ lid ========================================================= */
+lid_d = od - wall - ant_d - 1.8;   // stops short of the fin: open antenna bay
+
 module lid() {
     difference() {
         // pillowed cap: vertical skirt below, rounded top edges above
-        hull() for (x = [r_out, ow - r_out], y = [r_out, od - r_out]) {
+        hull() for (x = [r_out, ow - r_out], y = [r_out, lid_d - r_out]) {
             translate([x, y, lid_t - r_out/1.6])
                 scale([1, 1, 0.6]) sphere(r_out);
             translate([x, y, 0]) cylinder(r = r_out, h = 1);
@@ -147,7 +152,7 @@ module lid() {
                 translate([2, 2, -1]) rslab(flex_l, flex_w, lid_t + 5, 1.5);
             }
     }
-    // inner skirt (engages the tub rim)
+    // inner skirt (engages the tub rim; full cavity depth)
     translate([wall/2 + 0.2, wall/2 + 0.2, -lip_h]) difference() {
         rslab(ow - wall - 0.4, od - wall - 0.4, lip_h, r_in);
         translate([wall/2, wall/2, -1])
@@ -160,8 +165,12 @@ module lid() {
 
 /* ============ ghosts ====================================================== */
 module antenna_ghost() {
-    color("black", 0.6)
-        translate([pocket_l - 8 + 8 + sma_barrel, od + ch_w/2, ant_z])
+    // SMA male base + whip, threaded onto the tower jack
+    color("gold", 0.8)
+        translate([tower_l - 6 + 10, y_ax, z_ax])
+            rotate([0, 90, 0]) cylinder(d = 7.5, h = 8);
+    color("black", 0.7)
+        translate([tower_l - 6 + 10 + 8, y_ax, z_ax])
             rotate([0, 90, 0]) cylinder(d = ant_d, h = ant_len - 8);
 }
 
