@@ -99,16 +99,22 @@ perpendicular bulkhead:
 - A **molded shoulder/wing wraps the SMA base** — the case itself shields the
   connector joint (the fragile point) from knocks; the whip lies alongside
   the body in a shallow protective channel formed by the case rim.
-- Concretely for our 62×44 tray: pocket at the NW or SW corner, jack axis
-  pointing along the long (east-west) axis, antenna lying along the north or
-  south wall exterior. Pick the wall at SCAD time based on which face the
-  camera-mount side is (antenna goes on the *away* side).
+- **DECIDED (2026-07-17): NORTH wall.** Pocket at the **NW corner**, jack
+  axis pointing EAST — antenna lies along the north wall exterior.
+- **SMA hardware: same bulkhead jack as originally planned** (~6.5 mm panel
+  hole, nut inside the pocket).
+- **Antenna whip = 50 mm, protected FULL LENGTH**: the guard channel runs the
+  entire north wall — SMA barrel (~11 mm) + 50 mm whip ≈ 61 mm vs the 62 mm
+  case length, so the whip tip lands at the NE corner and nothing pokes past
+  the case envelope. The channel rim must stand proud of the whip's full
+  diameter for its whole run (a parapet/trench, not just a base shoulder),
+  with an open top/side so the antenna can still be threaded on and radiate.
 - Still reserve: nut + wrench access in the pocket, finger room to thread the
   antenna on, and the **u.FL→SMA pigtail service loop** (u.FL is ~30-cycle
   rated — never taut).
 - Keep the LiPo pouch and its lead clear of the coax run.
-- ‹MEASURE›: SMA barrel length/diameter, antenna whip diameter + length
-  (sets channel length), pocket depth so the antenna's bend point clears.
+- ‹MEASURE›: SMA barrel exact length/diameter, whip diameter (sets channel
+  width/depth), pocket depth so fingers can thread the antenna at the NW end.
 - If a second RF jack is ever needed (WiFi ext antenna), leave conceptual
   room beside the pocket — note it, don't cut it yet.
 
