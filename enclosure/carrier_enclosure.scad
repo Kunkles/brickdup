@@ -1,14 +1,10 @@
-// carrier_enclosure.scad — ROUGH v0 shell for the brickdup v0.2 carrier board
+// carrier_enclosure.scad — ROUGH v0.2 shell for the brickdup v0.2 carrier board
 // ---------------------------------------------------------------------------
-// Concept model per enclosure/CARRIER_ENCLOSURE.md — geometry to look at and
-// argue with, NOT print-ready. Every ‹MEASURE› default below needs a caliper
-// pass when the boards + hardware arrive.
+// Rounded "pillowed" styling pass (ref: enclosure/reference/antenna_mount_ref.png)
+// on the concept model per enclosure/CARRIER_ENCLOSURE.md. Still NOT print-ready:
+// every ‹MEASURE› default needs calipers when boards + hardware arrive.
 //
 //   part = "assembly" | "base" | "lid"
-//
-// Coordinates: X east (board 0..62), Y north (board 0..44 with y=0 the SOUTH
-// edge here — note the PCB file's y axis points south; this model uses y-up,
-// mirror handled by symmetry since bosses are symmetric), Z up from outer floor.
 //
 // Key facts wired in from the project:
 //   board 62 x 44 x 1.6, M2 holes at (3.5,3.5)(58.5,3.5)(3.5,40.5)(58.5,40.5)
@@ -21,131 +17,152 @@
 part = "assembly"; // [assembly, base, lid]
 
 /* ---------------- board + stack (verified) ------------------------------- */
-bw = 62;  bd = 44;  bt = 1.6;          // board W(x) D(y) thickness
-hole_in = 3.5;                          // M2 holes inset from board corners
-boss_h  = 8;                            // raised: LiPo bay height under board
-stack_h = 15.5;                         // socket 8.5 + male 2.5 + pcb 1.6 + parts/OLED ‹MEASURE›
-top_air = 2.5;                          // clearance over the Heltec crown
+bw = 62;  bd = 44;  bt = 1.6;
+hole_in = 3.5;
+boss_h  = 8;
+stack_h = 15.5;                         // ‹MEASURE›
+top_air = 2.5;
 
 /* ---------------- shell parameters --------------------------------------- */
-wall  = 2.4;
+wall    = 2.4;
 floor_t = 2.0;
-tol   = 0.5;                            // board-to-wall clearance each side
-lid_t = 2.4;
-lip_h = 4;                              // lid skirt engagement
+tol     = 0.5;
+lid_t   = 3.0;
+lip_h   = 4;
+r_out   = 4.0;                          // outer pillow radius (the sexy)
+r_in    = 2.0;                          // cavity corner radius
 
 /* ---------------- antenna channel (north wall) --------------------------- */
-ant_d      = 8;      // whip diameter (listing: 8mm) ‹MEASURE›
+ant_d      = 8;      // whip diameter (listing) ‹MEASURE›
 ant_len    = 50;     // whip incl. SMA male (listing)
-sma_hole   = 6.5;    // bulkhead thread hole ‹MEASURE›
-sma_barrel = 10;     // female barrel protrusion into channel ‹MEASURE›
-ch_w       = ant_d + 3;      // channel width (y, outward from north wall)
-ch_wall    = 2.4;            // outer guard rail thickness
-pocket_l   = 14;             // NW pocket block length (x) housing the jack
+sma_hole   = 6.5;    // ‹MEASURE›
+sma_barrel = 8;      // ‹MEASURE›
+ch_w       = ant_d + 3;
+ch_wall    = 2.4;
+pocket_l   = 14;
 
 /* ---------------- east wall features ------------------------------------- */
-lemo_hole = 12;      // LEMO panel hole ‹MEASURE — carry v11 values›
-lemo_z    = 12;      // LEMO centre height above outer floor ‹MEASURE›
-usb_w = 11; usb_h = 5;                  // USB-C access slot ‹MEASURE›
+lemo_hole = 12;      // ‹MEASURE — carry v11›
+lemo_z    = 12;      // ‹MEASURE›
+usb_w = 11; usb_h = 5;                  // ‹MEASURE›
 
-/* ---------------- lid: OLED window + flexure buttons ---------------------- */
-oled_w = 28; oled_d = 13;               // window ‹MEASURE›
-flex_l = 14; flex_w = 9;                // living-hinge tab size (print-tune)
+/* ---------------- lid ------------------------------------------------------ */
+oled_w = 28; oled_d = 13;               // ‹MEASURE›
+oled_r = 2.5;
+flex_l = 14; flex_w = 9;
 
 /* ---------------- derived ------------------------------------------------- */
-iw = bw + 2*tol;                        // inner cavity
+iw = bw + 2*tol;
 id = bd + 2*tol;
-ow = iw + 2*wall;                       // outer shell (without channel)
+ow = iw + 2*wall;
 od = id + 2*wall;
 inner_h = boss_h + bt + stack_h + top_air;
-base_h  = floor_t + inner_h;            // open-top base height
-ant_z   = floor_t + boss_h + bt + 9;    // channel/jack axis height (≈ socket top) ‹MEASURE›
-bx0 = wall + tol;                       // board origin (SW hole ref) in shell coords
+base_h  = floor_t + inner_h;
+ant_z   = floor_t + boss_h + bt + 9;    // ‹MEASURE›
+bx0 = wall + tol;
 by0 = wall + tol;
+wing_d = ch_w + ch_wall;                // antenna lobe depth beyond north wall
 
-$fn = $preview ? 24 : 48;
+$fn = $preview ? 28 : 56;
 
-module m2_boss(x, y) {
-    difference() {
-        cylinder(d = 7, h = boss_h);
-        translate([0,0,-1]) cylinder(d = 1.8, h = boss_h + 2);   // M2 self-tap
+/* ============ rounded primitives ========================================= */
+// pillowed open-top tub solid: rounded bottom edges, vertical rim
+module pillow_solid(w, d, h, r) {
+    hull() for (x = [r, w - r], y = [r, d - r]) {
+        translate([x, y, r]) sphere(r);
+        translate([x, y, h - 1]) cylinder(r = r, h = 1);
     }
-    translate([x,y,0]) children();
+}
+// rounded-plan slab (vertical corners only)
+module rslab(w, d, h, r) {
+    hull() for (x = [r, w - r], y = [r, d - r])
+        translate([x, y, 0]) cylinder(r = r, h = h);
+}
+// capsule along X (rounded-end slot cutter)
+module capsule_x(x0, x1, y, z, r) {
+    hull() { translate([x0, y, z]) sphere(r); translate([x1, y, z]) sphere(r); }
+}
+
+/* ============ base ======================================================== */
+module base_solid() {
+    // main pillowed tub blended with the antenna lobe via a shared hull-lobe
+    pillow_solid(ow, od, base_h, r_out);
+    // antenna lobe: pillowed bar riding the north wall, blended into the body
+    hull() {
+        translate([0, od - 6, 0]) pillow_solid(ow, 6, base_h, 3);
+        translate([0, od - 1, 0]) pillow_solid(ow, wing_d + 1, ant_z + ch_w/2 + 3, 3);
+    }
 }
 
 module base() {
     difference() {
-        union() {
-            // main tub
-            cube([ow, od, base_h]);
-            // antenna guard: outer rail + floor bridge along the FULL north wall
-            translate([0, od, 0])
-                difference() {
-                    cube([ow, ch_w + ch_wall, base_h]);            // solid wing
-                    // trough the antenna lies in (open top for threading/RF)
-                    translate([-1, 0.01, ant_z - ch_w/2])
-                        cube([ow + 2, ch_w, base_h]);              // open-topped
-                }
-        }
-        // cavity
-        translate([wall, wall, floor_t]) cube([iw, id, base_h]);
-        // LEMO hole, east wall (south half — clear of J1's harness line)
+        base_solid();
+        // cavity (rounded corners)
+        translate([wall, wall, floor_t]) rslab(iw, id, base_h, r_in);
+        // antenna trough: capsule bore + open top, x from pocket face to east
+        capsule_x(pocket_l - 2, ow - 2, od + ch_w/2, ant_z, ch_w/2);
+        translate([pocket_l - 2, od + ch_w/2 - ant_d/2 - 0.5, ant_z])
+            cube([ow - pocket_l, ant_d + 1, base_h]);           // top opening
+        // SMA bulkhead bore through the pocket's east face
+        translate([pocket_l - 8, od + ch_w/2, ant_z])
+            rotate([0, 90, 0]) cylinder(d = sma_hole, h = 8);
+        // pocket void (nut + pigtail room) inside the lobe's west end
+        translate([2.5, od + 1.5, ant_z - 6]) cube([pocket_l - 12, ch_w - 2, 12]);
+        // pigtail pass from case interior into the pocket void
+        translate([wall + 2, od - wall - 1, ant_z - 4]) cube([8, wall + 3, 8]);
+        // LEMO hole, east wall (south half)
         translate([ow + 1, wall + 11, lemo_z])
-            rotate([0, -90, 0]) cylinder(d = lemo_hole, h = wall + 2);
-        // USB-C slot, east wall at Heltec module height
-        translate([ow - wall - 1, od/2 - usb_w/2, floor_t + boss_h + bt + 11.5])
-            cube([wall + 2, usb_w, usb_h]);
-        // pigtail pass: slot from case interior into the NW pocket void
-        translate([wall + 2, od - wall - 1, ant_z - 4]) cube([8, wall + 2, 8]);
+            rotate([0, -90, 0]) cylinder(d = lemo_hole, h = wall + 4);
+        // USB-C slot (rounded ends), east wall at module height
+        hull() for (yy = [od/2 - usb_w/2 + usb_h/2, od/2 + usb_w/2 - usb_h/2])
+            translate([ow - wall - 2, yy, floor_t + boss_h + bt + 11.5 + usb_h/2])
+                rotate([0, 90, 0]) cylinder(d = usb_h, h = wall + 4);
     }
-    // 4x M2 bosses (board's SW hole at (hole_in, hole_in) in board coords)
+    // 4x M2 bosses
     for (p = [[hole_in, hole_in], [bw - hole_in, hole_in],
               [hole_in, bd - hole_in], [bw - hole_in, bd - hole_in]])
-        translate([bx0 + p[0], by0 + p[1], floor_t]) m2_boss(0,0);
-    // NW pocket: jack plate at the WEST end of the channel, hole axis EAST
-    translate([0, od, 0]) difference() {
-        cube([pocket_l, ch_w + ch_wall, ant_z + ch_w/2 + 2]);
-        // SMA bulkhead hole through the pocket's east face (plate at x 8..14,
-        // so barrel+50mm whip spans ~16..66 — inside the 67.8mm shell)
-        translate([pocket_l - 6, ch_w/2, ant_z])
-            rotate([0, 90, 0]) cylinder(d = sma_hole, h = 8);
-        // pocket void (nut + pigtail room), opens west/into the pass slot
-        translate([2, 2, ant_z - 6]) cube([pocket_l - 8, ch_w - 2, 12]);
-    }
+        translate([bx0 + p[0], by0 + p[1], floor_t])
+            difference() {
+                cylinder(d = 7, h = boss_h);
+                translate([0, 0, -1]) cylinder(d = 1.8, h = boss_h + 2);
+            }
 }
 
+/* ============ lid ========================================================= */
 module lid() {
     difference() {
-        union() {
-            cube([ow, od, lid_t]);
-            translate([wall/2, wall/2, -lip_h])                     // skirt
-                difference() {
-                    cube([ow - wall, od - wall, lip_h]);
-                    translate([wall/2 + 0.3, wall/2 + 0.3, -1])
-                        cube([ow - 2*wall - 0.6, od - 2*wall - 0.6, lip_h + 2]);
-                }
+        // pillowed cap: vertical skirt below, rounded top edges above
+        hull() for (x = [r_out, ow - r_out], y = [r_out, od - r_out]) {
+            translate([x, y, lid_t - r_out/1.6])
+                scale([1, 1, 0.6]) sphere(r_out);
+            translate([x, y, 0]) cylinder(r = r_out, h = 1);
         }
-        // OLED window over the Heltec (module centred x 5.5..55.7, y 6.7..32.2
-        // in board coords — window biased to module centre)
+        // OLED window (rounded)
         translate([bx0 + 30 - oled_w/2, by0 + 22 - oled_d/2, -1])
-            cube([oled_w, oled_d, lid_t + 2]);
-        // two flexure button tabs (U-slots), south half — positions free by design
+            rslab(oled_w, oled_d, lid_t + 3, oled_r);
+        // flexure U-slots, south half
         for (fx = [18, 36])
             translate([fx, by0 + 8, -1]) difference() {
-                cube([flex_l + 4, flex_w + 4, lid_t + 2]);
-                translate([2, 2, -1]) cube([flex_l, flex_w, lid_t + 4]);
+                rslab(flex_l + 4, flex_w + 4, lid_t + 3, 2);
+                translate([2, 2, -1]) rslab(flex_l, flex_w, lid_t + 5, 1.5);
             }
     }
-    // press bosses under the tabs (touch wired tact switches below)
+    // inner skirt (engages the tub rim)
+    translate([wall/2 + 0.2, wall/2 + 0.2, -lip_h]) difference() {
+        rslab(ow - wall - 0.4, od - wall - 0.4, lip_h, r_in);
+        translate([wall/2, wall/2, -1])
+            rslab(ow - 2*wall - 0.4, od - 2*wall - 0.4, lip_h + 2, r_in);
+    }
+    // press bosses under the flexure tabs
     for (fx = [18, 36])
         translate([fx + 2 + flex_l/2, by0 + 10 + flex_w/2, -3]) cylinder(d = 4, h = 3);
 }
 
-// ghost antenna for the assembly view
+/* ============ ghosts ====================================================== */
 module antenna_ghost() {
     color("black", 0.6)
-        translate([pocket_l - 6 + sma_barrel, od + ch_w/2, ant_z])
-            rotate([0, 90, 0]) cylinder(d = ant_d, h = ant_len);
+        translate([pocket_l - 8 + 8 + sma_barrel, od + ch_w/2, ant_z])
+            rotate([0, 90, 0]) cylinder(d = ant_d, h = ant_len - 8);
 }
 
 if (part == "base") base();
@@ -154,7 +171,6 @@ if (part == "assembly") {
     base();
     color("steelblue", 0.5) translate([0, 0, base_h + lip_h + 3]) lid();
     antenna_ghost();
-    // ghost board + heltec volume
     color("green", 0.4) translate([bx0, by0, floor_t + boss_h]) cube([bw, bd, bt]);
     color("orange", 0.3)
         translate([bx0 + 5.5, by0 + 6.7, floor_t + boss_h + bt + 11])
