@@ -16,7 +16,7 @@
 //   east bay wall: LEMO double-D (no USB opening this version — lid-off/OTA)
 //   west wall: SMA bulkhead;  lid: OLED window only (button wells dropped)
 
-part = "assembly"; // [assembly, base, lid]
+part = "assembly"; // [assembly, base, lid, print]
 ghosts = true;     // antenna/board/module reference ghosts in the assembly view
 
 /* ---------------- board + stack (verified) ------------------------------- */
@@ -157,6 +157,10 @@ module antenna_ghost() {
 
 if (part == "base") base();
 if (part == "lid") lid();
+if (part == "print") {   // both parts on the plate: lid top-face down
+    base();
+    translate([0, 2*od + 8, lid_t]) rotate([180, 0, 0]) lid();
+}
 if (part == "assembly") {
     base();
     color("steelblue", 0.55) translate([0, 0, base_h]) lid();
