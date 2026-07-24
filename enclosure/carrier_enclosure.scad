@@ -36,7 +36,10 @@ tol     = 0.5;
 lid_t   = 3.2;
 lip_h   = 4;
 r_out   = 4.0;                          // gentle plan rounding, nothing sculpted
-r_in    = 2.5;
+// cavity corner radius vs the SQUARE board corner: the fillet's 45deg point
+// sits at wall + r*(1-1/sqrt(2)); it must stay <= wall + tol or the fillets
+// wedge the board up off the bosses  =>  r_in*0.293 <= tol  =>  r_in <= 1.7
+r_in    = 1.2;                          // 0.15mm corner margin at tol 0.5
 
 /* ---------------- west wall — SMA bulkhead (v11 style) --------------------- */
 sma_d    = 6.5;    // measured (v11) — bulkhead pass-through
@@ -57,6 +60,10 @@ lemo_z    = 14;      // ‹MEASURE› — nut (Ø13) clears the floor; mid-bay h
 
 /* ---------------- lid ------------------------------------------------------ */
 oled_w = 28; oled_d = 13; oled_r = 2.5; // ‹MEASURE›
+// window centre in BOARD coords: the V3's OLED sits toward the ANTENNA
+// (west) end of the module, not module-centre; y = module centreline
+oled_cx = 25;                           // ‹MEASURE›
+oled_cy = 19.5;                         // ‹MEASURE›
 // (flexure button wells dropped this version — buttons are wired, wells can
 //  come back anywhere on the lid when the button plan firms up)
 
@@ -136,7 +143,7 @@ module lid() {
     difference() {
         round_cap(ow, od, lid_t, r_out, 2.8);
         // OLED window (plain through-cut)
-        translate([bx0 + 30 - oled_w/2, by0 + 22 - oled_d/2, -1])
+        translate([bx0 + oled_cx - oled_w/2, by0 + oled_cy - oled_d/2, -1])
             rslab(oled_w, oled_d, lid_t + 2, oled_r);
     }
     // inner skirt
