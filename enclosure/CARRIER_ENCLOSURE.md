@@ -22,9 +22,12 @@ brief captures the direction before any OpenSCAD work; the existing
   entry. Both on one wall = one "service side".
   - **USB is recessed ~9 mm** behind the outer wall face (module east edge is
     6.3 mm inboard of the board edge, + gap + 2.4 wall). A cable's overmold
-    must pass THROUGH the wall to seat the plug → the wall slot is
-    overmold-sized (~13 × 8), not shell-sized. Best-effort access: chunky
-    overmolds won't reach → lid-off USB; OTA covers field updates.
+    must pass THROUGH the wall to seat the plug → the opening is
+    overmold-sized (~13 × 8), not shell-sized. The port axis is only ~4.4 mm
+    below the base rim, so it's cut as a **top-open notch** (closed by the
+    lid roof; the lid's inner skirt is notched to match — the v11 approach).
+    Best-effort access: chunky overmolds won't reach → lid-off USB; OTA
+    covers field updates.
   - **J1 stacks almost directly below the USB port** (both at board y ≈ 19.5;
     JST at board level, USB ~12–15 mm up → ~5 mm daylight). The J1→LEMO
     harness must turn south immediately out of the JST — no slack bowing up
@@ -105,37 +108,24 @@ around them.
   much taller, so the nut (top ≈ z 18.5) sits well below the lid lip. Leave
   finger/wrench room around the nut inside.
 
-### 5c. RF jack (LoRa antenna) — protected parallel mount
+### 5c. RF jack (LoRa antenna) — plain bulkhead, WEST wall
 
-**Design reference: `enclosure/reference/antenna_mount_ref.png`** (Meshtastic
-handheld case, 2026-07-17). Ryan wants that antenna treatment, not a plain
-perpendicular bulkhead:
+**DECIDED (2026-07-24): back to the v11-style perpendicular bulkhead.** The
+H1-donor protected-channel/cradle direction is dropped along with the rest
+of the sculpted styling (the reference material stays in
+`enclosure/reference/` if the idea ever returns).
 
-- **SMA jack recessed in a corner pocket** at the WEST end (u.FL is right
-  there — shortest pigtail), with the jack axis turned so the **antenna runs
-  PARALLEL to the case lengthwise** instead of sticking straight out.
-- A **molded shoulder/wing wraps the SMA base** — the case itself shields the
-  connector joint (the fragile point) from knocks; the whip lies alongside
-  the body in a shallow protective channel formed by the case rim.
-- **DECIDED (2026-07-17): NORTH wall.** Pocket at the **NW corner**, jack
-  axis pointing EAST — antenna lies along the north wall exterior.
-- **SMA hardware: same bulkhead jack as originally planned** — v11 measured
-  hole carried over 1:1: Ø6.5 with a single flat on the bottom (5.9
-  flat-to-round), nut inside the pocket.
-- **Antenna whip = 50 mm, protected FULL LENGTH**: the guard channel runs the
-  entire north wall — SMA barrel (~11 mm) + 50 mm whip ≈ 61 mm vs the 62 mm
-  case length, so the whip tip lands at the NE corner and nothing pokes past
-  the case envelope. The channel rim must stand proud of the whip's full
-  diameter for its whole run (a parapet/trench, not just a base shoulder),
-  with an open top/side so the antenna can still be threaded on and radiate.
-- Still reserve: nut + wrench access in the pocket, finger room to thread the
-  antenna on, and the **u.FL→SMA pigtail service loop** (u.FL is ~30-cycle
-  rated — never taut).
-- Keep the LiPo pouch and its lead clear of the coax run.
-- ‹MEASURE›: SMA barrel exact length/diameter, whip diameter (sets channel
-  width/depth), pocket depth so fingers can thread the antenna at the NW end.
-- If a second RF jack is ever needed (WiFi ext antenna), leave conceptual
-  room beside the pocket — note it, don't cut it yet.
+- **SMA bulkhead jack through the WEST wall** (u.FL is at the module's west
+  end — shortest pigtail), whip sticks straight out west.
+- **v11 measured hole carried over 1:1**: Ø6.5 with a single flat on the
+  bottom (5.9 flat-to-round), nut inside.
+- Height `sma_z = 21.5` ‹MEASURE›: barrel clears the board top (z≈16.1)
+  below and the module underside (z≈27.1) above; the bulkhead body intrudes
+  over the board's west strip, under the module overhang.
+- Reserve inside: nut + wrench room, and the **u.FL→SMA pigtail service
+  loop** (u.FL is ~30-cycle rated — never taut). Keep the LiPo pouch and its
+  lead clear of the coax run (pigtail is 169 mm — coil the slack away from
+  the west edge lead path).
 
 ## 6. Open ‹MEASURE› items for the SCAD pass
 
