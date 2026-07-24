@@ -15,6 +15,7 @@
 //   west wall: SMA bulkhead;  lid: OLED window only (button wells dropped)
 
 part = "assembly"; // [assembly, base, lid]
+ghosts = true;     // antenna/board/module reference ghosts in the assembly view
 
 /* ---------------- board + stack (verified) ------------------------------- */
 bw = 62;  bd = 44;  bt = 1.6;
@@ -144,9 +145,11 @@ if (part == "lid") lid();
 if (part == "assembly") {
     base();
     color("steelblue", 0.55) translate([0, 0, base_h]) lid();
-    antenna_ghost();
-    color("green", 0.4) translate([bx0, by0, floor_t + boss_h]) cube([bw, bd, bt]);
-    color("orange", 0.3)
-        translate([bx0 + 5.5, by0 + 6.7, floor_t + boss_h + bt + 11])
-            cube([50.2, 25.5, 4.5]);
+    if (ghosts) {
+        antenna_ghost();
+        color("green", 0.4) translate([bx0, by0, floor_t + boss_h]) cube([bw, bd, bt]);
+        color("orange", 0.3)
+            translate([bx0 + 5.5, by0 + 6.7, floor_t + boss_h + bt + 11])
+                cube([50.2, 25.5, 4.5]);
+    }
 }
