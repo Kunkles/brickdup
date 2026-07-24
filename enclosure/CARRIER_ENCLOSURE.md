@@ -20,14 +20,13 @@ brief captures the direction before any OpenSCAD work; the existing
 - **East wall**: J1 VBAT JST mouth (LEMO pigtail) + the Heltec **USB-C**
   (module east end) → USB access port goes in the east wall, above the LEMO
   entry. Both on one wall = one "service side".
-  - **USB is recessed ~9 mm** behind the outer wall face (module east edge is
-    6.3 mm inboard of the board edge, + gap + 2.4 wall). A cable's overmold
-    must pass THROUGH the wall to seat the plug → the opening is
-    overmold-sized (~13 × 8), not shell-sized. The port axis is only ~4.4 mm
-    below the base rim, so it's cut as a **top-open notch** (closed by the
-    lid roof; the lid's inner skirt is notched to match — the v11 approach).
-    Best-effort access: chunky overmolds won't reach → lid-off USB; OTA
-    covers field updates.
+  - **USB: NO opening in this version (decided 2026-07-24).** The port is
+    recessed ~9 mm behind the outer wall face (module east edge 6.3 mm
+    inboard of the board edge, + gap + 2.4 wall), so a usable opening must
+    admit the cable OVERMOLD (~13 × 8) and, since the port axis is only
+    ~4.4 mm below the base rim, has to be a top-open notch with a matching
+    lid-skirt notch. All that geometry is in git history (commit b5b8ceb)
+    if wanted later — for now: lid-off USB for the initial flash, OTA after.
   - **J1 stacks almost directly below the USB port** (both at board y ≈ 19.5;
     JST at board level, USB ~12–15 mm up → ~5 mm daylight). The J1→LEMO
     harness must turn south immediately out of the JST — no slack bowing up
@@ -59,6 +58,11 @@ v11's ballpark, and the footprint stays at board size instead of growing a
 side bay.
 
 ## 4. Buttons — the flexure concept (Ryan's preference)
+
+**Current shell (v0.6, 2026-07-24): button wells DROPPED for now** — the lid
+is OLED-window-only. Because the buttons are wired (BTN1/BTN2 JSTs), wells
+can be added back anywhere on the lid whenever the button plan firms up;
+the concept below is kept for that moment.
 
 - **Living-hinge cantilever tabs in the lid**: U-shaped slot leaves a tab
   attached on one edge; a small boss on the tab's underside presses a
