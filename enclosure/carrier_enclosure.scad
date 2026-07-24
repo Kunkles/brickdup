@@ -80,10 +80,16 @@ module rslab(w, d, h, r) {
         translate([x, y, 0]) cylinder(r = r, h = h);
 }
 // gentle rounded top edge (the one softening kept)
+// clipped at z=0: the corner spheres bulge below zero (re > h-1) and an
+// unclipped hull grows a hidden convex underside — flat bottom is required
+// for the lid seat, the window through-cut, and the module clearance
 module round_cap(w, d, h, r, re) {
-    hull() for (x = [r, w - r], y = [r, d - r]) {
-        translate([x, y, h - re]) sphere(re);
-        translate([x, y, 0]) cylinder(r = r, h = 1);
+    intersection() {
+        hull() for (x = [r, w - r], y = [r, d - r]) {
+            translate([x, y, h - re]) sphere(re);
+            translate([x, y, 0]) cylinder(r = r, h = 1);
+        }
+        translate([-1, -1, 0]) cube([w + 2, d + 2, h + 1]);
     }
 }
 
