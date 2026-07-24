@@ -11,7 +11,9 @@
 //   socket stack ~15.5 over the board; LiPo bay = FULL board footprint under
 //   the standoffs — MakerHawk 1100 (41.4 x 25.15 x 10.25 calipered) + THT
 //   stub clearance -> boss_h 12.5; pouch placeable anywhere (west preferred)
-//   east wall: LEMO double-D (no USB opening this version — lid-off/OTA)
+//   EAST BAY (20mm, v11 lesson): LEMO rear + nut, J1 mating plug + wire
+//   U-turn — all east of the board so the under-board LiPo bay is untouched
+//   east bay wall: LEMO double-D (no USB opening this version — lid-off/OTA)
 //   west wall: SMA bulkhead;  lid: OLED window only (button wells dropped)
 
 part = "assembly"; // [assembly, base, lid]
@@ -42,10 +44,16 @@ sma_flat = 5.9;    // measured (v11) — single flat, on the bottom
 sma_z    = 21.5;   // ‹MEASURE› — barrel clears board top (16.1) / module under (27.1)
 ant_len  = 50;     // whip incl SMA male, for the assembly ghost only
 
-/* ---------------- east wall ------------------------------------------------ */
+/* ---------------- east bay + LEMO ------------------------------------------ */
+// v11 lesson relearned: J1's mating JST plug + wire bend need ~10-12mm of
+// air east of the board edge, and the LEMO body intrudes ~10mm past the
+// wall (12mm deep, measured). A plain tub has 0.5mm there. The bay houses
+// both, entirely east of the board — the under-board LiPo bay is untouched.
+bay_l     = 20;      // v11 value (bay_l 12 -> 18 -> 20 history; wire U-turn room)
 lemo_d    = 8.9;     // measured (v11) — double-D panel hole
 lemo_flat = 8.2;     // measured (v11) — across the flats, LEFT+RIGHT of hole
-lemo_z    = 12;      // ‹MEASURE›
+lemo_z    = 14;      // ‹MEASURE› — nut (Ø13) clears the floor; mid-bay height
+
 
 /* ---------------- lid ------------------------------------------------------ */
 oled_w = 28; oled_d = 13; oled_r = 2.5; // ‹MEASURE›
@@ -55,7 +63,8 @@ oled_w = 28; oled_d = 13; oled_r = 2.5; // ‹MEASURE›
 /* ---------------- derived -------------------------------------------------- */
 iw = bw + 2*tol;
 id = bd + 2*tol;
-ow = iw + 2*wall;
+cav_l = iw + bay_l;                     // board pocket + east bay, one cavity
+ow = cav_l + 2*wall;
 od = id + 2*wall;
 inner_h = boss_h + bt + stack_h + top_air;
 base_h  = floor_t + inner_h;
@@ -97,12 +106,12 @@ module sma_hole_flat(len) {             // single flat on the bottom
 module base() {
     difference() {
         rslab(ow, od, base_h, r_out);
-        // main cavity
-        translate([wall, wall, floor_t]) rslab(iw, id, base_h, r_in);
+        // main cavity: board pocket + east bay (LEMO rear, J1 plug, wires)
+        translate([wall, wall, floor_t]) rslab(cav_l, id, base_h, r_in);
         // SMA bulkhead, west wall (v11 keyed shape; nut + pigtail inside)
         translate([-2, sma_y, sma_z]) sma_hole_flat(wall + 4);
-        // LEMO hole, east wall (south half) — v11 double-D, nut inside
-        translate([ow - wall - 2, wall + 11, lemo_z]) lemo_hole_dd(wall + 4);
+        // LEMO hole, east bay wall — v11 double-D, nut inside the bay
+        translate([ow - wall - 2, od/2, lemo_z]) lemo_hole_dd(wall + 4);
         // (no USB opening this version — lid-off USB for flashing, OTA after;
         //  the notch geometry lives in git history if it comes back)
     }
@@ -126,8 +135,8 @@ module lid() {
     }
     // inner skirt
     translate([wall + 0.3, wall + 0.3, -lip_h]) difference() {
-        rslab(iw - 0.6, id - 0.6, lip_h, r_in);
-        translate([wall, wall, -1]) rslab(iw - 0.6 - 2*wall, id - 0.6 - 2*wall, lip_h + 2, r_in);
+        rslab(cav_l - 0.6, id - 0.6, lip_h, r_in);
+        translate([wall, wall, -1]) rslab(cav_l - 0.6 - 2*wall, id - 0.6 - 2*wall, lip_h + 2, r_in);
     }
 }
 

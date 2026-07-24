@@ -101,11 +101,19 @@ around them.
 - Rules unchanged: **never compress the pouch** — retention lip + foam pad,
   no squeeze; keep it off the antenna coax.
 
-### 5b. LEMO panel connector (battery input)
+### 5b. LEMO panel connector (battery input) — EAST BAY
 
-- **East wall** (the service wall), directly outboard of **J1's mouth**
-  (J1 centre is at board y ≈ 19.5, mid-height of the east wall). Short
-  2-wire pigtail J1 → LEMO, crimped JST-PH one end.
+- **DECIDED (2026-07-24): the tub gets a v11-style east bay (`bay_l = 20`).**
+  A plain tub leaves 0.5 mm east of the board — but J1's mating JST plug +
+  wire bend need ~10–12 mm, and the LEMO body intrudes ~10 mm past the wall
+  (12 mm deep, measured). Without the bay the LEMO rear also lands in the
+  board-edge/battery z-band (body ≈ z 6–18 vs pouch top 12.2, board
+  14.5–16.1). The bay puts LEMO rear + nut, J1 plug, and the pigtail U-turn
+  **east of the board footprint**, so the full-footprint under-board LiPo
+  bay (§5a) is completely unaffected. Case grows ~20 mm east (≈88 mm long).
+- **LEMO in the bay's east wall**, centre height `lemo_z = 14` ‹MEASURE›
+  (Ø13 nut clears the floor), y = bay centreline ‹MEASURE — align with J1's
+  mouth at dry-fit›. Short 2-wire pigtail J1 → LEMO, crimped JST-PH one end.
 - **v11 measured hole carried over 1:1**: double-D, Ø8.9 with the two flats
   8.2 across, flats LEFT+RIGHT of the hole (anti-rotation). The v11
   `lemo_nut = 13` lid-lip relief is NOT needed here — the carrier wall is
