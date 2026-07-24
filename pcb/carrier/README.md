@@ -119,6 +119,25 @@ Heltec V3 (measured 22.77–22.93 mm across holes; pitch measured 2.55 mm).
 - Cff ships **JLC-populated at 470 pF** (no hand-soldering). If the v0.1 bench test
   lands on a different value, update the BOM line before ordering.
 
+## 5a. Known issues (v0.2 bench, 2026-07-23)
+
+- **USB power while socketed doesn't boot the Heltec (backfeed).** The
+  module's 5V pin is hard-wired to the buck output, so USB-powering a
+  socketed module with the carrier unpowered backfeeds the +5V net: current
+  flows backward through L1 and U1's high-side body diode into the input
+  caps and VBAT net. U1 then sees ~4.3 V VIN (5 V minus a diode drop) —
+  bottom edge of the MP9486A's operating range — and can chatter against
+  the rail that's feeding it; with the USB port's current limit on top, the
+  module gets a sagging/dirty 5 V and won't boot (symptom: dead OLED, only
+  the no-battery charge LED blinking; module boots fine on USB out of the
+  socket).
+  - **Workaround:** whenever USB is plugged with the module socketed
+    (flashing, config portal at the bench), power the carrier too — 15 V on
+    J1, SW1 closed — so the buck owns the rail and nothing backfeeds.
+  - **v0.3 candidate fix:** diode (Schottky, or ideal-diode e.g. LM66100)
+    between buck output and the socket 5V pin; if Schottky, trim the FB
+    divider so the post-diode rail lands at ~5.0 V.
+
 ## 6. Reproducible pipeline
 
 Same toolchain as v0.1 (see `pcb/HANDOFF.md` §7). From `pcb/carrier/`:
