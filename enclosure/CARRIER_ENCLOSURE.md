@@ -80,19 +80,20 @@ the concept below is kept for that moment.
 - **SW1 power switch**: small panel slide/toggle in the south or east wall
   (rated ≥30 V DC / 1 A), or bridge JP1 and omit.
 
-## 4a. Lid retention — screws, not friction (decided 2026-07-24)
+## 4a. Lid retention — hook west, screw east (decided 2026-07-24)
 
-The skirt alone is loose; on-set wants positive retention. **4× M2
-self-tap** (M2×8/10) through countersunk lid holes into posts:
+The skirt alone is loose; on-set wants positive retention. West corner
+posts were tried first and REJECTED: the board's own M2 holes sit 3.9 mm
+off each wall, and any corner post there overhangs them (post axis landed
+2.1 mm from the hole axis — board screws uninsertable). Instead:
 
-- **East pair**: full-height posts in the bay corners (floor → rim).
-- **West pair**: wall-hung posts above the board (the board runs
-  wall-to-wall below z≈16, so the posts start at z=23 with a 45° gusset
-  down to a sliver on the wall face — printable without support). They
-  protrude to x≈7.4, clear of the module at x≥8.4. ‹MEASURE› at dry-fit:
-  clearance to the LiPo lead running up the west edge.
-- Pilot Ø1.8 ×8 deep; lid holes Ø2.4 + countersink. Lid removal does not
-  disturb the board mounting.
+- **West edge: 2 lid tongues** (8 × 1.6, on the skirt's west face) slide
+  into pockets in the west wall just below the rim (roof 2.2 mm, above the
+  SMA). Tilt the lid in west-first, then drop the east end.
+- **East edge: 2× M2 self-tap** (M2×8/10) through countersunk lid holes
+  into full-height posts in the bay corners (pilot Ø1.8 ×8).
+- Two screws total for on-set lid removal; board mounting is untouched and
+  its 4 screws have clear vertical driver access.
 
 ## 5. Reserved volumes — hard requirements (battery, LEMO, RF)
 
