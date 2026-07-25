@@ -62,7 +62,7 @@ ant_len  = 50;     // whip incl SMA male, for the assembly ghost only
 bay_l     = 20;      // v11 value (bay_l 12 -> 18 -> 20 history; wire U-turn room)
 lemo_d    = 8.9;     // measured (v11) — double-D panel hole
 lemo_flat = 8.2;     // measured (v11) — across the flats, LEFT+RIGHT of hole
-lemo_z    = 14;      // ‹MEASURE› — nut (Ø13) clears the floor; mid-bay height
+lemo_z    = 12;      // dry-fit 2026-07-25: lowered 2 (nut Ø13 still clears floor)
 
 
 /* ---------------- lid ------------------------------------------------------ */
@@ -151,9 +151,10 @@ module base() {
         translate([wall, wall, floor_t]) rslab(cav_l, id, base_h, r_in);
         // SMA bulkhead, west wall (v11 keyed shape; nut + pigtail inside)
         translate([-2, sma_y, sma_z]) sma_hole_flat(wall + 4);
-        // LEMO hole, east bay wall — v11 double-D, nut inside the bay,
-        // aligned with J1's mouth (board y 19.5, through the y-flip mapping)
-        translate([ow - wall - 2, by(19.5), lemo_z]) lemo_hole_dd(wall + 4);
+        // LEMO hole, east bay wall — v11 double-D. Dry-fit 2026-07-25:
+        // +4 north of J1's mouth line, flats rotated 90° (now top/bottom)
+        translate([ow - wall - 2, by(19.5) + 4, lemo_z])
+            rotate([90, 0, 0]) lemo_hole_dd(wall + 4);
         // power switch: round rocker snap-in, bay south wall (body intrudes
         // into the bay's south half; LEMO rear + J1 plug live in the north)
         if (sw_hole)

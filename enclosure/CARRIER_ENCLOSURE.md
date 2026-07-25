@@ -139,9 +139,10 @@ around them.
   14.5–16.1). The bay puts LEMO rear + nut, J1 plug, and the pigtail U-turn
   **east of the board footprint**, so the full-footprint under-board LiPo
   bay (§5a) is completely unaffected. Case grows ~20 mm east (≈88 mm long).
-- **LEMO in the bay's east wall**, centre height `lemo_z = 14` ‹MEASURE›
-  (Ø13 nut clears the floor), y = bay centreline ‹MEASURE — align with J1's
-  mouth at dry-fit›. Short 2-wire pigtail J1 → LEMO, crimped JST-PH one end.
+- **LEMO in the bay's east wall** — dry-fit corrected 2026-07-25:
+  `lemo_z = 12` (lowered 2; Ø13 nut still clears the floor), y = J1 mouth
+  line **+4 north**, double-D flats rotated 90° → **top/bottom**. Short
+  2-wire pigtail J1 → LEMO, crimped JST-PH one end.
 - **v11 measured hole carried over 1:1**: double-D, Ø8.9 with the two flats
   8.2 across, flats LEFT+RIGHT of the hole (anti-rotation). The v11
   `lemo_nut = 13` lid-lip relief is NOT needed here — the carrier wall is
