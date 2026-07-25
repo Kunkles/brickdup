@@ -77,8 +77,14 @@ the concept below is kept for that moment.
   ~0.8–1.2 mm tab thickness, ≥8 mm tab length for a comfortable click.
 - Because buttons are *wired*, the flexures go wherever ergonomics want them
   (top of lid, side wall) — no alignment to PCB coordinates required.
-- **SW1 power switch**: small panel slide/toggle in the south or east wall
-  (rated ≥30 V DC / 1 A), or bridge JP1 and omit.
+- **SW1 power switch (decided 2026-07-25)**: round snap-in rocker
+  (KCD1-101-8 class, DWEII pre-wired 2-pin SPST, 6A/125VAC contacts) in the
+  **east bay's SOUTH wall** — the bay has the depth for the body, and it
+  groups the switch with the LEMO on the service end. Ø15 hole `‹MEASURE
+  the actual barrel before printing — snap-ins vary 15.0–16.0›`; SCAD has
+  the hole behind `sw_hole` (default off until the part is calipered).
+  Pre-attached leads splice to a JST-PH pigtail into SW1. Fallback remains:
+  bridge JP1 and omit.
 
 ## 4a. Lid retention — hook west, screw east (decided 2026-07-24)
 

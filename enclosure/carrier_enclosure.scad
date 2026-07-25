@@ -18,6 +18,13 @@
 
 part = "assembly"; // [assembly, base, lid, print]
 ghosts = true;     // antenna/board/module reference ghosts in the assembly view
+// power switch: round snap-in rocker (KCD1-101-8 class, DWEII 10pk) in the
+// bay's SOUTH wall. Flip on once the part is calipered — snap-in holes must
+// match the barrel, not the listing.
+sw_hole = false;
+sw_d = 15.0;       // ‹MEASURE the actual barrel/snap spec — often 15.0-16.0›
+sw_x = 75.4;       // bay centre east-west
+sw_z = 15;         // hole centre height (spans ~7.5-22.5, clear of floor+rim)
 
 /* ---------------- board + stack (verified) ------------------------------- */
 bw = 62;  bd = 44;  bt = 1.6;
@@ -147,6 +154,11 @@ module base() {
         // LEMO hole, east bay wall — v11 double-D, nut inside the bay,
         // aligned with J1's mouth (board y 19.5, through the y-flip mapping)
         translate([ow - wall - 2, by(19.5), lemo_z]) lemo_hole_dd(wall + 4);
+        // power switch: round rocker snap-in, bay south wall (body intrudes
+        // into the bay's south half; LEMO rear + J1 plug live in the north)
+        if (sw_hole)
+            translate([sw_x, -2, sw_z])
+                rotate([-90, 0, 0]) cylinder(d = sw_d, h = wall + 4);
         // west-wall tongue pockets (lid hooks): below the rim, roof 2.2mm,
         // above the SMA (top ~24.8); generous height for the tilt-in motion
         for (ty = tng_y)
