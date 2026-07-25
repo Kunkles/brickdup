@@ -59,11 +59,14 @@ lemo_z    = 14;      // ‹MEASURE› — nut (Ø13) clears the floor; mid-bay h
 
 
 /* ---------------- lid ------------------------------------------------------ */
-oled_w = 28; oled_d = 13; oled_r = 2.5; // ‹MEASURE›
-// window centre in BOARD coords: the V3's OLED sits toward the ANTENNA
-// (west) end of the module, not module-centre; y = module centreline
-oled_cx = 25;                           // ‹MEASURE›
-oled_cy = 19.5;                         // ‹MEASURE›
+// 0.96" SSD1306 visible area = 21.7 x 10.9 -> window with ~1.2-1.5 margin
+oled_w = 24; oled_d = 14; oled_r = 2.5; // ‹MEASURE›
+// window centre in BOARD coords. Print-fit nudge guide (case directions):
+//   west = -oled_cx    east = +oled_cx
+//   south = +oled_cy   north = -oled_cy   (by() flips board y to case y)
+// 2026-07-24 print: moved 2 west + 2 south from module-centre assumption
+oled_cx = 23;                           // ‹MEASURE›
+oled_cy = 21.5;                         // ‹MEASURE›
 // (flexure button wells dropped this version — buttons are wired, wells can
 //  come back anywhere on the lid when the button plan firms up)
 
