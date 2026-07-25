@@ -15,6 +15,13 @@ brief captures the direction before any OpenSCAD work; the existing
 
 ## 2. Fixed geometry (from the board — these are known, not ‹MEASURE›)
 
+**⚠️ Y-AXIS MAPPING:** board coords are KiCad-style (origin NW, +y SOUTH);
+the case's +y runs NORTH. Every case feature placed from a board-coord y
+must use the SCAD's `by()` function (`by0 + bd − y_board`) — a direct
+mapping lands MIRRORED. Found 2026-07-24 via the OLED window printing 5 mm
+south of the screen (module centreline is 2.6 off board centre, so the
+mirror doubled it); the LEMO was similarly 2.5 off J1.
+
 - Carrier: **62 × 44 mm**, 4× M2 holes at (3.5, 3.5), (58.5, 3.5), (3.5, 40.5),
   (58.5, 40.5) (board origin NW, y south).
 - **East wall**: J1 VBAT JST mouth (LEMO pigtail) + the Heltec **USB-C**
@@ -72,6 +79,20 @@ the concept below is kept for that moment.
   (top of lid, side wall) — no alignment to PCB coordinates required.
 - **SW1 power switch**: small panel slide/toggle in the south or east wall
   (rated ≥30 V DC / 1 A), or bridge JP1 and omit.
+
+## 4a. Lid retention — screws, not friction (decided 2026-07-24)
+
+The skirt alone is loose; on-set wants positive retention. **4× M2
+self-tap** (M2×8/10) through countersunk lid holes into posts:
+
+- **East pair**: full-height posts in the bay corners (floor → rim).
+- **West pair**: wall-hung posts above the board (the board runs
+  wall-to-wall below z≈16, so the posts start at z=23 with a 45° gusset
+  down to a sliver on the wall face — printable without support). They
+  protrude to x≈7.4, clear of the module at x≥8.4. ‹MEASURE› at dry-fit:
+  clearance to the LiPo lead running up the west edge.
+- Pilot Ø1.8 ×8 deep; lid holes Ø2.4 + countersink. Lid removal does not
+  disturb the board mounting.
 
 ## 5. Reserved volumes — hard requirements (battery, LEMO, RF)
 

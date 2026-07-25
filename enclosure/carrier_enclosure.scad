@@ -77,7 +77,24 @@ inner_h = boss_h + bt + stack_h + top_air;
 base_h  = floor_t + inner_h;
 bx0 = wall + tol;
 by0 = wall + tol;
+// BOARD-Y -> CASE-Y MAPPING: board coords are KiCad-style (origin NW, +y
+// SOUTH); case +y runs the other way. Every y taken from board coords MUST
+// go through by() or it lands mirrored (this bug had the OLED window 5mm
+// south and the LEMO 2.5mm off J1).
+function by(yb) = by0 + bd - yb;
 sma_y = od/2;                           // ‹MEASURE› — keep clear of LiPo lead run
+
+/* ---------------- lid screws (M2 self-tap x4) ------------------------------ */
+scr_pilot = 1.8;  scr_clear = 2.4;  scr_cs = 5.2;   // pilot / through / c'sink
+post_d    = 6.0;
+// east pair: full-height posts in the bay corners
+post_e_x = ow - wall - 3;
+post_e_y = [wall + 3, od - wall - 3];
+// west pair: wall-hung above the board (board is wall-to-wall below z=16.1),
+// 45deg gusset down to a sliver on the wall face keeps them printable
+post_w_y = [wall + 4.5, od - wall - 4.5];
+post_w_x = 4.4;                                      // protrudes to ~7.4 < module @8.4
+post_w_z = 23;                                       // post bottom; gusset below
 
 $fn = $preview ? 32 : 64;
 
@@ -123,8 +140,9 @@ module base() {
         translate([wall, wall, floor_t]) rslab(cav_l, id, base_h, r_in);
         // SMA bulkhead, west wall (v11 keyed shape; nut + pigtail inside)
         translate([-2, sma_y, sma_z]) sma_hole_flat(wall + 4);
-        // LEMO hole, east bay wall — v11 double-D, nut inside the bay
-        translate([ow - wall - 2, od/2, lemo_z]) lemo_hole_dd(wall + 4);
+        // LEMO hole, east bay wall — v11 double-D, nut inside the bay,
+        // aligned with J1's mouth (board y 19.5, through the y-flip mapping)
+        translate([ow - wall - 2, by(19.5), lemo_z]) lemo_hole_dd(wall + 4);
         // (no USB opening this version — lid-off USB for flashing, OTA after;
         //  the notch geometry lives in git history if it comes back)
     }
@@ -136,20 +154,52 @@ module base() {
                 cylinder(d = 7, h = boss_h);
                 translate([0, 0, -1]) cylinder(d = 1.8, h = boss_h + 2);
             }
+    // lid screw posts: east pair full height in the bay corners
+    for (py = post_e_y)
+        translate([post_e_x, py, floor_t]) difference() {
+            cylinder(d = post_d, h = base_h - floor_t);
+            translate([0, 0, base_h - floor_t - 8]) cylinder(d = scr_pilot, h = 9);
+        }
+    // west pair: hung on the wall above the board, gusset down to a sliver
+    for (py = post_w_y) {
+        difference() {
+            union() {
+                translate([post_w_x, py, post_w_z])
+                    cylinder(d = post_d, h = base_h - post_w_z);
+                hull() {
+                    translate([post_w_x, py, post_w_z]) cylinder(d = post_d, h = 0.5);
+                    translate([wall - 0.1, py - post_d/2, 16.3]) cube([0.7, post_d, 0.5]);
+                }
+            }
+            translate([post_w_x, py, base_h - 8]) cylinder(d = scr_pilot, h = 9);
+        }
+    }
 }
 
 /* ============ lid ========================================================= */
 module lid() {
     difference() {
         round_cap(ow, od, lid_t, r_out, 2.8);
-        // OLED window (plain through-cut)
-        translate([bx0 + oled_cx - oled_w/2, by0 + oled_cy - oled_d/2, -1])
+        // OLED window (plain through-cut; y through the board-flip mapping)
+        translate([bx0 + oled_cx - oled_w/2, by(oled_cy) - oled_d/2, -1])
             rslab(oled_w, oled_d, lid_t + 2, oled_r);
+        // M2 clearance + countersink over the 4 posts
+        for (p = [[post_e_x, post_e_y[0]], [post_e_x, post_e_y[1]],
+                  [post_w_x, post_w_y[0]], [post_w_x, post_w_y[1]]]) {
+            translate([p[0], p[1], -1]) cylinder(d = scr_clear, h = lid_t + 2);
+            translate([p[0], p[1], lid_t - 1.4])
+                cylinder(d1 = scr_clear, d2 = scr_cs, h = 1.5);
+        }
     }
-    // inner skirt
-    translate([wall + 0.3, wall + 0.3, -lip_h]) difference() {
-        rslab(cav_l - 0.6, id - 0.6, lip_h, r_in);
-        translate([wall, wall, -1]) rslab(cav_l - 0.6 - 2*wall, id - 0.6 - 2*wall, lip_h + 2, r_in);
+    // inner skirt, notched around the 4 screw posts
+    difference() {
+        translate([wall + 0.3, wall + 0.3, -lip_h]) difference() {
+            rslab(cav_l - 0.6, id - 0.6, lip_h, r_in);
+            translate([wall, wall, -1]) rslab(cav_l - 0.6 - 2*wall, id - 0.6 - 2*wall, lip_h + 2, r_in);
+        }
+        for (p = [[post_e_x, post_e_y[0]], [post_e_x, post_e_y[1]],
+                  [post_w_x, post_w_y[0]], [post_w_x, post_w_y[1]]])
+            translate([p[0], p[1], -lip_h - 1]) cylinder(d = post_d + 1.5, h = lip_h + 2);
     }
 }
 
@@ -175,7 +225,7 @@ if (part == "assembly") {
         antenna_ghost();
         color("green", 0.4) translate([bx0, by0, floor_t + boss_h]) cube([bw, bd, bt]);
         color("orange", 0.3)
-            translate([bx0 + 5.5, by0 + 6.7, floor_t + boss_h + bt + 11])
+            translate([bx0 + 5.5, by(32.2), floor_t + boss_h + bt + 11])
                 cube([50.2, 25.5, 4.5]);
     }
 }
