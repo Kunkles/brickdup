@@ -59,9 +59,16 @@ ant_len  = 50;     // whip incl SMA male, for the assembly ghost only
 // air east of the board edge, and the LEMO body intrudes ~10mm past the
 // wall (12mm deep, measured). A plain tub has 0.5mm there. The bay houses
 // both, entirely east of the board — the under-board LiPo bay is untouched.
-bay_l     = 20;      // v11 value (bay_l 12 -> 18 -> 20 history; wire U-turn room)
+// SHRINK TEST 2026-07-25: 20 -> 12. The LEMO body (9.6 past the inner face)
+// and J1's plug (board level) sit at different heights, so the bay only has
+// to be as long as the LONGER one. At 12 the LEMO still lives entirely in
+// the bay — it only needs to tuck under the board below ~10. Fall back to
+// 20 if the J1 plug + wire bend won't take it.
+bay_l     = 12;
 lemo_d    = 8.9;     // measured (v11) — double-D panel hole
 lemo_flat = 8.2;     // measured (v11) — across the flats, LEFT+RIGHT of hole
+lemo_body_d = 12;    // ‹MEASURE› — barrel behind the flange (sets under-board fit)
+lemo_body_l = 12;    // measured (v11) — flange back to rear face
 lemo_z    = 10.5;    // dry-fit 2026-07-25 v2: nut bottom 2.0mm off the floor
 
 
@@ -108,6 +115,22 @@ tng_t   = 1.6;        // tongue thickness
 tng_eng = 1.5;        // engagement depth into the wall pocket
 
 $fn = $preview ? 32 : 64;
+
+/* ============ clearance report (v11-style echoes) ========================= */
+board_e     = bx0 + bw;                 // board east edge
+wall_in_e   = wall + cav_l;             // inner face of the east wall
+bay_free    = wall_in_e - board_e;      // air east of the board: J1 plug lives here
+lemo_rear   = wall_in_e - (lemo_body_l - wall);
+board_under = floor_t + boss_h;
+lemo_y      = by(19.5) + 5.5;
+boss_n_s    = by0 + 40.5 - 3.5;         // north-east boss, south face (Ø7)
+echo(str("bay: free air east of board = ", bay_free, " mm  (J1 plug + wire bend)"));
+echo(str("LEMO rear face x = ", lemo_rear, ", board edge x = ", board_e,
+         "  -> tucks under board by ", max(0, board_e - lemo_rear), " mm"));
+echo(str("LEMO body z ", lemo_z - lemo_body_d/2, " to ", lemo_z + lemo_body_d/2,
+         "   floor ", floor_t, " / board underside ", board_under));
+echo(str("LEMO body y ", lemo_y - lemo_body_d/2, " to ", lemo_y + lemo_body_d/2,
+         "   east bosses end at y ", boss_n_s));
 
 /* ============ rounded primitives ========================================= */
 module rslab(w, d, h, r) {

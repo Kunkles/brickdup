@@ -131,7 +131,17 @@ around them.
 
 ### 5b. LEMO panel connector (battery input) — EAST BAY
 
-- **DECIDED (2026-07-24): the tub gets a v11-style east bay (`bay_l = 20`).**
+- **SHRINK TEST (2026-07-25): `bay_l` 20 → 12, case 87.8 → 79.8 mm.** The
+  LEMO body and J1's plug occupy the bay at *different heights* (LEMO low,
+  J1 plug at board level z≥14.5), so the bay only needs to be as long as the
+  longer of the two — not their sum. At 12 the LEMO rear still lands 2.9 mm
+  east of the board edge, i.e. **entirely inside the bay, no under-board
+  tuck needed**. The LEMO only starts sliding under the board below
+  `bay_l ≈ 10`, and at that point **J1's mating plug becomes the binding
+  constraint, not the LEMO** — measure the plug's east protrusion + wire
+  bend before going lower. Render-time `echo()` block reports all four
+  clearances. Revert to 20 if the plug won't take 12.5 mm.
+- **Original rationale (2026-07-24), still the reason the bay exists:**
   A plain tub leaves 0.5 mm east of the board — but J1's mating JST plug +
   wire bend need ~10–12 mm, and the LEMO body intrudes ~10 mm past the wall
   (12 mm deep, measured). Without the bay the LEMO rear also lands in the
