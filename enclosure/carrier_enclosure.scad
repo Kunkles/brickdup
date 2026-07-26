@@ -71,9 +71,9 @@ oled_w = 24; oled_d = 14; oled_r = 2.5; // ‹MEASURE›
 // window centre in BOARD coords. Print-fit nudge guide (case directions):
 //   west = -oled_cx    east = +oled_cx
 //   south = +oled_cy   north = -oled_cy   (by() flips board y to case y)
-// 2026-07-24 print: moved 2 west + 2 south from module-centre assumption
-oled_cx = 23;                           // ‹MEASURE›
-oled_cy = 21.5;                         // ‹MEASURE›
+// print-fit 2026-07-25: size confirmed good; +1 east = FINAL per Ryan
+oled_cx = 24;
+oled_cy = 21.5;
 // (flexure button wells dropped this version — buttons are wired, wells can
 //  come back anywhere on the lid when the button plan firms up)
 
