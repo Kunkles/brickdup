@@ -53,6 +53,7 @@ Usage:
 
 import argparse
 import json
+import math
 import re
 import shutil
 import socket
@@ -64,7 +65,13 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-TX_INTERVAL = 10.0        # seconds between packets, matches the node heartbeat
+# One radio speaks for every camera, and it shares the channel with the real
+# battery nodes -- so each camera is a recurring airtime cost, not a free ride.
+# A 43-byte camera packet is ~288 ms on air at SF9/BW125/CR4-5. Cameras move
+# a few percent per TEN MINUTES, so 30 s is plenty and costs a third of what
+# the 10 s node heartbeat would: 6 cameras at 30 s load the channel less than
+# 2 cameras at 10 s. Raise --interval before adding bodies, not after.
+TX_INTERVAL = 30.0
 STALE_AFTER = 30.0        # no fresh data for this long -> stop transmitting
 POLL_TIMEOUT = 20         # long-poll timeout; update.cgi blocks until change
 RECONNECT_WAIT = 3.0      # after a network error (the link does blip)
@@ -83,6 +90,38 @@ WATCH = (
     "PowerInputBatInUse", "PowerInputPwrPresent",
     "SystemCameraSerial", "CameraIndexDual",
 )
+
+
+# ------------------------------------------------------------------ airtime --
+
+# Must match the node/receiver radio config (see sensor_universal sketch).
+SF, BW_HZ, CR, PREAMBLE = 9, 125000, 1, 8
+NODE_PACKET_MS = 329      # a typical measured-node packet, for the budget line
+
+
+def airtime_ms(payload_len):
+    """LoRa time-on-air for a payload, per the SX1262 datasheet formula."""
+    ts = (2 ** SF) / BW_HZ
+    de = 1 if (SF >= 11 and BW_HZ == 125000) else 0
+    n = 8 + max(0, math.ceil((8 * payload_len - 4 * SF + 28 + 16) /
+                             (4 * (SF - 2 * de))) * (CR + 4))
+    return ((PREAMBLE + 4.25) * ts + n * ts) * 1000
+
+
+def airtime_report(n_cams, interval, assumed_nodes=5):
+    """One line on what these cameras cost the shared channel."""
+    if not n_cams:
+        return "no cameras yet"
+    per = airtime_ms(43)
+    cam_load = n_cams * per / (interval * 1000)
+    node_load = assumed_nodes * NODE_PACKET_MS / 10000
+    total = cam_load + node_load
+    # pure ALOHA: no listen-before-talk in this design, so success ~ e^-2G
+    success = math.exp(-2 * total) * 100
+    note = "  <-- raise --interval" if total > 0.25 else ""
+    return (f"{n_cams} camera(s) x {per:.0f} ms / {interval:.0f}s = "
+            f"{cam_load*100:.1f}% channel; with ~{assumed_nodes} nodes "
+            f"~{total*100:.0f}% load, ~{success:.0f}% packet success{note}")
 
 
 # ---------------------------------------------------------------- discovery --
@@ -285,7 +324,8 @@ def main():
     ap.add_argument("--cameras", default=None,
                     help="comma-separated camera IPs/hostnames; skips discovery")
     ap.add_argument("--interval", type=float, default=TX_INTERVAL,
-                    help="seconds between packets (default 10, one node's airtime)")
+                    help="seconds between packets PER CAMERA (default 30; see the "
+                         "airtime note at the top before lowering it)")
     ap.add_argument("--serial", metavar="PORT",
                     help="write packets to this serial port (the LoRa gateway) "
                          "as well as stdout")
@@ -320,6 +360,9 @@ def main():
                 cams[h] = c
         if not cams:
             print("# no cameras found yet", file=sys.stderr, flush=True)
+        else:
+            print(f"# airtime: {airtime_report(len(cams), args.interval)}",
+                  file=sys.stderr, flush=True)
 
     sync_cameras()
     time.sleep(2)                  # let the first snapshots land
@@ -333,14 +376,23 @@ def main():
                 sync_cameras()
                 last_discovery = time.monotonic()
 
-            for host, c in list(cams.items()):
+            # STAGGER: give each camera its own slot in the interval rather
+            # than emitting them back to back. N cameras bursting together
+            # would hold the channel for N x ~288 ms straight and stomp on any
+            # node transmitting in that window; spreading them keeps the
+            # gateway's occupancy in short, widely separated bursts.
+            batch = list(cams.items())
+            slot = args.interval / max(1, len(batch))
+            if not batch:
+                time.sleep(args.interval)
+                continue
+            for host, c in batch:
                 line = packet_for(c)
-                if line is None:
-                    continue       # stale: stay quiet, receiver shows STALE/LOST
-                print(line, flush=True)
-                if port:
-                    port.write((line + "\n").encode())
-            time.sleep(args.interval)
+                if line is not None:
+                    print(line, flush=True)
+                    if port:
+                        port.write((line + "\n").encode())
+                time.sleep(slot)   # sleep even when skipped, to keep cadence
     except KeyboardInterrupt:
         pass
     finally:

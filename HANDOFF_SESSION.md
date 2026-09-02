@@ -300,6 +300,32 @@ not brickdup's 6S block numbers. `--serial PORT` feeds the LoRa gateway.
 Measured source quality (ALEXA 35 @ 28.5 V): ~1.2 Hz, 13 mV steps inside a
 65 mV band, 0 errors in 25 s — far better than the divider+ADC path.
 
+**MULTI-CAMERA AIRTIME — one gateway speaks for every body.** The box
+shares the channel with the real battery nodes, and there is no
+listen-before-talk, so each camera is a recurring cost. A 43-byte camera
+packet is **288 ms** on air at SF9/BW125/CR4-5 (a node packet is ~329 ms):
+
+| Mix | Channel load | Packet success |
+|---|---|---|
+| 5 nodes, no cameras (today) | 16.4 % | 72 % |
+| 5 nodes + 2 cams @ 10 s | 22.2 % | 64 % |
+| 5 nodes + 4 cams @ 10 s | 27.9 % | 57 % |
+| 5 nodes + 4 cams @ 30 s | 20.3 % | 67 % |
+| 5 nodes + 6 cams @ 30 s | 22.2 % | 64 % |
+
+**6 cameras at 30 s cost less channel than 2 at 10 s.** Camera percent moves
+a few points per ten minutes, so 30 s is plenty — the bridge now defaults
+`--interval` to 30 and prints the budget on every discovery pass.
+
+The bridge also **staggers**: each camera gets its own slot in the interval
+instead of all bodies emitting back to back. N cameras bursting together
+would hold the channel for N x 288 ms straight and stomp on any node
+transmitting in that window.
+
+Note the baseline already loses ~28 % of packets — that is fine because
+everything repeats and the receiver has STALE/LOST states, but it means
+airtime spent on cameras comes straight out of battery-node reliability.
+
 **REMAINING WORK for this feature:**
 - Receiver: parse `P:` and display it verbatim when present instead of
   deriving SoC from voltage; handle `T:CAM`. Plus the `parsePacket` init
