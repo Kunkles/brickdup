@@ -330,9 +330,31 @@ airtime spent on cameras comes straight out of battery-node reliability.
 - Receiver: parse `P:` and display it verbatim when present instead of
   deriving SoC from voltage; handle `T:CAM`. Plus the `parsePacket` init
   bug below (a `T:CAM` packet without `V:` is exactly what trips it).
-- Gateway sketch: Heltec V3 reading serial lines → `radio.transmit()`.
-  Endgame is the backlogged W5500 on BRK1 — then the node reads the camera
-  itself over Ethernet and no computer is on the cart at all.
+- ~~Gateway sketch~~ **✓ BUILT: `gateway_heltec_v3/`.** Heltec V3 reads
+  newline-terminated packet lines off USB serial and transmits them with the
+  node radio config verbatim. Deliberately dumb — it never invents or
+  reshapes packets; pacing is the host's job. Sanity-checks each line looks
+  like a packet (`T:` prefix + `I:` field) before spending 288 ms of airtime,
+  keeps a 400 ms minimum gap so the sensor nodes get a look at the channel,
+  and acks each line as `[OK] <n> <line>` / `[ERR] tx <code>` / `[SKIP]`.
+  OLED shows sent/err counts, the last node id, its percent, and seconds
+  since the last transmit. Added to CI → `brickdup_gateway.bin`.
+
+  **NOTE — this consumes a Heltec V3.** There are only two, both earmarked as
+  sensor nodes, so a third board is needed to run a gateway and two nodes at
+  once. Endgame is still the backlogged W5500 on BRK1: with Ethernet on the
+  carrier, a node reads the camera itself and no computer or gateway is on
+  the cart at all.
+
+**END-TO-END BRING-UP (nothing has been run through the air yet):**
+1. Flash the receiver (v0.6.0) and confirm the version reads 0.6.0.
+2. Flash a spare V3 with `gateway_heltec_v3`, note its serial port.
+3. `python3 tools/camera_bridge.py --serial /dev/tty.usbserial-XXXX`
+   (needs `pip3 install pyserial`).
+4. Cameras should appear on the handheld by their letter (A / B) with the
+   camera's own percent, and `97% AC` while a body is on mains.
+   The gateway's OLED and its `[OK]` acks say whether packets left the box —
+   that is the split between "bridge/gateway problem" and "radio problem".
 - ~~Identify `Bat2`~~ **✓ RESOLVED 2026-09-02 by unplugging B cam's AC:**
   `Bat2` is **not a battery** — it is the Pwr/AC input rail reported through
   battery-shaped variable names. Pulling AC drove `Bat2LevelVolt` 23.9 → 0
