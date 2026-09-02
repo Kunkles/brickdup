@@ -50,6 +50,11 @@ reading, and when the next packet goes out. Pipe it anywhere (or pass
 --plain) and it falls back to one packet per line, so feeding a gateway or
 a log file is unchanged.
 
+No third-party packages are required — --serial works without pyserial
+(Homebrew and Debian Pythons refuse `pip install` into the system
+environment under PEP 668, and the usual workarounds risk breaking the
+Python install; not needing the package at all sidesteps that).
+
 Usage:
     python3 camera_bridge.py                          # live status board
     python3 camera_bridge.py --serial /dev/tty.usbserial-0001
@@ -109,6 +114,62 @@ WATCH = (
     "PowerInputBatInUse", "PowerInputPwrPresent",
     "SystemCameraSerial", "CameraIndexDual",
 )
+
+
+# ------------------------------------------------------------- serial output --
+
+class SerialOut:
+    """Write-only serial port, with no third-party dependency.
+
+    Uses pyserial when it happens to be installed, but doesn't need it: all
+    this tool ever does is push newline-terminated ASCII at a tty, which is
+    plain file I/O once `stty` has set the line discipline. That matters
+    because Homebrew/Debian Pythons refuse `pip install` into the system
+    environment (PEP 668), and the workarounds there are worse than the
+    problem.
+
+    Open the device BEFORE running stty so our handle keeps the settings
+    alive; on macOS use the /dev/cu.* (callout) name, which doesn't block
+    waiting for carrier detect the way /dev/tty.* does.
+    """
+
+    def __init__(self, port, baud):
+        self.port, self.how = port, ""
+        self._ser = self._fh = None
+        try:
+            import serial                                  # noqa: F401
+            self._ser = serial.Serial(port, baud, timeout=1)
+            self.how = "pyserial"
+            return
+        except ImportError:
+            pass
+        except Exception as e:
+            raise SystemExit(f"could not open {port}: {e}")
+
+        try:
+            self._fh = open(port, "wb", buffering=0)
+        except OSError as e:
+            raise SystemExit(f"could not open {port}: {e}")
+        flag = "-f" if sys.platform == "darwin" else "-F"
+        r = subprocess.run(["stty", flag, port, str(baud), "raw", "-echo"],
+                           capture_output=True, text=True)
+        if r.returncode:
+            self._fh.close()
+            raise SystemExit(f"stty failed on {port}: {r.stderr.strip()}")
+        self.how = "raw tty"
+
+    def write_line(self, line):
+        data = (line + "\n").encode()
+        if self._ser:
+            self._ser.write(data)
+        else:
+            self._fh.write(data)
+
+    def close(self):
+        if self._ser:
+            self._ser.close()
+        elif self._fh:
+            self._fh.close()
 
 
 # ------------------------------------------------------------------ airtime --
@@ -429,7 +490,8 @@ def main():
                     help="seconds between packets PER CAMERA (default 30; see the "
                          "airtime note at the top before lowering it)")
     ap.add_argument("--serial", metavar="PORT",
-                    help="write packets to this serial port (the LoRa gateway)")
+                    help="write packets to this serial port (the LoRa gateway); "
+                         "no pyserial needed — falls back to stty + file I/O")
     ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--no-scan", action="store_true",
                     help="never sweep the subnet; rely on mDNS alone")
@@ -444,13 +506,9 @@ def main():
 
     port = None
     if args.serial:
-        try:
-            import serial          # pyserial
-        except ImportError:
-            sys.exit("--serial needs pyserial:  pip3 install pyserial")
-        port = serial.Serial(args.serial, args.baud, timeout=1)
-        time.sleep(2)              # ESP32 resets when the port opens
-        log(f"gateway on {args.serial} @ {args.baud}")
+        port = SerialOut(args.serial, args.baud)
+        time.sleep(2)              # the ESP32 reboots when the port opens
+        log(f"gateway on {args.serial} @ {args.baud} ({port.how})")
 
     fixed = None
     if args.cameras:
@@ -507,7 +565,7 @@ def main():
         c.last_tx_wall = time.time()
         c.sent += 1
         if port:
-            port.write((line + "\n").encode())
+            port.write_line(line)
         if not LIVE:
             print(line, flush=True)
         return True
