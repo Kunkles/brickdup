@@ -307,9 +307,33 @@ Measured source quality (ALEXA 35 @ 28.5 V): ~1.2 Hz, 13 mV steps inside a
 - Gateway sketch: Heltec V3 reading serial lines → `radio.transmit()`.
   Endgame is the backlogged W5500 on BRK1 — then the node reads the camera
   itself over Ethernet and no computer is on the cart at all.
-- **Identify `Bat2`**: both bodies report ~23.6–23.9 V at 0 %, and both are
-  running on the Pwr input. Likely the Pwr rail rather than a real battery
-  — confirm before ever rebroadcasting it.
+- ~~Identify `Bat2`~~ **✓ RESOLVED 2026-09-02 by unplugging B cam's AC:**
+  `Bat2` is **not a battery** — it is the Pwr/AC input rail reported through
+  battery-shaped variable names. Pulling AC drove `Bat2LevelVolt` 23.9 → 0
+  and `Bat2State` 0 → 2, while `PowerInputPwrPresent` went False and
+  `PowerInputBatInUse` went True. Never rebroadcast it; its permanent 0 %
+  would be actively misleading. `Bat1` is the real B-mount.
+
+**MEASURED: resting vs loaded (same ALEXA 35, AC pulled mid-session)**
+
+| | on AC (battery idle) | on battery (loaded) |
+|---|---|---|
+| `Bat1LevelVolt` | ~28.26 | ~27.34 (**~0.9 V sag**) |
+| voltage swing | 65 mV | **403 mV** |
+| `Bat1LevelPercent` | static | smooth 94→93→91→90, no jitter |
+
+Two consequences:
+1. **Confirms the `P:` passthrough.** 403 mV on a 7S pack is several percent
+   of usable range — a voltage-derived SoC would jitter constantly, while
+   the camera's percent is smooth (it is filtering or coulomb-counting).
+   Its number is both steadier AND the one the crew sees.
+2. **Any voltage threshold must be set for the LOADED case.** A limit tuned
+   to resting voltage false-alarms the instant the camera draws. This
+   applies to brickdup's own OB/BL thresholds too, not just the bridge.
+
+Bridge now also sends **`A:`** — 1 = on AC (battery idle, V is a resting
+reading), 0 = on battery. Lets the handheld separate "low but parked on AC"
+(hot-swap not ready) from "low and actively discharging" (act now).
 
 **Still to measure:** simultaneous camera-vs-node reading at two charge
 states (one point gives offset only; two separate offset from gain). Worth

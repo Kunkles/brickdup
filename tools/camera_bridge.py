@@ -24,10 +24,18 @@ Output line:
 
     T  packet type (CAM = camera-sourced, not a measured node)
     I  stable id from the camera serial
-    V  Bat1LevelVolt
+    V  Bat1LevelVolt — RESTING while on AC, ~0.9 V lower once it takes load
     P  Bat1LevelPercent — the camera's own number, NOT derived from V
     S  0 OK / 1 WARN / 2 CRIT, from the camera's own warn thresholds
+    A  1 = running on AC (battery idle), 0 = running on the battery
     M  camera letter from CameraIndexDual ("A_" -> "A")
+
+Why P: matters (measured on an ALEXA 35, 2026-09-02): idle on AC the
+voltage sits in a 65 mV band, but once the battery carries the camera it
+swings 403 mV as draw varies — several percent of a 7S pack's usable range.
+Deriving SoC from that would jitter constantly. The camera's own percent
+walked 94 -> 93 -> 91 -> 90 over the same window with no jitter at all, so
+it is both steadier and the number the crew is reading off the camera.
 
 Cameras are found automatically. ARRI bodies advertise themselves over
 mDNS as "alexa35-<serial>" on _cap._tcp (ARRI's Camera Access Protocol), so
@@ -65,9 +73,14 @@ MDNS_SERVICE = "_cap._tcp"    # ARRI Camera Access Protocol
 
 # Variables we care about. Everything else in the ~1360-variable model is
 # ignored, but the delta stream hands it to us for free if it ever matters.
+# NOTE: Bat1* is the real battery on the mount. Bat2* is NOT a battery --
+# it is the Pwr/AC input rail reported through battery-shaped names (proved
+# 2026-09-02: unplugging AC drove Bat2LevelVolt to 0 and Bat2State to 2).
+# Never rebroadcast Bat2; a permanent 0 % would be actively misleading.
 WATCH = (
     "Bat1LevelVolt", "Bat1LevelPercent",
     "Bat1WarnLevelVolt", "Bat1WarnLevelPercent",
+    "PowerInputBatInUse", "PowerInputPwrPresent",
     "SystemCameraSerial", "CameraIndexDual",
 )
 
@@ -251,6 +264,13 @@ def packet_for(cam):
     if pct is not None:
         fields.append(f"P:{pct}")
     fields.append(f"S:{st}")
+
+    # On AC the battery is idle: V is a resting reading and the pack is not
+    # draining. Sent so the handheld can distinguish "low but parked on AC"
+    # (hot-swap isn't ready) from "low and actively discharging" (act now).
+    on_ac = s.get("PowerInputPwrPresent") and not s.get("PowerInputBatInUse")
+    if s.get("PowerInputPwrPresent") is not None:
+        fields.append(f"A:{1 if on_ac else 0}")
 
     # "A_" -> "A"; the trailing underscore is the dual-camera slot separator
     label = (s.get("CameraIndexDual") or "").replace("_", "").strip()
