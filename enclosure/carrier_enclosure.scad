@@ -1,6 +1,6 @@
 // carrier_enclosure.scad — v0.6 shell for the brickdup v0.2 carrier board
 // ---------------------------------------------------------------------------
-// Backed up 2026-09-01: the H1 style-donor experiment is GONE (sculpted
+// Backed up 2026-09-02: the H1 style-donor experiment is GONE (sculpted
 // faces, grip coves, antenna channel/cradle). Plain gently-rounded box,
 // v11-style SMA bulkhead straight out the WEST wall.
 //
@@ -59,7 +59,7 @@ ant_len  = 50;     // whip incl SMA male, for the assembly ghost only
 // air east of the board edge, and the LEMO body intrudes ~10mm past the
 // wall (12mm deep, measured). A plain tub has 0.5mm there. The bay houses
 // both, entirely east of the board — the under-board LiPo bay is untouched.
-// SHRINK TEST 2026-09-01: 20 -> 12. The LEMO body (9.6 past the inner face)
+// SHRINK TEST 2026-09-02: 20 -> 12. The LEMO body (9.6 past the inner face)
 // and J1's plug (board level) sit at different heights, so the bay only has
 // to be as long as the LONGER one. At 12 the LEMO still lives entirely in
 // the bay — it only needs to tuck under the board below ~10. Fall back to
@@ -69,7 +69,7 @@ lemo_d    = 8.9;     // measured (v11) — double-D panel hole
 lemo_flat = 8.2;     // measured (v11) — across the flats, LEFT+RIGHT of hole
 lemo_body_d = 12;    // ‹MEASURE› — barrel behind the flange (sets under-board fit)
 lemo_body_l = 12;    // measured (v11) — flange back to rear face
-lemo_z    = 10.5;    // dry-fit 2026-09-01 v2: nut bottom 2.0mm off the floor
+lemo_z    = 10.5;    // dry-fit 2026-09-02 v2: nut bottom 2.0mm off the floor
 
 
 /* ---------------- lid ------------------------------------------------------ */
@@ -78,7 +78,7 @@ oled_w = 24; oled_d = 14; oled_r = 2.5; // ‹MEASURE›
 // window centre in BOARD coords. Print-fit nudge guide (case directions):
 //   west = -oled_cx    east = +oled_cx
 //   south = +oled_cy   north = -oled_cy   (by() flips board y to case y)
-// print-fit 2026-09-01: size confirmed good; +1 east = FINAL per Ryan
+// print-fit 2026-09-02: size confirmed good; +1 east = FINAL per Ryan
 oled_cx = 24;
 oled_cy = 21.5;
 // (flexure button wells dropped this version — buttons are wired, wells can
@@ -175,7 +175,7 @@ module base() {
         // SMA bulkhead, west wall (v11 keyed shape; nut + pigtail inside)
         translate([-2, sma_y, sma_z]) sma_hole_flat(wall + 4);
         // LEMO hole, east bay wall — v11 double-D, flats top/bottom.
-        // Dry-fit 2026-09-01 v2: +5.5 north of J1's mouth line — nut keeps
+        // Dry-fit 2026-09-02 v2: +5.5 north of J1's mouth line — nut keeps
         // 2.0mm to the NE bay post and 2.0mm to the floor; the SE quadrant
         // of the bay stays open for button wires / LiPo lead slack
         translate([ow - wall - 2, by(19.5) + 5.5, lemo_z])

@@ -223,7 +223,7 @@ LOW) first; GPIO0 = strap (never hold at boot); ADC2 vs WiFi conflict
 
 ---
 
-## OPEN QUESTION — camera battery consistency (raised 2026-09-01)
+## OPEN QUESTION — camera battery consistency (raised 2026-09-02)
 
 Goal: the handheld should agree with the number the camera shows, so people
 trust it. Two different features, decide after checking a real camera:
@@ -239,10 +239,52 @@ trust it. Two different features, decide after checking a real camera:
    node's worth. Gateway = spare Heltec on USB serial (~1h), or the
    backlogged W5500 on BRK1 for a proper cart-side bridge.
 
-**To check at the camera:** does it report volts, percent, or both? And take
-**simultaneous readings** (camera's number vs. a brickdup node on the same
-battery) at **two charge states** — one point tells you offset error only,
-two points separate offset from gain, which is what calibration needs.
+**CHECKED 2026-09-02 — ARRI ALEXA 35 (serial 63373) at 10.2.2.200.**
+
+API is wide open and clean (no auth, plain HTTP, 1360 variables):
+- `GET /all.cgi` → full snapshot + an `id`
+- `GET /update.cgi?id=<id>` → **only what changed** since that id, + a new id
+- (`set.cgi` / `call.cgi` are writes — leave them alone)
+
+Battery variables (all read-only unless noted):
+
+| Variable | Live value | Note |
+|---|---|---|
+| `Bat1LevelVolt` | 28.483 | float, updates continuously |
+| `Bat1LevelPercent` | 98 | int |
+| `Bat1WarnLevelVolt` | 22.0 | **writable** |
+| `Bat1WarnLevelPercent` | 10 | **writable** |
+| `Bat1State` / `Bat1CapacityState` | 0 / 2 | enums |
+| `Bat2LevelVolt` / `Bat2LevelPercent` | 23.92 / 0 | second slot — identify |
+| `BatUnitPrefIsPercent` | true | camera is DISPLAYING percent |
+| `PowerInputBatPresent/InUse` | true / false | which supply is live |
+| `PowerInputPwrPresent/InUse` | true / true | running on Pwr input |
+
+**Answer to the original question: BOTH volts and percent.** So the
+calibration path is open. Note `BatUnitPrefIsPercent=true` — the number the
+crew actually sees on this camera is the *percent*, not the volts.
+
+**⚠️ BIGGER FINDING — B-mount is outside brickdup's designed range.** The
+ALEXA 35 takes 24 V B-mount (7S, ~29.4 V full); Bat1 read **28.483 V**. The
+sense divider is 200k/22k = ratio 0.0991, sized for 25.2 V (6S) → 2.50 V:
+- 28.48 V → **2.82 V** at GPIO7
+- 29.4 V (B-mount full) → **2.91 V**
+- 35 V (ALEXA 35's max Pwr input) → **3.47 V** — over the ADC, into the rail
+
+The ESP32-S3 ADC is worst-behaved above ~2.5 V, so a full B-mount is read in
+the least accurate part of the curve — and calibrating *there* calibrates in
+the bad region. Also `BL` thresholds (21.0/20.0) were derived for 6S; they
+happen to be near-sane for 7S (camera's own warn is 22.0 V) but the
+full-scale assumption is wrong.
+
+**v0.3 fix: R1 200k → 237k** (standard 1% value). Ratio becomes 0.0849:
+29.4 V → 2.50 V, and even 35 V → 2.97 V stays in range. Costs a little
+resolution at 4S (16.8 V → 1.43 V instead of 1.67 V) — not meaningful.
+
+**Still to measure:** simultaneous camera-vs-node reading at two charge
+states (one point gives offset only; two separate offset from gain). Worth
+doing AFTER deciding the divider, since changing R1 invalidates any
+calibration taken now.
 
 **Latent bug found while reading the parser:** `parsePacket()`
 (receiver .ino ~L288) resets `permId`, `name`, and `lipo` but NOT `*voltage`

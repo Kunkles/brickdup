@@ -1,0 +1,135 @@
+{
+   "file_counts" : 26,
+   "file_list" : [
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-B_Adhesive.gba",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-B_Courtyard.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "brickdup_psu-B_Cu.gbl",
+         "layer_name" : "bl"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-B_Fab.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "brickdup_psu-B_Mask.gbs",
+         "layer_name" : "bs"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-B_Paste.gbp",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-B_Silkscreen.gbo",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 2,
+         "file_name" : "brickdup_psu-Edge_Cuts.gm1",
+         "layer_name" : "gko"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-F_Adhesive.gta",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 3,
+         "file_name" : "brickdup_psu-F_Courtyard.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "brickdup_psu-F_Cu.gtl",
+         "layer_name" : "tl"
+      },
+      {
+         "file_describe_code" : 3,
+         "file_name" : "brickdup_psu-F_Fab.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "brickdup_psu-F_Mask.gts",
+         "layer_name" : "ts"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "brickdup_psu-F_Paste.gtp",
+         "layer_name" : "tp"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "brickdup_psu-F_Silkscreen.gto",
+         "layer_name" : "to"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-Margin.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-User_1.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-User_2.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-User_3.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-User_4.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 3,
+         "file_name" : "brickdup_psu-User_Comments.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-User_Drawings.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-User_Eco1.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-User_Eco2.gbr",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "brickdup_psu-job.gbrjob",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "brickdup_psu.drl",
+         "layer_name" : "drl"
+      }
+   ]
+}
