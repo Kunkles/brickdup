@@ -44,14 +44,21 @@ next discovery pass. If mDNS returns nothing (some set networks block
 multicast between VLANs) the bridge falls back to sweeping the local /24 for
 hosts serving the ARRI Web Remote.
 
+Run it with a terminal attached and you get a live status board — which
+cameras are connected, whether each is on AC or its battery, the current
+reading, and when the next packet goes out. Pipe it anywhere (or pass
+--plain) and it falls back to one packet per line, so feeding a gateway or
+a log file is unchanged.
+
 Usage:
-    python3 camera_bridge.py                          # discover + print
+    python3 camera_bridge.py                          # live status board
     python3 camera_bridge.py --serial /dev/tty.usbserial-0001
     python3 camera_bridge.py --cameras 10.2.2.200,10.2.2.201   # skip discovery
     python3 camera_bridge.py --no-scan                # mDNS only, never sweep
 """
 
 import argparse
+import collections
 import json
 import math
 import re
@@ -71,6 +78,18 @@ from concurrent.futures import ThreadPoolExecutor
 # a few percent per TEN MINUTES, so 30 s is plenty and costs a third of what
 # the 10 s node heartbeat would: 6 cameras at 30 s load the channel less than
 # 2 cameras at 10 s. Raise --interval before adding bodies, not after.
+LOG = collections.deque(maxlen=6)
+LIVE = False              # set once we know stdout is a terminal
+
+
+def log(msg):
+    """Status chatter. Goes to the log pane when live, stderr when piped."""
+    if LIVE:
+        LOG.append((time.strftime("%H:%M:%S"), msg))
+    else:
+        print(f"# {msg}", file=sys.stderr, flush=True)
+
+
 TX_INTERVAL = 30.0
 STALE_AFTER = 30.0        # no fresh data for this long -> stop transmitting
 POLL_TIMEOUT = 20         # long-poll timeout; update.cgi blocks until change
@@ -122,6 +141,81 @@ def airtime_report(n_cams, interval, assumed_nodes=5):
     return (f"{n_cams} camera(s) x {per:.0f} ms / {interval:.0f}s = "
             f"{cam_load*100:.1f}% channel; with ~{assumed_nodes} nodes "
             f"~{total*100:.0f}% load, ~{success:.0f}% packet success{note}")
+
+
+# ------------------------------------------------------------------ display --
+
+C = {"dim": "\033[2m", "red": "\033[31m", "yel": "\033[33m",
+     "grn": "\033[32m", "cyn": "\033[36m", "bold": "\033[1m", "off": "\033[0m"}
+
+
+def _c(name, text):
+    return f"{C[name]}{text}{C['off']}" if LIVE else text
+
+
+def render(cams, interval):
+    """Full-screen status: are the cameras connected, and what are they saying."""
+    out = ["\033[H\033[J"]                       # home + clear
+    out.append(_c("bold", "brickdup camera bridge") +
+               _c("dim", f"   interval {interval:.0f}s   "
+                         f"{airtime_report(len(cams), interval)}"))
+    out.append("")
+    out.append(_c("dim", f"  {'CAM':<4} {'HOST':<15} {'SERIAL':<8} {'LINK':<13}"
+                         f" {'BATTERY':<15} {'DATA':<7} {'SENT':<6} NEXT"))
+
+    now = time.monotonic()
+    if not cams:
+        out.append(_c("dim", "  (searching…)"))
+    for c in cams.values():
+        st = c.snapshot()
+        age = now - c.updated if c.updated else None
+        fresh = age is not None and age <= STALE_AFTER
+
+        # Pad the PLAIN text first, then colour it — ANSI escapes count
+        # toward a format width, so colouring first makes columns jump as
+        # states change length.
+        if c.dup_of:
+            link_txt, link_col = "● dup", "dim"
+        elif not c.online:
+            link_txt, link_col = "● offline", "red"
+        elif not fresh:
+            link_txt, link_col = "● stale", "yel"
+        elif st.get("PowerInputPwrPresent") and not st.get("PowerInputBatInUse"):
+            link_txt, link_col = "● on AC", "cyn"
+        else:
+            link_txt, link_col = "● battery", "grn"
+
+        v, pct = st.get("Bat1LevelVolt"), st.get("Bat1LevelPercent")
+        if v is None:
+            batt_txt, batt_col = "—", "dim"
+        else:
+            warn = st.get("Bat1WarnLevelPercent") or 10
+            batt_txt = f"{v:6.2f}V " + (f"{pct:3}%" if pct is not None else "   ?")
+            batt_col = ("red" if pct is not None and pct <= max(1, warn // 2)
+                        else "yel" if pct is not None and pct <= warn else "grn")
+
+        label = (st.get("CameraIndexDual") or "?").replace("_", "")
+        serial = str(st.get("SystemCameraSerial") or "—")
+        age_txt = f"{age:.1f}s" if age is not None else "—"
+        nxt_txt = "—" if c.dup_of else f"{max(0, c.next_tx - now):.1f}s"
+        out.append(f"  {label:<4} {c.host:<16} {serial:<8} "
+                   + _c(link_col, f"{link_txt:<13}") + " "
+                   + _c(batt_col, f"{batt_txt:<15}") +
+                   f" {age_txt:<7} {c.sent:<6} {nxt_txt}")
+
+    last = max((c for c in cams.values() if c.last_tx_wall),
+               key=lambda c: c.last_tx_wall, default=None)
+    out.append("")
+    out.append(_c("dim", "  last sent  ") +
+               (last.last_line if last else _c("dim", "—")))
+    if LOG:
+        out.append("")
+        for ts, msg in LOG:
+            out.append(_c("dim", f"  {ts}  {msg}"))
+    out.append("")
+    out.append(_c("dim", "  ctrl-c to stop"))
+    sys.stdout.write("\n".join(out) + "\n")
+    sys.stdout.flush()
 
 
 # ---------------------------------------------------------------- discovery --
@@ -196,15 +290,19 @@ def discover(allow_sweep=True):
     found = []
     for name in _mdns_instances():
         host = f"{name}.local"
-        try:
-            found.append(socket.gethostbyname(host))  # prefer the resolved IP
-        except OSError:
-            found.append(host)                        # let urllib try the name
+        for attempt in range(2):                      # .local answers are flaky
+            try:
+                found.append(socket.gethostbyname(host))   # prefer the IP
+                break
+            except OSError:
+                if attempt:
+                    found.append(host)                # let urllib try the name
+                else:
+                    time.sleep(0.3)
     if found:
         return sorted(set(found))
     if allow_sweep:
-        print("# mDNS found nothing — sweeping the local subnet",
-              file=sys.stderr, flush=True)
+        log("mDNS found nothing — sweeping the local subnet")
         return _sweep()
     return []
 
@@ -221,6 +319,11 @@ class Camera(threading.Thread):
         self.state = {}
         self.updated = 0.0        # monotonic time of last good read
         self.online = False
+        self.next_tx = 0.0        # monotonic time this camera next transmits
+        self.sent = 0             # packets emitted
+        self.dup_of = None        # set when another host is the same body
+        self.last_line = ""       # most recent packet, for the display
+        self.last_tx_wall = None
         self._lock = threading.Lock()
 
     def _get(self, path, timeout):
@@ -246,10 +349,9 @@ class Camera(threading.Thread):
                 self._absorb(d.get("variables", {}))
                 ident = self.snapshot()
                 self.online = True
-                print(f"# {self.host} connected: serial="
-                      f"{ident.get('SystemCameraSerial')} "
-                      f"cam={ident.get('CameraIndexDual')}",
-                      file=sys.stderr, flush=True)
+                log(f"{self.host} connected: serial="
+                    f"{ident.get('SystemCameraSerial')} "
+                    f"cam={(ident.get('CameraIndexDual') or '?').replace('_','')}")
                 uid = d.get("id", 0)
                 while True:
                     r = self._get(f"/update.cgi?id={uid}", timeout=POLL_TIMEOUT)
@@ -258,8 +360,7 @@ class Camera(threading.Thread):
             except (urllib.error.URLError, OSError, json.JSONDecodeError,
                     TimeoutError) as e:
                 if self.online:
-                    print(f"# {self.host} lost ({e}); reconnecting",
-                          file=sys.stderr, flush=True)
+                    log(f"{self.host} lost ({e}); reconnecting")
                 self.online = False
                 time.sleep(RECONNECT_WAIT)
 
@@ -319,6 +420,7 @@ def packet_for(cam):
 
 
 def main():
+    global LIVE
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cameras", default=None,
@@ -327,12 +429,18 @@ def main():
                     help="seconds between packets PER CAMERA (default 30; see the "
                          "airtime note at the top before lowering it)")
     ap.add_argument("--serial", metavar="PORT",
-                    help="write packets to this serial port (the LoRa gateway) "
-                         "as well as stdout")
+                    help="write packets to this serial port (the LoRa gateway)")
     ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--no-scan", action="store_true",
                     help="never sweep the subnet; rely on mDNS alone")
+    ap.add_argument("--plain", action="store_true",
+                    help="one packet per line on stdout, no live display "
+                         "(automatic when stdout is not a terminal)")
     args = ap.parse_args()
+
+    # Live dashboard only when a human is watching. Piping to a gateway or a
+    # log file keeps the old line-per-packet behaviour untouched.
+    LIVE = sys.stdout.isatty() and not args.plain
 
     port = None
     if args.serial:
@@ -342,60 +450,97 @@ def main():
             sys.exit("--serial needs pyserial:  pip3 install pyserial")
         port = serial.Serial(args.serial, args.baud, timeout=1)
         time.sleep(2)              # ESP32 resets when the port opens
-        print(f"# gateway on {args.serial} @ {args.baud}", file=sys.stderr)
+        log(f"gateway on {args.serial} @ {args.baud}")
 
     fixed = None
     if args.cameras:
         fixed = [h.strip() for h in args.cameras.split(",") if h.strip()]
 
-    cams = {}                      # host -> Camera thread
+    cams = {}
 
     def sync_cameras():
+        """Add newly-seen cameras and re-space everyone's transmit slots."""
         hosts = fixed if fixed is not None else discover(not args.no_scan)
+        added = False
         for h in hosts:
             if h not in cams:
-                print(f"# discovered {h}", file=sys.stderr, flush=True)
+                log(f"discovered {h}")
                 c = Camera(h)
                 c.start()
                 cams[h] = c
-        if not cams:
-            print("# no cameras found yet", file=sys.stderr, flush=True)
-        else:
-            print(f"# airtime: {airtime_report(len(cams), args.interval)}",
-                  file=sys.stderr, flush=True)
+                added = True
+        if added:
+            # STAGGER: one camera per slot across the interval. Emitting them
+            # back to back would hold the channel for N x ~288 ms straight and
+            # stomp on any node transmitting in that window.
+            now = time.monotonic()
+            for i, c in enumerate(cams.values()):
+                c.next_tx = now + i * args.interval / len(cams)
+            log(airtime_report(len(cams), args.interval))
 
+    def dedupe():
+        """One body can be discovered twice (by IP one pass, by .local the
+        next) — that would double-transmit it. The camera serial is the real
+        identity, so keep the first host to claim each serial."""
+        first = {}
+        for host, c in cams.items():
+            sn = c.snapshot().get("SystemCameraSerial")
+            if sn is None:
+                continue
+            if sn in first:
+                if c.dup_of is None:
+                    c.dup_of = first[sn]
+                    log(f"{host} is the same body as {first[sn]} (serial {sn});"
+                        f" not transmitting it twice")
+            else:
+                first[sn] = host
+                c.dup_of = None
+
+    def emit(c):
+        """Returns True if a packet actually went out."""
+        if c.dup_of:
+            return True            # counted as done; the original transmits
+        line = packet_for(c)
+        if line is None:
+            return False           # no data yet, or stale — stay quiet
+        c.last_line = line
+        c.last_tx_wall = time.time()
+        c.sent += 1
+        if port:
+            port.write((line + "\n").encode())
+        if not LIVE:
+            print(line, flush=True)
+        return True
+
+    if LIVE:
+        sys.stdout.write("\033[?25l")     # hide cursor
     sync_cameras()
-    time.sleep(2)                  # let the first snapshots land
     last_discovery = time.monotonic()
 
     try:
         while True:
-            # cameras powered up mid-day get picked up here; existing threads
-            # reconnect on their own, so this only ever ADDS
-            if fixed is None and time.monotonic() - last_discovery > DISCOVER_EVERY:
+            now = time.monotonic()
+            if fixed is None and now - last_discovery > DISCOVER_EVERY:
                 sync_cameras()
-                last_discovery = time.monotonic()
+                last_discovery = now
 
-            # STAGGER: give each camera its own slot in the interval rather
-            # than emitting them back to back. N cameras bursting together
-            # would hold the channel for N x ~288 ms straight and stomp on any
-            # node transmitting in that window; spreading them keeps the
-            # gateway's occupancy in short, widely separated bursts.
-            batch = list(cams.items())
-            slot = args.interval / max(1, len(batch))
-            if not batch:
-                time.sleep(args.interval)
-                continue
-            for host, c in batch:
-                line = packet_for(c)
-                if line is not None:
-                    print(line, flush=True)
-                    if port:
-                        port.write((line + "\n").encode())
-                time.sleep(slot)   # sleep even when skipped, to keep cadence
+            dedupe()
+            for c in list(cams.values()):
+                if now >= c.next_tx:
+                    # A camera still fetching its first snapshot shouldn't
+                    # forfeit a whole interval — retry it shortly instead.
+                    c.next_tx = now + (args.interval if emit(c) else 1.0)
+
+            if LIVE:
+                render(cams, args.interval)
+                time.sleep(0.4)            # redraw faster than we transmit
+            else:
+                time.sleep(0.25)
     except KeyboardInterrupt:
         pass
     finally:
+        if LIVE:
+            sys.stdout.write("\033[?25h\n")   # restore cursor
         if port:
             port.close()
 
