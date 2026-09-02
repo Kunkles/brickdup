@@ -220,3 +220,32 @@ physical-button UX, visible feedback, honest caveats. Display layout is liked
 **Firmware gotchas:** e-ink lib needs exact board; OLED needs Vext (GPIO36
 LOW) first; GPIO0 = strap (never hold at boot); ADC2 vs WiFi conflict
 (receiver battery); Heltec boards.txt hardcodes 8MB OTA partitions.
+
+---
+
+## OPEN QUESTION — camera battery consistency (raised 2026-09-01)
+
+Goal: the handheld should agree with the number the camera shows, so people
+trust it. Two different features, decide after checking a real camera:
+
+1. **Calibration path (cheaper, preferred if it works):** use the camera's
+   reported voltage as a reference to trim that node's calibration factor
+   (the config portal field already exists). No radio traffic, no gateway,
+   keeps working when no computer is on the cart. Fixes ADC error, which is
+   the dominant disagreement (ESP32-S3 ADC non-linearity >> the 1% divider).
+2. **Live rebroadcast:** computer → gateway → LoRa as a `T:CAM` packet.
+   Needed only if you want the camera's *percentage* (its own curve) shown.
+   Airtime is a non-issue at the 10s heartbeat — costs exactly one more
+   node's worth. Gateway = spare Heltec on USB serial (~1h), or the
+   backlogged W5500 on BRK1 for a proper cart-side bridge.
+
+**To check at the camera:** does it report volts, percent, or both? And take
+**simultaneous readings** (camera's number vs. a brickdup node on the same
+battery) at **two charge states** — one point tells you offset error only,
+two points separate offset from gain, which is what calibration needs.
+
+**Latent bug found while reading the parser:** `parsePacket()`
+(receiver .ino ~L288) resets `permId`, `name`, and `lipo` but NOT `*voltage`
+or `*status`. Harmless today (call site declares them fresh each packet) but
+a `T:CAM` packet omitting `V:` is exactly the case that would expose it.
+Fix before adding any packet type that doesn't carry voltage.

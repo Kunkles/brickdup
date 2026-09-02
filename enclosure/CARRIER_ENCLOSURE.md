@@ -18,7 +18,7 @@ brief captures the direction before any OpenSCAD work; the existing
 **⚠️ Y-AXIS MAPPING:** board coords are KiCad-style (origin NW, +y SOUTH);
 the case's +y runs NORTH. Every case feature placed from a board-coord y
 must use the SCAD's `by()` function (`by0 + bd − y_board`) — a direct
-mapping lands MIRRORED. Found 2026-07-24 via the OLED window printing 5 mm
+mapping lands MIRRORED. Found 2026-09-01 via the OLED window printing 5 mm
 south of the screen (module centreline is 2.6 off board centre, so the
 mirror doubled it); the LEMO was similarly 2.5 off J1.
 
@@ -27,7 +27,7 @@ mirror doubled it); the LEMO was similarly 2.5 off J1.
 - **East wall**: J1 VBAT JST mouth (LEMO pigtail) + the Heltec **USB-C**
   (module east end) → USB access port goes in the east wall, above the LEMO
   entry. Both on one wall = one "service side".
-  - **USB: NO opening in this version (decided 2026-07-24).** The port is
+  - **USB: NO opening in this version (decided 2026-09-01).** The port is
     recessed ~9 mm behind the outer wall face (module east edge 6.3 mm
     inboard of the board edge, + gap + 2.4 wall), so a usable opening must
     admit the cable OVERMOLD (~13 × 8) and, since the port axis is only
@@ -66,7 +66,7 @@ side bay.
 
 ## 4. Buttons — the flexure concept (Ryan's preference)
 
-**Current shell (v0.6, 2026-07-24): button wells DROPPED for now** — the lid
+**Current shell (v0.6, 2026-09-01): button wells DROPPED for now** — the lid
 is OLED-window-only. Because the buttons are wired (BTN1/BTN2 JSTs), wells
 can be added back anywhere on the lid whenever the button plan firms up;
 the concept below is kept for that moment.
@@ -77,7 +77,7 @@ the concept below is kept for that moment.
   ~0.8–1.2 mm tab thickness, ≥8 mm tab length for a comfortable click.
 - Because buttons are *wired*, the flexures go wherever ergonomics want them
   (top of lid, side wall) — no alignment to PCB coordinates required.
-- **SW1 power switch (decided + ORDERED 2026-07-25)**: round snap-in rocker
+- **SW1 power switch (decided + ORDERED 2026-09-01)**: round snap-in rocker
   (KCD1-101-8 class, DWEII pre-wired 2-pin SPST, 6A/125VAC contacts) in the
   **east bay's SOUTH wall** — the bay has the depth for the body, and it
   groups the switch with the LEMO on the service end. Ø15 hole `‹MEASURE
@@ -86,7 +86,7 @@ the concept below is kept for that moment.
   Pre-attached leads splice to a JST-PH pigtail into SW1. Fallback remains:
   bridge JP1 and omit.
 
-## 4a. Lid retention — hook west, screw east (decided 2026-07-24)
+## 4a. Lid retention — hook west, screw east (decided 2026-09-01)
 
 The skirt alone is loose; on-set wants positive retention. West corner
 posts were tried first and REJECTED: the board's own M2 holes sit 3.9 mm
@@ -131,7 +131,7 @@ around them.
 
 ### 5b. LEMO panel connector (battery input) — EAST BAY
 
-- **SHRINK TEST (2026-07-25): `bay_l` 20 → 12, case 87.8 → 79.8 mm.** The
+- **SHRINK TEST (2026-09-01): `bay_l` 20 → 12, case 87.8 → 79.8 mm.** The
   LEMO body and J1's plug occupy the bay at *different heights* (LEMO low,
   J1 plug at board level z≥14.5), so the bay only needs to be as long as the
   longer of the two — not their sum. At 12 the LEMO rear still lands 2.9 mm
@@ -141,7 +141,7 @@ around them.
   constraint, not the LEMO** — measure the plug's east protrusion + wire
   bend before going lower. Render-time `echo()` block reports all four
   clearances. Revert to 20 if the plug won't take 12.5 mm.
-- **Original rationale (2026-07-24), still the reason the bay exists:**
+- **Original rationale (2026-09-01), still the reason the bay exists:**
   A plain tub leaves 0.5 mm east of the board — but J1's mating JST plug +
   wire bend need ~10–12 mm, and the LEMO body intrudes ~10 mm past the wall
   (12 mm deep, measured). Without the bay the LEMO rear also lands in the
@@ -149,7 +149,7 @@ around them.
   14.5–16.1). The bay puts LEMO rear + nut, J1 plug, and the pigtail U-turn
   **east of the board footprint**, so the full-footprint under-board LiPo
   bay (§5a) is completely unaffected. Case grows ~20 mm east (≈88 mm long).
-- **LEMO in the bay's east wall** — dry-fit corrected 2026-07-25 (v2):
+- **LEMO in the bay's east wall** — dry-fit corrected 2026-09-01 (v2):
   `lemo_z = 10.5`, y = J1 mouth line **+5.5 north**, double-D flats rotated
   90° → **top/bottom**. Scooted NE-down to open the bay's SE quadrant for
   button wires and LiPo lead slack; the Ø13 nut keeps **2.0 mm** each to
@@ -163,7 +163,7 @@ around them.
 
 ### 5c. RF jack (LoRa antenna) — plain bulkhead, WEST wall
 
-**DECIDED (2026-07-24): back to the v11-style perpendicular bulkhead.** The
+**DECIDED (2026-09-01): back to the v11-style perpendicular bulkhead.** The
 H1-donor protected-channel/cradle direction is dropped along with the rest
 of the sculpted styling (the reference material stays in
 `enclosure/reference/` if the idea ever returns).
