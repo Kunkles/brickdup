@@ -9,7 +9,39 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.5.9 — current
+## 0.6.0 — current
+
+- **Camera-sourced readings (receiver).** New packet type `T:CAM` lets a
+  source that gauges itself report its own state of charge instead of having
+  the receiver derive one from pack voltage. Two new optional fields:
+  `P:<percent>` (source-reported %) and `A:<0|1>` (1 = running on mains).
+  When `P:` is present it becomes the SoC directly; a source on mains shows
+  e.g. `97% AC` and suppresses the time-to-empty, which means nothing for a
+  battery that isn't draining. `/data` JSON gains `"ac"`.
+
+  Why not derive it: measured on an ARRI ALEXA 35, a B-mount pack idle on AC
+  sits in a 65 mV band, but once it carries the camera the voltage swings
+  **403 mV** — several percent of a 7S pack's usable range — while the
+  camera's own gauge walks down smoothly. The reported number is both
+  steadier and the one the crew reads off the camera body.
+
+  Companion tool `tools/camera_bridge.py` discovers ARRI bodies over mDNS and
+  emits these packets; the LoRa gateway sketch that feeds them to the radio is
+  still to come.
+
+- Fixed: `parsePacket()` left `*voltage` and `*status` at whatever the caller
+  held, unlike the other out-params which were reset. Harmless while every
+  packet carried `V:` and `S:`, but a packet type that omits either would have
+  inherited stale values.
+
+- Fixed: `cellsFor`/`fullFor`/`critFor` fell through to the 4S onboard curve
+  for any unrecognised type, so a 28 V pack would pin at 100 %. `CAM` now has
+  a 7S B-mount case.
+
+- Node sketches are unchanged in this release; the version moves with the
+  receiver to keep all four sketches on one number.
+
+## 0.5.9
 
 - Editable alert thresholds in the node portal. WARN/CRIT are no longer
   hardcoded — the config page has WARN/CRIT fields for the current battery type,
