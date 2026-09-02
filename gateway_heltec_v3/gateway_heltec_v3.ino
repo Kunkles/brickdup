@@ -22,7 +22,20 @@
 //          [ERR] tx <code>        RadioLib refused it
 //          [SKIP] <reason>        rejected before transmit
 //
-// Board settings: "Heltec WiFi LoRa 32(V3)", USB CDC On Boot = Enabled.
+// HOST PORT: the V3 exposes two USB paths — the CP2102 UART bridge (the
+// /dev/cu.usbserial-* port you flash over) and the ESP32-S3's own native USB.
+// Which one `Serial` means depends on the CDC-on-boot build flag, and if it
+// ever points at the native port this gateway would be talking out a port
+// that isn't enumerated while you're cabled to the CP2102. Heltec's board
+// definition sets cdc_on_boot=0 (package 3.3.8), so `Serial` IS UART0 today
+// and there is no CDC menu option on this FQBN to change it — but naming the
+// UART explicitly keeps the host link on the same port used to flash it
+// whatever the flag does. One cable, one port.
+#if ARDUINO_USB_CDC_ON_BOOT
+  #define HOST Serial0        // UART0 -> CP2102 -> /dev/cu.usbserial-*
+#else
+  #define HOST Serial         // Serial already IS UART0
+#endif
 
 #include <RadioLib.h>
 #include "HT_SSD1306Wire.h"   // bundled with the Heltec ESP32 board package
@@ -139,7 +152,7 @@ void handleLine() {
   // Minimal sanity check: it has to look like a brickdup packet, or the
   // receiver will just discard it after we have spent 288 ms of airtime.
   if (strncmp(line, "T:", 2) != 0 || strstr(line, "I:") == nullptr) {
-    Serial.printf("[SKIP] not a packet: %s\n", line);
+    HOST.printf("[SKIP] not a packet: %s\n", line);
     return;
   }
 
@@ -152,16 +165,16 @@ void handleLine() {
     sentCount++;
     lastTxMs = millis();
     summarize(line);
-    Serial.printf("[OK] %lu %s\n", (unsigned long)sentCount, line);
+    HOST.printf("[OK] %lu %s\n", (unsigned long)sentCount, line);
   } else {
     errCount++;
-    Serial.printf("[ERR] tx %d\n", state);
+    HOST.printf("[ERR] tx %d\n", state);
   }
   drawScreen();
 }
 
 void setup() {
-  Serial.begin(115200);
+  HOST.begin(115200);
   delay(200);
 
   pinMode(VEXT_PIN, OUTPUT);
@@ -174,21 +187,21 @@ void setup() {
   oled.drawString(0, 16, "starting radio...");
   oled.display();
 
-  Serial.println("[BOOT] Brickdup serial->LoRa gateway v" FW_VERSION);
+  HOST.println("[BOOT] Brickdup serial->LoRa gateway v" FW_VERSION);
 
   int state = radio.begin(FREQ_MHZ, BW_KHZ, SF, CR, SYNC_WORD, TX_PWR, PREAMBLE);
   radioOK = (state == RADIOLIB_ERR_NONE);
   if (!radioOK) {
-    Serial.printf("[ERR] Radio init failed: %d\n", state);
+    HOST.printf("[ERR] Radio init failed: %d\n", state);
   } else {
-    Serial.println("[RADIO] OK — send packet lines, one per line");
+    HOST.println("[RADIO] OK — send packet lines, one per line");
   }
   drawScreen();
 }
 
 void loop() {
-  while (Serial.available()) {
-    int ch = Serial.read();
+  while (HOST.available()) {
+    int ch = HOST.read();
     if (ch < 0) break;
     if (ch == '\n') {
       handleLine();
@@ -198,8 +211,8 @@ void loop() {
     } else {
       // Overlong line: drop it rather than transmit a truncated packet.
       lineLen = 0;
-      Serial.println("[SKIP] line too long");
-      while (Serial.available() && Serial.peek() != '\n') Serial.read();
+      HOST.println("[SKIP] line too long");
+      while (HOST.available() && HOST.peek() != '\n') HOST.read();
     }
   }
 
