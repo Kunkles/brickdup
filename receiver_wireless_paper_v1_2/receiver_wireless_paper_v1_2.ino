@@ -93,6 +93,11 @@ struct NodeState {
   bool     active;
   // Fuel-gauge estimate (computed on the receiver)
   float    soc;         // state of charge %, 100=full … 0=CRIT (practical dead)
+  float    repPct;      // percent REPORTED by the source (P:); <0 = not reported.
+                        // Cameras send their own gauge, which beats deriving SoC
+                        // from a pack voltage that swings ~400mV under load.
+  int8_t   onAC;        // A: 1=running on mains (battery idle), 0=on battery,
+                        // -1=not reported
   float    socRate;     // %/min, smoothed; negative = depleting (0 = unknown)
   float    socAtCalc;   // soc at the last rate calculation
   uint32_t lastRateMs;  // when the rate was last recomputed
@@ -108,9 +113,14 @@ const VP CELL_CURVE[] = {
 };
 const int CELL_CURVE_N = sizeof(CELL_CURVE) / sizeof(CELL_CURVE[0]);
 
-int   cellsFor(const char* t) { return strcmp(t, "BL") == 0 ? 6 : 4; }
-float fullFor (const char* t) { return strcmp(t, "BL") == 0 ? 25.2f : 16.8f; }
-float critFor (const char* t) { return strcmp(t, "BL") == 0 ? 20.0f : 12.8f; }
+// "CAM" = camera-sourced (see tools/camera_bridge.py). Those packets normally
+// carry P: and never reach the curve at all; these values are the fallback for
+// a CAM packet that arrives without one. 7S/B-mount (ARRI ALEXA 35) — without
+// this, CAM fell through to the 4S onboard branch and a 28V pack pinned at 100%.
+bool  isCam   (const char* t) { return strcmp(t, "CAM") == 0; }
+int   cellsFor(const char* t) { return isCam(t) ? 7     : strcmp(t, "BL") == 0 ? 6     : 4;     }
+float fullFor (const char* t) { return isCam(t) ? 29.4f : strcmp(t, "BL") == 0 ? 25.2f : 16.8f; }
+float critFor (const char* t) { return isCam(t) ? 21.0f : strcmp(t, "BL") == 0 ? 20.0f : 12.8f; }
 
 float rawCellSoc(float vcell) {
   if (vcell <= CELL_CURVE[0].v)             return CELL_CURVE[0].p;
@@ -235,7 +245,12 @@ void loadRoster() {
     strncpy(nodes[idx].name,   line.substring(b + 1, c).c_str(), sizeof(nodes[idx].name) - 1);
     nodes[idx].voltage  = line.substring(c + 1, d).toFloat();
     nodes[idx].status   = line.substring(d + 1).toInt();
-    nodes[idx].soc      = socFor(nodes[idx].type, nodes[idx].voltage);
+    nodes[idx].repPct   = -1;   // not persisted; first packet refills it
+    nodes[idx].onAC     = -1;
+    // Camera nodes have no meaningful curve without P:, and restored nodes
+    // render as "stale" until they check in anyway.
+    nodes[idx].soc      = isCam(nodes[idx].type)
+                            ? 0 : socFor(nodes[idx].type, nodes[idx].voltage);
     nodes[idx].active   = true;
     nodes[idx].lastSeen = millis() - STALE_MS - 1000;  // start STALE, grace to re-check-in
   }
@@ -280,6 +295,8 @@ int findOrCreateNode(const char* permId, const char* type) {
     strncpy(nodes[idx].permId, permId, sizeof(nodes[idx].permId) - 1);
     strncpy(nodes[idx].type, type, sizeof(nodes[idx].type) - 1);
     nodes[idx].active = true;
+    nodes[idx].repPct = -1;    // {} zeroes these; 0 would read as "0% reported"
+    nodes[idx].onAC   = -1;
     return idx;
   }
   return -1;
@@ -287,8 +304,9 @@ int findOrCreateNode(const char* permId, const char* type) {
 
 bool parsePacket(const char* buf, char* type, char* permId, size_t permLen,
                  float* voltage, uint8_t* status, float* lipo,
-                 char* name, size_t nameLen) {
-  // Format: T:<type>,I:<permId>,V:<voltage>,S:<status>[,B:<lipo>][,M:<name>]
+                 char* name, size_t nameLen, float* repPct, int8_t* onAC) {
+  // Format: T:<type>,I:<permId>,V:<voltage>,S:<status>
+  //         [,B:<lipo>][,M:<name>][,P:<percent>][,A:<0|1>]
   // Fields are matched by prefix, so order doesn't matter and unknown fields
   // (from older/newer firmware) are simply ignored.
   char tmp[128];
@@ -296,6 +314,11 @@ bool parsePacket(const char* buf, char* type, char* permId, size_t permLen,
   permId[0] = '\0';
   name[0]   = '\0';
   *lipo     = 0;
+  *voltage  = 0;    // these two were previously left at whatever the caller
+  *status   = 0;    // held — fine while every packet carried V:/S:, but a
+                    // type that omits either would have inherited stale values
+  *repPct   = -1;
+  *onAC     = -1;
 
   char* p = strtok(tmp, ",");
   while (p) {
@@ -305,6 +328,8 @@ bool parsePacket(const char* buf, char* type, char* permId, size_t permLen,
     else if (strncmp(p, "S:", 2) == 0) *status  = atoi(p + 2);
     else if (strncmp(p, "B:", 2) == 0) *lipo    = atof(p + 2);
     else if (strncmp(p, "M:", 2) == 0) strncpy(name, p + 2, nameLen - 1);
+    else if (strncmp(p, "P:", 2) == 0) *repPct  = atof(p + 2);
+    else if (strncmp(p, "A:", 2) == 0) *onAC    = (int8_t)atoi(p + 2);
     p = strtok(nullptr, ",");
   }
   return (permId[0] != '\0');
@@ -512,7 +537,8 @@ void updateDisplay() {
     } else if (t == FRESH) {
       char info[20];
       int eta = etaMinutes(n);
-      if      (eta < 0)     snprintf(info, sizeof(info), "%.0f%%", n.soc);
+      if      (n.onAC == 1) snprintf(info, sizeof(info), "%.0f%% AC", n.soc);
+      else if (eta < 0)     snprintf(info, sizeof(info), "%.0f%%", n.soc);
       else if (eta >= 600)  snprintf(info, sizeof(info), "%.0f%% >9h", n.soc);
       else if (eta >= 100)  snprintf(info, sizeof(info), "%.0f%% ~%.1fh", n.soc, eta / 60.0);
       else                  snprintf(info, sizeof(info), "%.0f%% ~%dm", n.soc, eta);
@@ -661,6 +687,7 @@ void handleData() {
     j += ",\"rssi\":"  + String(n.rssi);
     j += ",\"tier\":"  + String((int)t);
     j += ",\"lipo\":"  + String(n.lipo, 2);
+    j += ",\"ac\":"    + String((int)n.onAC);
     j += ",\"dead\":"  + String(dead ? "true" : "false");
     j += "}";
   }
@@ -855,9 +882,12 @@ void handlePacket() {
     uint8_t status = 0;
     float lipo = 0;
     char name[20] = {};
+    float repPct = -1;
+    int8_t onAC = -1;
 
     if (parsePacket(received.c_str(), type, permId, sizeof(permId),
-                    &voltage, &status, &lipo, name, sizeof(name))) {
+                    &voltage, &status, &lipo, name, sizeof(name),
+                    &repPct, &onAC)) {
       int idx = findOrCreateNode(permId, type);
       if (idx >= 0) {
         NodeState& nd = nodes[idx];
@@ -872,8 +902,15 @@ void handlePacket() {
         // Fuel gauge only means something with a real source present. With no
         // camera battery (S:3) the camera reading is ~0V, so hold the last SoC
         // and don't poison the depletion rate.
+        nd.repPct = repPct;
+        nd.onAC   = onAC;
+
         if (status != STATUS_NOSRC) {
-          nd.soc = socFor(nd.type, voltage);
+          // A source that gauges itself (a camera) is authoritative: its
+          // percent is filtered, matches what the crew reads off the body,
+          // and doesn't jitter the way a curve fed by loaded pack voltage
+          // would. Fall back to the curve for everything else.
+          nd.soc = (repPct >= 0) ? repPct : socFor(nd.type, voltage);
           uint32_t now = millis();
           if (nd.lastRateMs == 0) {               // first sample: seed
             nd.socAtCalc = nd.soc;
