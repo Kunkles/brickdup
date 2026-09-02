@@ -281,6 +281,36 @@ full-scale assumption is wrong.
 29.4 V → 2.50 V, and even 35 V → 2.97 V stays in range. Costs a little
 resolution at 4S (16.8 V → 1.43 V instead of 1.67 V) — not meaningful.
 
+**BRIDGE BUILT — `tools/camera_bridge.py`** (tested against both bodies):
+zero-config. Finds cameras over mDNS (`_cap._tcp`, they advertise as
+`alexa35-<serial>`), re-discovers every 60 s so late power-ups get picked
+up, falls back to a subnet sweep if multicast is blocked. One long-poll
+thread per camera, reconnects through drops. Emits on the 10 s heartbeat:
+
+```
+T:CAM,I:CAM-63373,V:28.483,P:97,S:0,M:A
+T:CAM,I:CAM-62204,V:28.106,P:94,S:0,M:B
+```
+
+`P:` is the camera's OWN percent (not derived from V) — that is what makes
+the handheld agree with the camera display. `M:` comes from
+`CameraIndexDual` ("A_" → "A"). `S:` uses the camera's own warn thresholds,
+not brickdup's 6S block numbers. `--serial PORT` feeds the LoRa gateway.
+
+Measured source quality (ALEXA 35 @ 28.5 V): ~1.2 Hz, 13 mV steps inside a
+65 mV band, 0 errors in 25 s — far better than the divider+ADC path.
+
+**REMAINING WORK for this feature:**
+- Receiver: parse `P:` and display it verbatim when present instead of
+  deriving SoC from voltage; handle `T:CAM`. Plus the `parsePacket` init
+  bug below (a `T:CAM` packet without `V:` is exactly what trips it).
+- Gateway sketch: Heltec V3 reading serial lines → `radio.transmit()`.
+  Endgame is the backlogged W5500 on BRK1 — then the node reads the camera
+  itself over Ethernet and no computer is on the cart at all.
+- **Identify `Bat2`**: both bodies report ~23.6–23.9 V at 0 %, and both are
+  running on the Pwr input. Likely the Pwr rail rather than a real battery
+  — confirm before ever rebroadcasting it.
+
 **Still to measure:** simultaneous camera-vs-node reading at two charge
 states (one point gives offset only; two separate offset from gain). Worth
 doing AFTER deciding the divider, since changing R1 invalidates any
