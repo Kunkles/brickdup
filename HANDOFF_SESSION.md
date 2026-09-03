@@ -443,3 +443,26 @@ carriers), printing the shrink-test base to confirm the J1 plug fits the
 **Gateway hardware gotcha:** its CP2102 dropped off USB three times in one
 session. Plug it straight into the Mac, not through the dock/hub chain. The
 bridge exits with a clear message and a hub hint when the port is missing.
+
+### Also for next session: gateway may hang/reset at boot without USB
+
+Reported 2026-09-02, not yet observed directly (the board had dropped off
+USB again). Code review found **nothing in the gateway that waits on a
+serial host** — `HOST.begin()` is UART0 (non-blocking), radio/OLED init
+don't touch serial, and the loop's `HOST.available()` never blocks. That
+holds *because* `boards.txt` sets `cdc_on_boot=0`; if a build ever put
+`Serial` on USB CDC, `print` can block waiting for a host to drain, which
+looks exactly like this. Verify the flag rather than assuming.
+
+**Decide first: how is it powered with USB unplugged?** If USB was the
+only supply it is simply off. If on LiPo/carrier, prime suspect is
+**brownout on transmit** — 17 dBm TX draws a current spike that resets the
+chip on weak power, giving boot → TX → reset → boot.
+
+OLED tells them apart:
+- frozen on `starting radio...` → hang before radio init completed
+- normal screen, `sent 0  err 0` → idle and healthy, nothing to send
+- restarting/flickering → brownout loop (the interesting one)
+
+Related: the same "does the rail hold under load" question as the unrun
+5 V resistor-load test.
