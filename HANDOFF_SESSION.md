@@ -393,3 +393,53 @@ calibration taken now.
 or `*status`. Harmless today (call site declares them fresh each packet) but
 a `T:CAM` packet omitting `V:` is exactly the case that would expose it.
 Fix before adding any packet type that doesn't carry voltage.
+
+
+---
+
+## ⬅ NEXT SESSION: cameras intermittently show LOST on the handheld
+
+State at end of 2026-09-02: the whole chain works — camera → bridge →
+gateway → LoRa → handheld. Cameras A and B appear with the camera's own
+percent. But they drop to LOST intermittently.
+
+**FIRST, ANSWER THIS — it decides everything:** was the receiver reflashed
+after commit `e33e6c2`? Check the handheld reports **v0.6.0** and that
+`CAM_LOST_MS` exists in the running build.
+
+- **If NOT reflashed** — that is the whole bug, already fixed in source.
+  The old build declares any node LOST after **28 s** while the bridge sends
+  every **30 s**, so a camera goes LOST between every single packet. Flash
+  and re-check before investigating anything else.
+
+- **If reflashed** — then real packets are being lost on the air, and the
+  30 s cadence has thin margins. With `CAM_STALE_MS 45000` / `CAM_LOST_MS
+  95000` against a 30 s interval: **1 missed packet → STALE, 3 consecutive
+  → LOST.** So intermittent LOST means three misses in a row, which is a lot
+  of loss and points at RF, not thresholds.
+
+  Worth knowing: nothing else was transmitting during testing, so there was
+  no contention — any loss was RF conditions (antenna, distance, the gateway
+  sitting on a cluttered desk), not collisions. That gets worse once real
+  sensor nodes are on the air: measured budget is ~64 % packet success with
+  5 nodes + 2 cameras.
+
+  Options, cheapest first:
+  1. **Shorter interval** (15 s) — halves time-to-recover, doubles camera
+     airtime. Cheap while camera count is low.
+  2. **Send each camera packet twice**, a second or two apart — costs the
+     same airtime as halving the interval but survives a single-packet
+     dropout without changing any threshold.
+  3. **Raise `CAM_LOST_MS`** — hides the symptom; only right if the data
+     really is fine at that age.
+  4. Check the physical layer first: antenna actually attached to the
+     gateway, and the handheld not sitting inside a rack.
+
+**Also still open (unrelated, from earlier in the day):** the 5 V rail
+resistor-load test (the EX32K / Cff verdict — still the one unknown on the
+carriers), printing the shrink-test base to confirm the J1 plug fits the
+12.5 mm bay, and the initial universal-sketch flash on both sensor nodes.
+
+**Gateway hardware gotcha:** its CP2102 dropped off USB three times in one
+session. Plug it straight into the Mac, not through the dock/hub chain. The
+bridge exits with a clear message and a hub hint when the port is missing.
