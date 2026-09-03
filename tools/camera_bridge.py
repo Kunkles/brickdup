@@ -118,6 +118,31 @@ WATCH = (
 
 # ------------------------------------------------------------- serial output --
 
+def autodetect_port():
+    """The single attached USB-serial port, or a clear error saying why not.
+
+    The gateway shows up as /dev/cu.usbserial-* (the V3's CP2102) or
+    /dev/cu.usbmodem* (native USB). Bluetooth and internal ports are excluded
+    — they are always present and never the gateway.
+    """
+    import glob
+    cands = sorted(set(glob.glob("/dev/cu.usbserial*") +
+                       glob.glob("/dev/cu.usbmodem*") +
+                       glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*")))
+    if not cands:
+        raise SystemExit(
+            "no USB-serial port found — is the gateway plugged in?\n"
+            "  check with:  ls /dev/cu.*\n"
+            "  if it comes and goes, try plugging it straight into the machine "
+            "rather than through a hub or dock.")
+    if len(cands) > 1:
+        raise SystemExit("several USB-serial ports found; name the one you want "
+                         "with --serial PORT:\n  " + "\n  ".join(cands))
+    return cands[0]
+
+
+
+
 class SerialOut:
     """Write-only serial port, with no third-party dependency.
 
@@ -497,9 +522,10 @@ def main():
     ap.add_argument("--interval", type=float, default=TX_INTERVAL,
                     help="seconds between packets PER CAMERA (default 30; see the "
                          "airtime note at the top before lowering it)")
-    ap.add_argument("--serial", metavar="PORT",
-                    help="write packets to this serial port (the LoRa gateway); "
-                         "no pyserial needed — falls back to stty + file I/O")
+    ap.add_argument("--serial", metavar="PORT", nargs="?", const="auto",
+                    help="write packets to the LoRa gateway on this serial port. "
+                         "Give no value to auto-detect the single attached "
+                         "USB-serial port. No pyserial needed.")
     ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--no-scan", action="store_true",
                     help="never sweep the subnet; rely on mDNS alone")
@@ -514,6 +540,9 @@ def main():
 
     port = None
     if args.serial:
+        if args.serial == "auto":
+            args.serial = autodetect_port()
+            log(f"auto-detected gateway port {args.serial}")
         port = SerialOut(args.serial, args.baud)
         time.sleep(2)              # the ESP32 reboots when the port opens
         log(f"gateway on {args.serial} @ {args.baud} ({port.how})")
