@@ -9,7 +9,29 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.6.1 — current
+## 0.6.2 — current
+
+- **Gateway is now a runtime role of the universal node sketch.** One
+  firmware, two jobs, never both at once: a "Role" selector in the config
+  portal switches a board between *Sensor node* (reads its divider and
+  broadcasts its own battery — unchanged default) and *Gateway* (ignores the
+  divider entirely, broadcasts nothing of its own, and relays packet lines
+  arriving on USB serial from `tools/camera_bridge.py`).
+
+  The point is that a gateway and a sensor are the same hardware. Previously
+  becoming a gateway meant flashing a different sketch and losing the board's
+  identity, name and calibration; now it is an NVS setting that survives a
+  reboot and flips back with no reflash. The OLED shows `GATEWAY` with
+  relayed/error counts instead of a voltage, and the portal, OTA and naming
+  all keep working in that role.
+
+  Relay guards carried over from the standalone sketch: a line must look like
+  a packet (`T:` prefix + `I:` field) before it costs ~288 ms of airtime,
+  400 ms minimum gap between transmits, overlong lines dropped rather than
+  truncated, and every line acked so a failure lands on the right side of the
+  USB link. `gateway_heltec_v3/` is kept as a reference but marked superseded.
+
+## 0.6.1
 
 - **Camera nodes get cadence-appropriate timeouts.** The receiver declared
   any node LOST after 28 s, but camera packets are paced at 30 s (their data

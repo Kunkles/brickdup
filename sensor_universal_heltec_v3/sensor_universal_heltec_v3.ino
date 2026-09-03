@@ -20,7 +20,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.6.1" // shown small in the OLED corner
+#define FW_VERSION "0.6.2" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -127,6 +127,16 @@ String      g_permId;               // permanent unique id from chip MAC (SSID)
 String      g_name;                 // editable user name (shown + broadcast)
 float       g_cal   = 1.0f;         // calibration gain factor (1.0 = uncalibrated)
 uint8_t     g_mode  = 0;            // battery type: 0 = OB (4S), 1 = BL (6S)
+// ROLE — one firmware, two jobs, never both at once (Ryan, 2026-09-03).
+//   NODE:    read the divider, broadcast our own battery. The normal job.
+//   GATEWAY: ignore the divider entirely; relay packet lines arriving on USB
+//            serial (from tools/camera_bridge.py) onto the air verbatim.
+// Runtime setting in NVS so one board can be repurposed from the portal
+// without a reflash — which is the whole point, since a gateway and a sensor
+// are the same hardware.
+#define ROLE_NODE     0
+#define ROLE_GATEWAY  1
+uint8_t     g_role  = ROLE_NODE;
 float       g_obWarn = OB_WARN_DEF, g_obCrit = OB_CRIT_DEF;  // editable thresholds
 float       g_blWarn = BL_WARN_DEF, g_blCrit = BL_CRIT_DEF;
 bool        portalActive = false;   // is the WiFi portal running?
@@ -138,10 +148,23 @@ uint8_t     tapCount = 0;           // triple-tap power-off
 uint32_t    lastTapMs = 0;
 uint32_t    lastTx = 0;
 
+// ---- gateway-mode relay state (unused as a node) ----
+#define GW_MAX_LINE   120           // receiver's parse buffer is 128; stay under
+#define GW_MIN_GAP_MS 400UL         // never transmit back to back: a packet is
+                                    // ~288ms on air, leave room for real nodes
+char        gwLine[GW_MAX_LINE + 1];
+size_t      gwLineLen  = 0;
+uint32_t    gwSent     = 0;
+uint32_t    gwErrs     = 0;
+uint32_t    gwLastTxMs = 0;
+char        gwLastId[24]  = "-";
+char        gwLastInfo[16] = "";
+
 #define LONGPRESS_MS 1000           // hold PRG this long to toggle battery type
 
 // Battery type → broadcast string and thresholds
 const char* g_type() { return g_mode ? "BL" : "OB"; }
+bool isGateway() { return g_role == ROLE_GATEWAY; }
 float warnV() {
 #if USB_TEST_MODE
   return TEST_WARN_V;
@@ -206,6 +229,103 @@ void drawV7(int x, int y, int w, int h, int t) {
   for (int i = 0; i < t; i++) {
     oled.drawLine(x + i,         y, xm, y + h);   // left diagonal (thickened)
     oled.drawLine(x + w - 1 - i, y, xm, y + h);   // right diagonal (thickened)
+  }
+}
+
+// ── Gateway mode ─────────────────────────────────────────────────────────────
+// Pull the node id and headline number out of a relayed packet, for the screen.
+void gwSummarize(const char* pkt) {
+  const char* p = strstr(pkt, "I:");
+  if (p) {
+    p += 2;
+    size_t n = 0;
+    while (p[n] && p[n] != ',' && n < sizeof(gwLastId) - 1) n++;
+    memcpy(gwLastId, p, n);
+    gwLastId[n] = '\0';
+  } else {
+    strncpy(gwLastId, "?", sizeof(gwLastId) - 1);
+  }
+  // A reported percent (P:) is the headline for camera packets; else volts.
+  const char* q = strstr(pkt, ",P:");
+  const char* v = strstr(pkt, ",V:");
+  if (q)      snprintf(gwLastInfo, sizeof(gwLastInfo), "%.*s%%", 3, q + 3);
+  else if (v) snprintf(gwLastInfo, sizeof(gwLastInfo), "%.*sV", 6, v + 3);
+  else        gwLastInfo[0] = '\0';
+}
+
+void drawGatewayOLED() {
+  oled.clear();
+  oled.setFont(ArialMT_Plain_10);
+  oled.setTextAlignment(TEXT_ALIGN_LEFT);
+  if (portalActive) { String w = "Brickdup-" + g_permId; oled.drawString(0, 0, w.c_str()); }
+  else              { oled.drawString(0, 0, g_permId.c_str()); }
+  oled.setTextAlignment(TEXT_ALIGN_RIGHT);
+  oled.drawString(128, 0, "GATEWAY");
+
+  oled.setTextAlignment(TEXT_ALIGN_LEFT);
+  char l[32];
+  snprintf(l, sizeof(l), "relayed %lu  err %lu",
+           (unsigned long)gwSent, (unsigned long)gwErrs);
+  oled.drawString(0, 14, l);
+
+  oled.setFont(ArialMT_Plain_16);
+  oled.drawString(0, 28, gwLastId);
+  oled.setFont(ArialMT_Plain_10);
+  oled.drawString(0, 48, gwLastInfo);
+  if (gwSent) {
+    char age[16];
+    snprintf(age, sizeof(age), "%lus", (unsigned long)((millis() - gwLastTxMs) / 1000));
+    oled.setTextAlignment(TEXT_ALIGN_RIGHT);
+    oled.drawString(128, 48, age);
+  }
+  oled.display();
+}
+
+// Relay one complete line from the host. Deliberately dumb: never invent or
+// reshape a packet — pacing is the host's job (camera_bridge.py staggers its
+// cameras). Sanity-check it looks like a packet first, so we don't spend
+// ~288ms of shared airtime on something the receiver will discard anyway.
+void gwHandleLine() {
+  gwLine[gwLineLen] = '\0';
+  while (gwLineLen && (gwLine[gwLineLen - 1] == '\r' || gwLine[gwLineLen - 1] == ' '))
+    gwLine[--gwLineLen] = '\0';
+  if (gwLineLen == 0) return;
+  if (gwLine[0] == '#') return;                     // host comment
+
+  if (strncmp(gwLine, "T:", 2) != 0 || strstr(gwLine, "I:") == nullptr) {
+    Serial.printf("[SKIP] not a packet: %s\n", gwLine);
+    return;
+  }
+
+  uint32_t since = millis() - gwLastTxMs;
+  if (gwSent && since < GW_MIN_GAP_MS) delay(GW_MIN_GAP_MS - since);
+
+  int state = radio.transmit(gwLine);               // blocks ~288ms at SF9
+  if (state == RADIOLIB_ERR_NONE) {
+    gwSent++; gwLastTxMs = millis();
+    gwSummarize(gwLine);
+    Serial.printf("[OK] %lu %s\n", (unsigned long)gwSent, gwLine);
+  } else {
+    gwErrs++;
+    Serial.printf("[ERR] tx %d\n", state);
+  }
+  drawGatewayOLED();
+}
+
+void gwPollSerial() {
+  while (Serial.available()) {
+    int ch = Serial.read();
+    if (ch < 0) break;
+    if (ch == '\n') {
+      gwHandleLine();
+      gwLineLen = 0;
+    } else if (gwLineLen < GW_MAX_LINE) {
+      gwLine[gwLineLen++] = (char)ch;
+    } else {
+      gwLineLen = 0;                                // drop, don't truncate
+      Serial.println("[SKIP] line too long");
+      while (Serial.available() && Serial.peek() != '\n') Serial.read();
+    }
   }
 }
 
@@ -301,6 +421,24 @@ String htmlPage() {
                        "<option value=1 selected>Block — 6S (up to 25.2V)</option>");
   s += F("</select><button type=submit>Save</button></form>");
 
+  // Role — node vs gateway. Same hardware, two jobs, never both at once.
+  s += F("<label>Role</label><form action='/role' method='get'>"
+         "<select name=r>");
+  s += (g_role == ROLE_NODE)
+         ? F("<option value=0 selected>Sensor node — monitor a battery</option>"
+             "<option value=1>Gateway — relay packets from USB</option>")
+         : F("<option value=0>Sensor node — monitor a battery</option>"
+             "<option value=1 selected>Gateway — relay packets from USB</option>");
+  s += F("</select><button type=submit>Save</button></form>");
+  if (isGateway()) {
+    s += F("<p class=n>Running as a <b>GATEWAY</b>: the divider is ignored and "
+           "nothing is broadcast for this board. It relays packet lines "
+           "arriving on USB serial (from tools/camera_bridge.py) onto the air. "
+           "Relayed so far: ");
+    s += String(gwSent);
+    s += F(".</p>");
+  }
+
   // Calibration section
   s += F("<label>Calibration</label><p class=n>Reading now: <b>");
   s += String(readVoltage(), 2);
@@ -329,7 +467,9 @@ String htmlPage() {
          "sets which threshold pair is used (defaults 4S 13.5/12.8V, 6S 21/20V — "
          "editable above, per type) — you can also LONG-PRESS the PRG button to "
          "toggle type. To calibrate, enter the true voltage from a meter. Tap PRG "
-         "to turn WiFi back on.</p><p class=n>"
+         "to turn WiFi back on. <b>Role</b> switches this board between a "
+         "sensor node and a USB gateway — it is one or the other, never both, "
+         "and the setting survives a reboot.</p><p class=n>"
          "<a href='/update' style='color:#2dd47a'>Firmware update &rarr;</a></p>"
          "</body></html>");
   return s;
@@ -370,6 +510,22 @@ void handleSave() {
 
 // Single-point gain calibration: enter the true voltage from a meter; the node
 // trims its reading to match. Stored in flash so it survives reboots.
+void handleRole() {
+  if (server.hasArg("r")) {
+    uint8_t r = (uint8_t)server.arg("r").toInt();
+    if (r <= ROLE_GATEWAY && r != g_role) {
+      g_role = r;
+      prefs.putUChar("role", g_role);
+      Serial.printf("[ROLE] now %s\n", isGateway() ? "GATEWAY" : "NODE");
+      // Reset relay counters so the screen isn't showing a previous stint.
+      gwSent = gwErrs = 0; gwLineLen = 0;
+      strncpy(gwLastId, "-", sizeof(gwLastId) - 1); gwLastInfo[0] = '\0';
+    }
+  }
+  server.sendHeader("Location", "/", true);
+  server.send(302, "text/plain", "");
+}
+
 void handleCal() {
   if (server.hasArg("v")) {
     float actual  = server.arg("v").toFloat();
@@ -569,6 +725,7 @@ void setup() {
   g_name = prefs.getString("name", g_permId);
   g_cal  = prefs.getFloat("cal", 1.0f);
   g_mode = prefs.getUChar("mode", 0);   // 0 = OB (4S) default
+  g_role = prefs.getUChar("role", ROLE_NODE);
   g_obWarn = prefs.getFloat("obw", OB_WARN_DEF);
   g_obCrit = prefs.getFloat("obc", OB_CRIT_DEF);
   g_blWarn = prefs.getFloat("blw", BL_WARN_DEF);
@@ -591,6 +748,7 @@ void setup() {
   server.on("/", handleRoot);
   server.on("/logo.jpg", handleLogo);
   server.on("/save", handleSave);
+  server.on("/role", handleRole);
   server.on("/cal", handleCal);
   server.on("/calreset", handleCalReset);
   server.on("/thresh", handleThresh);
@@ -609,7 +767,8 @@ void setup() {
 #if USB_TEST_MODE
   Serial.printf("[BOOT] Brickdup %s '%s'  (USB-C TEST MODE)\n", g_permId.c_str(), g_name.c_str());
 #else
-  Serial.printf("[BOOT] Brickdup %s '%s'\n", g_permId.c_str(), g_name.c_str());
+  Serial.printf("[BOOT] Brickdup %s '%s'%s\n", g_permId.c_str(), g_name.c_str(),
+                isGateway() ? "  [GATEWAY]" : "");
 #endif
 
   int state = radio.begin(FREQ_MHZ, BW_KHZ, SF, CR, SYNC_WORD, TX_PWR, PREAMBLE);
@@ -619,7 +778,13 @@ void setup() {
   }
   Serial.println("[RADIO] OK");
 
-  lastTx = millis() - TX_INTERVAL_MS + 1500;  // first transmit ~1.5s after boot
+  if (isGateway()) {
+    Serial.println("[RADIO] OK — GATEWAY: send packet lines, one per line");
+    drawGatewayOLED();
+    lastTx = millis();
+  } else {
+    lastTx = millis() - TX_INTERVAL_MS + 1500;  // first transmit ~1.5s after boot
+  }
 }
 
 // TEMP: force a fixed voltage on the display for a quick layout preview.
@@ -685,6 +850,18 @@ void loop() {
   pollButton();                               // PRG toggles WiFi on/off
   if (pendingWifiOff) { pendingWifiOff = false; delay(150); setWifi(false); }
   if (portalActive) { dnsServer.processNextRequest(); server.handleClient(); }
+
+  // GATEWAY: relay the host's packets, never broadcast our own. The divider
+  // is not read at all — in this role there is no battery on it.
+  if (isGateway()) {
+    gwPollSerial();
+    uint32_t nowG = millis();
+    if (nowG - lastTx >= 1000UL) {     // keep the "age" counter ticking
+      lastTx = nowG;
+      drawGatewayOLED();
+    }
+    return;
+  }
 
   uint32_t now = millis();
   if (now - lastTx >= TX_INTERVAL_MS) {

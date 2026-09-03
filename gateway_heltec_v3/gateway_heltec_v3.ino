@@ -1,4 +1,11 @@
 // Brickdup — Serial→LoRa gateway node
+//
+// ⚠ SUPERSEDED as of v0.6.2 by the universal sketch, which now carries this
+//   same relay behind a runtime "Role" setting (Sensor node / Gateway) in the
+//   config portal. Prefer that: one firmware, the board keeps its identity,
+//   name and calibration, and switching roles needs no reflash. This
+//   standalone sketch is kept only as the minimal reference implementation —
+//   flashing it costs the board its node identity.
 // Hardware: Heltec WiFi LoRa 32 V3 (ESP32-S3 + SX1262, 915 MHz)
 //
 // The missing link between tools/camera_bridge.py and the handheld receiver:
@@ -40,7 +47,7 @@
 #include <RadioLib.h>
 #include "HT_SSD1306Wire.h"   // bundled with the Heltec ESP32 board package
 
-#define FW_VERSION "0.6.1"
+#define FW_VERSION "0.6.2"
 
 // ── OLED (Heltec V3 onboard 128×64, I2C) ─────────────────────────────────────
 #ifndef SDA_OLED
