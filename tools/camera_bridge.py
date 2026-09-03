@@ -64,8 +64,10 @@ Usage:
 
 import argparse
 import collections
+import select
 import json
 import math
+import os
 import re
 import shutil
 import socket
@@ -160,7 +162,8 @@ class SerialOut:
 
     def __init__(self, port, baud):
         self.port, self.how = port, ""
-        self._ser = self._fh = None
+        self._ser = None
+        self._fd = None
         try:
             import serial                                  # noqa: F401
             self._ser = serial.Serial(port, baud, timeout=1)
@@ -172,14 +175,14 @@ class SerialOut:
             raise SystemExit(f"could not open {port}: {e}")
 
         try:
-            self._fh = open(port, "wb", buffering=0)
+            self._fd = os.open(port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
         except OSError as e:
             raise SystemExit(f"could not open {port}: {e}")
         flag = "-f" if sys.platform == "darwin" else "-F"
         r = subprocess.run(["stty", flag, port, str(baud), "raw", "-echo"],
                            capture_output=True, text=True)
         if r.returncode:
-            self._fh.close()
+            os.close(self._fd)
             raise SystemExit(f"stty failed on {port}: {r.stderr.strip()}")
         self.how = "raw tty"
 
@@ -188,13 +191,45 @@ class SerialOut:
         if self._ser:
             self._ser.write(data)
         else:
-            self._fh.write(data)
+            os.write(self._fd, data)
+
+    def read_available(self, seconds):
+        """Whatever the far end says within `seconds`."""
+        buf = b""
+        end = time.monotonic() + seconds
+        while time.monotonic() < end:
+            if self._ser:
+                buf += self._ser.read(4096) or b""
+                time.sleep(0.1)
+            else:
+                r, _, _ = select.select([self._fd], [], [], 0.2)
+                if r:
+                    try:
+                        buf += os.read(self._fd, 4096)
+                    except BlockingIOError:
+                        pass
+        return buf.decode("utf-8", "replace")
+
+    def probe_gateway(self):
+        """Confirm a brickdup GATEWAY is on the far end, not some other board.
+
+        Sending packets at whatever happens to be plugged in fails silently:
+        a sensor node ignores serial input entirely, so the bridge looks
+        healthy while nothing reaches the air. The gateway answers any
+        non-packet line with `[SKIP]`, which costs no airtime, so one probe
+        settles it. Returns (ok, what_we_heard).
+        """
+        self.read_available(0.3)                     # clear anything pending
+        self.write_line("PING")                      # not a packet -> [SKIP]
+        heard = self.read_available(2.0)
+        ok = ("[SKIP]" in heard or "[OK]" in heard or "[BOOT]" in heard)
+        return ok, heard.strip()
 
     def close(self):
         if self._ser:
             self._ser.close()
-        elif self._fh:
-            self._fh.close()
+        elif self._fd is not None:
+            os.close(self._fd)
 
 
 # ------------------------------------------------------------------ airtime --
@@ -249,7 +284,10 @@ def render(cams, interval, gateway=None):
     # radio — without a gateway this is a viewer, not a bridge, and the
     # handheld will show every camera LOST.
     if gateway:
-        out.append(_c("grn", f"  gateway  {gateway}"))
+        out.append(_c("grn", f"  gateway  {gateway}  (confirmed)"))
+    elif gateway is False:
+        out.append(_c("red", "  gateway  PORT OPEN BUT NOT A GATEWAY — "
+                             "nothing is being transmitted"))
     else:
         out.append(_c("yel", "  gateway  NOT CONNECTED — nothing is being "
                              "transmitted (pass --serial PORT)"))
@@ -545,8 +583,20 @@ def main():
             log(f"auto-detected gateway port {args.serial}")
         port = SerialOut(args.serial, args.baud)
         time.sleep(2)              # the ESP32 reboots when the port opens
-        log(f"gateway on {args.serial} @ {args.baud} ({port.how})")
+        ok, heard = port.probe_gateway()
+        if ok:
+            gw_state = f"{args.serial} ({port.how})"
+            log(f"gateway confirmed on {args.serial} ({port.how})")
+        else:
+            gw_state = False
+            first = (heard.splitlines() or ["nothing"])[0][:60]
+            log(f"WARNING: {args.serial} did not answer as a gateway "
+                f"(heard: {first}) — packets may be going nowhere")
+            if "[TX]" in heard or "[LIPO]" in heard:
+                log("that looks like a SENSOR NODE, not the gateway — "
+                    "it ignores serial input, so nothing will be transmitted")
 
+    gw_state = None
     fixed = None
     if args.cameras:
         fixed = [h.strip() for h in args.cameras.split(",") if h.strip()]
@@ -627,8 +677,7 @@ def main():
                     c.next_tx = now + (args.interval if emit(c) else 1.0)
 
             if LIVE:
-                render(cams, args.interval,
-                       f"{args.serial} ({port.how})" if port else None)
+                render(cams, args.interval, gw_state)
                 time.sleep(0.4)            # redraw faster than we transmit
             else:
                 time.sleep(0.25)
