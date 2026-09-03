@@ -9,7 +9,28 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.6.0 — current
+## 0.6.1 — current
+
+- **Camera nodes get cadence-appropriate timeouts.** The receiver declared
+  any node LOST after 28 s, but camera packets are paced at 30 s (their data
+  moves a few percent per ten minutes and each packet costs shared airtime).
+  A camera therefore went LOST between every single packet. `T:CAM` nodes now
+  use 45 s stale / 95 s lost, keeping the same "1-2 missed / 3 missed"
+  meaning at their slower cadence.
+
+- Bridge: the status board now says whether packets are actually reaching a
+  radio. Without `--serial` it showed cameras connected while transmitting
+  nothing, which reads as working. `--serial` also takes no argument now and
+  auto-detects the single attached USB-serial port.
+
+- Gateway: host link pinned to UART0, so it can't land on the native-USB
+  path and talk out a port that isn't enumerated.
+
+> Note on 0.6.0: the timeout fix above shipped without a version bump, so a
+> unit reporting 0.6.0 may or may not contain it. 0.6.1 exists to make the
+> two distinguishable — if a receiver reads 0.6.0, reflash it.
+
+## 0.6.0
 
 - **Camera-sourced readings (receiver).** New packet type `T:CAM` lets a
   source that gauges itself report its own state of charge instead of having

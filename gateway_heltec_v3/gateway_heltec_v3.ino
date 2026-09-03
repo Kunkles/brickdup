@@ -40,7 +40,7 @@
 #include <RadioLib.h>
 #include "HT_SSD1306Wire.h"   // bundled with the Heltec ESP32 board package
 
-#define FW_VERSION "0.6.0"
+#define FW_VERSION "0.6.1"
 
 // ── OLED (Heltec V3 onboard 128×64, I2C) ─────────────────────────────────────
 #ifndef SDA_OLED
