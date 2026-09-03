@@ -214,12 +214,20 @@ def _c(name, text):
     return f"{C[name]}{text}{C['off']}" if LIVE else text
 
 
-def render(cams, interval):
+def render(cams, interval, gateway=None):
     """Full-screen status: are the cameras connected, and what are they saying."""
     out = ["\033[H\033[J"]                       # home + clear
     out.append(_c("bold", "brickdup camera bridge") +
                _c("dim", f"   interval {interval:.0f}s   "
                          f"{airtime_report(len(cams), interval)}"))
+    # Seeing cameras here means nothing if the packets aren't reaching the
+    # radio — without a gateway this is a viewer, not a bridge, and the
+    # handheld will show every camera LOST.
+    if gateway:
+        out.append(_c("grn", f"  gateway  {gateway}"))
+    else:
+        out.append(_c("yel", "  gateway  NOT CONNECTED — nothing is being "
+                             "transmitted (pass --serial PORT)"))
     out.append("")
     out.append(_c("dim", f"  {'CAM':<4} {'HOST':<15} {'SERIAL':<8} {'LINK':<13}"
                          f" {'BATTERY':<15} {'DATA':<7} {'SENT':<6} NEXT"))
@@ -590,7 +598,8 @@ def main():
                     c.next_tx = now + (args.interval if emit(c) else 1.0)
 
             if LIVE:
-                render(cams, args.interval)
+                render(cams, args.interval,
+                       f"{args.serial} ({port.how})" if port else None)
                 time.sleep(0.4)            # redraw faster than we transmit
             else:
                 time.sleep(0.25)

@@ -73,6 +73,13 @@
 #define MAX_NODES    12
 #define STALE_MS     15000UL   // ~1-2 missed → STALE (last reading shown, flagged)
 #define LOST_MS      28000UL   // ~3 missed   → LOST  (signal gone)
+// Camera-sourced nodes report far less often than a sensor node: their data
+// moves a few percent per ten minutes and each packet costs shared airtime,
+// so the bridge paces them at 30 s by default. Judging them on the 10 s
+// heartbeat's thresholds would flag every one LOST between packets (30 > 28).
+// Same "1-2 missed / 3 missed" meaning, scaled to their cadence.
+#define CAM_STALE_MS 45000UL
+#define CAM_LOST_MS  95000UL
 #define STATUS_NOSRC 3         // node S: value = camera battery removed/dead
                                // (node stays alive on its bridge LiPo to report it)
 #define CHECK_MS     1000UL    // re-evaluate freshness every 1s for a prompt redraw
@@ -378,9 +385,12 @@ void updateBattery() {
 }
 
 Tier tierOf(const NodeState& n) {
-  uint32_t age = millis() - n.lastSeen;
-  if (age > LOST_MS)  return LOST;
-  if (age > STALE_MS) return STALE;
+  uint32_t age   = millis() - n.lastSeen;
+  bool     cam   = isCam(n.type);
+  uint32_t lost  = cam ? CAM_LOST_MS  : LOST_MS;
+  uint32_t stale = cam ? CAM_STALE_MS : STALE_MS;
+  if (age > lost)  return LOST;
+  if (age > stale) return STALE;
   return FRESH;
 }
 
