@@ -25,7 +25,10 @@ struct Camera {
 }
 
 final class Controller: NSObject, NSApplicationDelegate {
-    let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    // Created in applicationDidFinishLaunching, NOT as a stored-property
+    // initializer: a status item made before NSApplication is running may
+    // never appear in the menu bar.
+    var item: NSStatusItem!
     let menu = NSMenu()
     var task: Process?
     var buffer = Data()
@@ -41,6 +44,10 @@ final class Controller: NSObject, NSApplicationDelegate {
     var retryIn = 0
 
     func applicationDidFinishLaunching(_ n: Notification) {
+        item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        FileHandle.standardError.write(
+            "menubar: status item created, button=\(item.button != nil)\n"
+                .data(using: .utf8)!)
         menu.autoenablesItems = false
         item.menu = menu
         redraw()
