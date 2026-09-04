@@ -695,6 +695,22 @@ def main():
                 first[sn] = host
                 c.dup_of = None
 
+    # The startup probe is one shot, and it can miss: opening the port reboots
+    # the ESP32, so a gateway that is booting simply does not answer yet and
+    # would be written off permanently. The gateway acks EVERY line, so use
+    # those acks as continuous liveness instead -- it self-heals, and it also
+    # notices a gateway that goes away mid-session.
+    ack_state = {"last_ok": time.monotonic() if gw_state else 0.0}
+
+    def note_acks():
+        if not port:
+            return
+        heard = port.read_available(0.6)
+        if "[OK]" in heard or "[SKIP]" in heard:
+            ack_state["last_ok"] = time.monotonic()
+        elif "[ERR]" in heard:
+            log(f"gateway reported a transmit error: {heard.strip()[:60]}")
+
     def emit(c):
         """Returns True if a packet actually went out."""
         if c.dup_of:
@@ -707,6 +723,7 @@ def main():
         c.sent += 1
         if port:
             port.write_line(line)
+            note_acks()          # the reply confirms it actually went on air
         if not LIVE:
             print(line, flush=True)
         return True
@@ -733,6 +750,15 @@ def main():
             if LIVE:
                 render(cams, args.interval, gw_state)
                 time.sleep(0.4)            # redraw faster than we transmit
+            # Gateway is "connected" if it acked recently. Two missed
+            # intervals is enough to call it gone without flapping.
+            if port:
+                quiet = time.monotonic() - ack_state["last_ok"]
+                live_gw = quiet < max(90.0, args.interval * 2.5)
+                gw_state = (f"{args.serial} ({port.how})" if live_gw else False)
+
+            if False:
+                pass
             elif args.as_json:
                 # One self-contained status object per second: the menu bar
                 # app reads these and never needs to know how any of this works.
