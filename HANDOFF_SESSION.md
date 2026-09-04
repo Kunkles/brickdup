@@ -437,6 +437,25 @@ The gateway board's CP2102 dropped off USB repeatedly. Plug it straight into
 the Mac, not through the dock/hub chain. The bridge exits with a clear
 message and a hub hint when the port is missing.
 
+### Menu bar app (2026-09-03)
+
+`tools/menubar/` — native Swift status-bar item, no Dock icon, no
+dependencies (swiftc + a hand-written bundle). Build with
+`tools/menubar/build.sh`, run with `open BrickdupBridge.app`.
+
+It wraps `camera_bridge.py` rather than reimplementing it: the bridge has a
+`--json` mode emitting one status object per second, and the app renders it,
+so terminal and menu bar can never disagree. Shows the **lowest** camera
+battery (the number that decides when someone swaps something), red at the
+camera's own warn threshold; the menu lists each camera with percent,
+AC-vs-battery and volts, plus gateway state and airtime. Auto-retries every
+10 s when the bridge exits, since the gateway board drops off USB routinely.
+
+Gotcha worth remembering: `NSStatusItem` must be created in
+`applicationDidFinishLaunching`, not as a stored-property initializer — one
+made before NSApplication is running may never appear, and the app looks
+launched-but-invisible.
+
 ---
 
 ## STILL OPEN
