@@ -642,8 +642,9 @@ def main():
             if "[TX]" in heard or "[LIPO]" in heard:
                 log("that looks like a SENSOR NODE, not the gateway — "
                     "it ignores serial input, so nothing will be transmitted")
+    else:
+        gw_state = None            # no --serial: not connected, not failed
 
-    gw_state = None
     fixed = None
     if args.cameras:
         fixed = [h.strip() for h in args.cameras.split(",") if h.strip()]
