@@ -9,7 +9,21 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.6.3 — current
+## 0.6.4 — current
+
+- Receiver header shows a **charging bolt** beside its own battery voltage
+  instead of a `"+"` prefix.
+
+  Caveat worth knowing: `VBUS_PIN` is `-1` on this build, so charging is
+  *inferred* from the cell voltage rising, not read from USB directly. A full
+  battery reads ~4.2 V whether it is on the charger or just came off it, so
+  the bolt drops away once the cell tops off even with USB still connected.
+  To make it mean "USB is plugged in", wire a divider off VBUS
+  (~100k/220k → 3.3 V) to a spare GPIO and set `VBUS_PIN`; that path already
+  exists, is definitive, and works while WiFi is up (the battery ADC does
+  not, being on ADC2).
+
+## 0.6.3
 
 - **"on AC" no longer hides a draining onboard battery.** The receiver used
   to suppress time-to-empty whenever a camera reported mains power, assuming

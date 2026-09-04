@@ -22,7 +22,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
 
-#define FW_VERSION "0.6.3"
+#define FW_VERSION "0.6.4"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
@@ -425,6 +425,13 @@ uint32_t displaySignature() {
 }
 
 // Three signal bars of increasing height; filled = active, outline = empty.
+// Charging bolt, ~7x12 px from two triangles, sized to sit beside the 9pt
+// header text. (x, y) is its top-left.
+void drawBolt(int x, int y, uint16_t color) {
+  display.fillTriangle(x + 5, y,     x,     y + 7, x + 4, y + 7, color);
+  display.fillTriangle(x + 2, y + 6, x + 6, y + 6, x + 1, y + 12, color);
+}
+
 void drawBars(int x, int baseY, int level, uint16_t color) {
   const int bw = 3, gap = 2, h[3] = {4, 8, 12};
   for (int i = 0; i < 3; i++) {
@@ -475,14 +482,17 @@ void updateDisplay() {
     display.print(pg);
   }
 
-  // Receiver's own battery, right-aligned on the header line. "+" while charging.
+  // Receiver's own battery, right-aligned on the header line, with a charging
+  // bolt to its left while on USB power.
   char batt[16];
-  snprintf(batt, sizeof(batt), "%s%.1fV", battCharging ? "+" : "", battVoltage);
+  snprintf(batt, sizeof(batt), "%.1fV", battVoltage);
   display.setFont(&FreeSans9pt7b);
   int16_t hbx, hby; uint16_t hbw, hbh;
   display.getTextBounds(batt, 0, 0, &hbx, &hby, &hbw, &hbh);
-  display.setCursor(RIGHT - hbw - hbx, 14);
+  int battX = RIGHT - hbw - hbx;
+  display.setCursor(battX, 14);
   display.print(batt);
+  if (battCharging) drawBolt(battX - 11, 2, BLACK);
 
   display.drawLine(0, 18, 249, 18, BLACK);   // header underline
 
