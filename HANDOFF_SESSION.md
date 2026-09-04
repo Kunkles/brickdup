@@ -482,18 +482,29 @@ launched-but-invisible.
    Changing R1 would cost 4S resolution to fix an unreachable case. Revisit
    only if a tappable battery above 25.2 V ever shows up.
 
-   Reinforced by a safety point (Ryan, 2026-09-03): **a P-tap implies 12 V**
-   by convention, so a 26 V P-tap would be dangerous — someone plugs a 12 V
-   accessory in and destroys it. brickdup's input being a **LEMO, not a
-   P-tap**, is what makes a 6S/25.2 V source safe to accept: no convention is
-   implied, nothing invites a 12 V load. Keep it that way. Tappable sources
-   are therefore 4S via P-tap (16.8 V) and 6S block via LEMO (25.2 V) —
-   both inside the divider's range.
+   **CONNECTOR VOLTAGE CONVENTION — unresolved, decide before building
+   pigtails (2026-09-03).** An earlier note here claimed the LEMO input
+   "implies no voltage convention". **That was wrong.** In film/broadcast a
+   **2-pin LEMO (0B) implies 12 V** exactly as a P-tap does; **3-pin implies
+   24 V and above**. So the hazard is not avoided by using a LEMO.
 
-   If a block-battery pigtail gets built: same LEMO at the node end, but make
-   the SOURCE end visually distinct from the 4S cables (colour, label). The
-   node cannot tell which battery it is on, and the wrong cable at wrap is a
-   plausible mistake.
+   The risk is the CABLE, not the box — brickdup only consumes power. A
+   2-pin LEMO pigtail carrying 25.2 V from a block battery is
+   indistinguishable from the many 12 V 2-pin cables on a truck, and will
+   eventually be plugged into a 12 V accessory.
+
+   The asymmetry that matters: a connector conventioned for a HIGHER voltage
+   carrying a lower one is harmless; the reverse destroys things. So an input
+   that accepts up to 25.2 V arguably wants a **3-pin LEMO**, with 4S/12 V
+   sources on it being unremarkable.
+
+   Open question: the enclosure currently cuts a Ø8.9 double-D hole sized for
+   a 2-pin 0B. Options — (a) move to 3-pin and accept a new panel hole and
+   pigtails; (b) keep 2-pin but restrict it to 4S/12 V sources and use a
+   different connector entirely for block batteries; (c) keep 2-pin for
+   everything and rely on labelling, which is the option that depends on
+   nobody making a mistake at wrap. Ryan's call — it affects the enclosure
+   hole and every cable built from here on.
 
    **Consequence worth holding onto:** for 26 V onboards the camera bridge is
    not a convenience, it is the ONLY way to see those batteries. That makes
