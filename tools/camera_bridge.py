@@ -264,6 +264,50 @@ def airtime_report(n_cams, interval, assumed_nodes=5):
             f"~{total*100:.0f}% load, ~{success:.0f}% packet success{note}")
 
 
+# -------------------------------------------------------------- status feed --
+
+def status_dict(cams, args, port, gw_state):
+    """Everything a UI needs, as plain data. One dict per tick."""
+    now = time.monotonic()
+    out = []
+    for c in cams.values():
+        st = c.snapshot()
+        age = (now - c.updated) if c.updated else None
+        fresh = age is not None and age <= STALE_AFTER
+        if c.dup_of:
+            link = "duplicate"
+        elif not c.online:
+            link = "offline"
+        elif not fresh:
+            link = "stale"
+        elif st.get("PowerInputPwrPresent") and not st.get("PowerInputBatInUse"):
+            link = "on_ac"
+        else:
+            link = "battery"
+        out.append({
+            "label":  (st.get("CameraIndexDual") or "?").replace("_", ""),
+            "host":   c.host,
+            "serial": st.get("SystemCameraSerial"),
+            "link":   link,
+            "volts":  st.get("Bat1LevelVolt"),
+            "pct":    st.get("Bat1LevelPercent"),
+            "warn":   st.get("Bat1WarnLevelPercent"),
+            "age":    round(age, 1) if age is not None else None,
+            "sent":   c.sent,
+            "next":   round(max(0, c.next_tx - now), 1),
+            "last":   c.last_line,
+        })
+    out.sort(key=lambda r: (r["label"] or "~"))
+    return {
+        "gateway": {"port": args.serial if port else None,
+                    "how": port.how if port else None,
+                    "ok": bool(gw_state)},
+        "interval": args.interval,
+        "airtime": airtime_report(len(cams), args.interval),
+        "cameras": out,
+    }
+
+
 # ------------------------------------------------------------------ display --
 
 C = {"dim": "\033[2m", "red": "\033[31m", "yel": "\033[33m",
@@ -567,6 +611,9 @@ def main():
     ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--no-scan", action="store_true",
                     help="never sweep the subnet; rely on mDNS alone")
+    ap.add_argument("--json", action="store_true", dest="as_json",
+                    help="emit one JSON status line per second on stdout "
+                         "instead of packets — the menu bar app's feed")
     ap.add_argument("--plain", action="store_true",
                     help="one packet per line on stdout, no live display "
                          "(automatic when stdout is not a terminal)")
@@ -574,7 +621,7 @@ def main():
 
     # Live dashboard only when a human is watching. Piping to a gateway or a
     # log file keeps the old line-per-packet behaviour untouched.
-    LIVE = sys.stdout.isatty() and not args.plain
+    LIVE = sys.stdout.isatty() and not args.plain and not args.as_json
 
     port = None
     if args.serial:
@@ -679,6 +726,12 @@ def main():
             if LIVE:
                 render(cams, args.interval, gw_state)
                 time.sleep(0.4)            # redraw faster than we transmit
+            elif args.as_json:
+                # One self-contained status object per second: the menu bar
+                # app reads these and never needs to know how any of this works.
+                print(json.dumps(status_dict(cams, args, port, gw_state)),
+                      flush=True)
+                time.sleep(1.0)
             else:
                 time.sleep(0.25)
     except KeyboardInterrupt:
