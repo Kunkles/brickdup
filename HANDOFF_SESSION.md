@@ -470,7 +470,21 @@ launched-but-invisible.
 3. **Enclosure**: print the shrink-test base (`bay_l` 12, case 79.8 mm) and
    confirm the J1 plug fits the 12.5 mm bay; caliper the DWEII rocker barrel
    → `sw_d`, then `sw_hole = true`.
-4. **v0.3 board candidates**: R1 200k → 237k (B-mount is 7S/29.4 V and
-   overruns the divider designed for 25.2 V), backfeed diode on the buck
-   output, plus the long-queued v0.1 design review.
+4. **v0.3 board candidates**: backfeed diode on the buck output, plus the
+   long-queued v0.1 design review.
+
+   ~~R1 200k → 237k~~ **DROPPED 2026-09-03.** It existed so a node could sit
+   on a 26 V/7S pack (29.4 V full → 2.91 V at GPIO7, the worst part of the
+   ADC curve). But **the 26 V onboards have no usable P-taps**, so a node can
+   never be attached to one — the camera is the only possible source for
+   those. The divider therefore only ever sees tappable batteries: 4S bricks
+   (16.8 V) and 6S blocks (25.2 V), both inside the 200k/22k design range.
+   Changing R1 would cost 4S resolution to fix an unreachable case. Revisit
+   only if a tappable battery above 25.2 V ever shows up.
+
+   **Consequence worth holding onto:** for 26 V onboards the camera bridge is
+   not a convenience, it is the ONLY way to see those batteries. That makes
+   the bridge load-bearing rather than supplementary — and strengthens the
+   case for the W5500-on-BRK1 path, which removes the computer from the
+   chain entirely.
 5. **Initial universal-sketch flash on the second sensor node.**
