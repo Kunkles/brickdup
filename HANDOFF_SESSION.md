@@ -397,72 +397,61 @@ Fix before adding any packet type that doesn't carry voltage.
 
 ---
 
-## ⬅ NEXT SESSION: cameras intermittently show LOST on the handheld
 
-State at end of 2026-09-02: the whole chain works — camera → bridge →
-gateway → LoRa → handheld. Cameras A and B appear with the camera's own
-percent. But they drop to LOST intermittently.
+---
 
-**FIRST, ANSWER THIS — it decides everything:** was the receiver reflashed
-after commit `e33e6c2`? Check the handheld reports **v0.6.0** and that
-`CAM_LOST_MS` exists in the running build.
+## ✅ CAMERA CHAIN — WORKING END TO END (confirmed 2026-09-03)
 
-- **If NOT reflashed** — that is the whole bug, already fixed in source.
-  The old build declares any node LOST after **28 s** while the bridge sends
-  every **30 s**, so a camera goes LOST between every single packet. Flash
-  and re-check before investigating anything else.
+    ARRI ALEXA 35 ──▶ camera_bridge.py ──▶ gateway ──▶ LoRa ──▶ handheld
 
-- **If reflashed** — then real packets are being lost on the air, and the
-  30 s cadence has thin margins. With `CAM_STALE_MS 45000` / `CAM_LOST_MS
-  95000` against a 30 s interval: **1 missed packet → STALE, 3 consecutive
-  → LOST.** So intermittent LOST means three misses in a row, which is a lot
-  of loss and points at RF, not thresholds.
+Firmware **v0.6.2** on all sketches. Cameras appear on the handheld by their
+letter with the camera's OWN percent, and `97% AC` while a body is on mains.
 
-  Worth knowing: nothing else was transmitting during testing, so there was
-  no contention — any loss was RF conditions (antenna, distance, the gateway
-  sitting on a cluttered desk), not collisions. That gets worse once real
-  sensor nodes are on the air: measured budget is ~64 % packet success with
-  5 nodes + 2 cameras.
+**Gateway is a runtime role, not a separate sketch.** Config portal → Role →
+*Sensor node* / *Gateway*. Same hardware, one firmware, never both at once;
+the board keeps its identity, name and calibration in either role, so
+switching back is a portal click. `gateway_heltec_v3/` remains only as a
+reference and is marked SUPERSEDED — do not flash it.
 
-  Options, cheapest first:
-  1. **Shorter interval** (15 s) — halves time-to-recover, doubles camera
-     airtime. Cheap while camera count is low.
-  2. **Send each camera packet twice**, a second or two apart — costs the
-     same airtime as halving the interval but survives a single-packet
-     dropout without changing any threshold.
-  3. **Raise `CAM_LOST_MS`** — hides the symptom; only right if the data
-     really is fine at that age.
-  4. Check the physical layer first: antenna actually attached to the
-     gateway, and the handheld not sitting inside a rack.
+### What went wrong getting here (so it isn't rediscovered)
 
-**Also still open (unrelated, from earlier in the day):** the 5 V rail
-resistor-load test (the EX32K / Cff verdict — still the one unknown on the
-carriers), printing the shrink-test base to confirm the J1 plug fits the
-12.5 mm bay, and the initial universal-sketch flash on both sensor nodes.
+1. **Receiver LOST every camera.** `LOST_MS` was 28 s while the bridge paces
+   cameras at 30 s. Fixed: `T:CAM` nodes use 45 s stale / 95 s lost.
+2. **Version made it undiagnosable.** The timeout fix shipped without a
+   version bump, so 0.6.0 could mean either build. **Bump `FW_VERSION` in the
+   same commit as any behaviour change** — this bit twice in one day.
+3. **The "gateway" was a sensor node.** Only one USB-serial port exists, the
+   boards are indistinguishable by port name, and the bridge's auto-detect
+   happily fed packets to a board that ignores serial. Fixed two ways: the
+   bridge now probes for a gateway ack and says `gateway confirmed` or warns
+   loudly, and the merged role means a board announces `GATEWAY` on its OLED.
+4. **`Resource busy` on upload** = something holds the port. Usually the
+   Arduino IDE's `serial-monitor` helper; also the bridge itself. Only one
+   process can hold a serial port.
+5. **`stty` must run AFTER opening the port**, or settings revert on close
+   and everything is garbled at the wrong baud.
 
-**Gateway hardware gotcha:** its CP2102 dropped off USB three times in one
-session. Plug it straight into the Mac, not through the dock/hub chain. The
-bridge exits with a clear message and a hub hint when the port is missing.
+### Known hardware annoyance
 
-### Also for next session: gateway may hang/reset at boot without USB
+The gateway board's CP2102 dropped off USB repeatedly. Plug it straight into
+the Mac, not through the dock/hub chain. The bridge exits with a clear
+message and a hub hint when the port is missing.
 
-Reported 2026-09-02, not yet observed directly (the board had dropped off
-USB again). Code review found **nothing in the gateway that waits on a
-serial host** — `HOST.begin()` is UART0 (non-blocking), radio/OLED init
-don't touch serial, and the loop's `HOST.available()` never blocks. That
-holds *because* `boards.txt` sets `cdc_on_boot=0`; if a build ever put
-`Serial` on USB CDC, `print` can block waiting for a host to drain, which
-looks exactly like this. Verify the flag rather than assuming.
+---
 
-**Decide first: how is it powered with USB unplugged?** If USB was the
-only supply it is simply off. If on LiPo/carrier, prime suspect is
-**brownout on transmit** — 17 dBm TX draws a current spike that resets the
-chip on weak power, giving boot → TX → reset → boot.
+## STILL OPEN
 
-OLED tells them apart:
-- frozen on `starting radio...` → hang before radio init completed
-- normal screen, `sent 0  err 0` → idle and healthy, nothing to send
-- restarting/flickering → brownout loop (the interesting one)
-
-Related: the same "does the rail hold under load" question as the unrun
-5 V resistor-load test.
+1. **5 V resistor-load test on the carriers — never run.** The EX32K / Cff
+   verdict is the last real unknown on the boards themselves: clip ~25 Ω
+   across the module's 5V↔GND, power the carrier at 15 V, and see whether
+   the factory firmware's crystal self-test passes under load. Deferred
+   since 2026-09-02.
+2. **Camera B** was off the network at last check — confirm it answers at
+   10.2.2.201 before treating anything about it as a bug.
+3. **Enclosure**: print the shrink-test base (`bay_l` 12, case 79.8 mm) and
+   confirm the J1 plug fits the 12.5 mm bay; caliper the DWEII rocker barrel
+   → `sw_d`, then `sw_hole = true`.
+4. **v0.3 board candidates**: R1 200k → 237k (B-mount is 7S/29.4 V and
+   overruns the divider designed for 25.2 V), backfeed diode on the buck
+   output, plus the long-queued v0.1 design review.
+5. **Initial universal-sketch flash on the second sensor node.**
