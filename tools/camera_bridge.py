@@ -114,6 +114,8 @@ WATCH = (
     "Bat1LevelVolt", "Bat1LevelPercent",
     "Bat1WarnLevelVolt", "Bat1WarnLevelPercent",
     "PowerInputBatInUse", "PowerInputPwrPresent",
+    "Bat2LevelVolt",           # the AC/Pwr INPUT rail, not a battery
+
     "SystemCameraSerial", "CameraIndexDual",
 )
 
@@ -291,6 +293,10 @@ def status_dict(cams, args, port, gw_state):
             "link":   link,
             "volts":  st.get("Bat1LevelVolt"),
             "pct":    st.get("Bat1LevelPercent"),
+            # Input rail shown alongside the pack: a camera on mains can still
+            # be draining its onboard battery through accessories, so knowing
+            # only "it's on AC" is not enough. Local-only — not worth airtime.
+            "in_volts": st.get("Bat2LevelVolt"),
             "warn":   st.get("Bat1WarnLevelPercent"),
             "age":    round(age, 1) if age is not None else None,
             "sent":   c.sent,

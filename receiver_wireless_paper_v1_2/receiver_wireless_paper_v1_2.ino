@@ -22,7 +22,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
 
-#define FW_VERSION "0.6.2"
+#define FW_VERSION "0.6.3"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
@@ -547,7 +547,16 @@ void updateDisplay() {
     } else if (t == FRESH) {
       char info[20];
       int eta = etaMinutes(n);
-      if      (n.onAC == 1) snprintf(info, sizeof(info), "%.0f%% AC", n.soc);
+      // On AC the pack is usually idle, so a time-to-empty would be
+      // meaningless -- BUT accessories can draw from the onboard battery even
+      // while the camera runs on mains. If the gauge is actually falling, that
+      // drain is the story and must not be hidden behind a reassuring "AC".
+      bool draining = (n.socRate < -0.02f);
+      if      (n.onAC == 1 && !draining)
+                            snprintf(info, sizeof(info), "%.0f%% AC", n.soc);
+      else if (n.onAC == 1 && eta >= 0 && eta < 600)
+                            snprintf(info, sizeof(info), "%.0f%% AC~%dm", n.soc, eta);
+      else if (n.onAC == 1) snprintf(info, sizeof(info), "%.0f%% AC-", n.soc);
       else if (eta < 0)     snprintf(info, sizeof(info), "%.0f%%", n.soc);
       else if (eta >= 600)  snprintf(info, sizeof(info), "%.0f%% >9h", n.soc);
       else if (eta >= 100)  snprintf(info, sizeof(info), "%.0f%% ~%.1fh", n.soc, eta / 60.0);

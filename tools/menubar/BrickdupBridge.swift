@@ -18,6 +18,7 @@ struct Camera {
     var label = "?", host = "", link = ""
     var serial: Int?
     var volts: Double?
+    var inVolts: Double?
     var pct: Int?
     var warn: Int?
     var age: Double?
@@ -173,6 +174,7 @@ final class Controller: NSObject, NSApplicationDelegate {
             cam.link   = (c["link"] as? String) ?? ""
             cam.serial = c["serial"] as? Int
             cam.volts  = c["volts"] as? Double
+            cam.inVolts = c["in_volts"] as? Double
             cam.pct    = c["pct"] as? Int
             cam.warn   = c["warn"] as? Int
             cam.age    = c["age"] as? Double
@@ -256,7 +258,12 @@ final class Controller: NSObject, NSApplicationDelegate {
             case "duplicate": state = "duplicate"
             default:          state = c.link
             }
-            let row = String(format: "%@   %@   %@   %@", c.label, pct, state, v)
+            // Show BOTH rails: the onboard pack and the input feeding the
+            // camera. "on AC" alone can hide a pack draining via accessories.
+            let inV = (c.inVolts ?? 0) > 1
+                ? String(format: "  (in %.1fV)", c.inVolts!) : ""
+            let row = String(format: "%@   %@   %@   %@%@",
+                             c.label, pct, state, v, inV)
             let mi = NSMenuItem(title: row, action: nil, keyEquivalent: "")
             mi.isEnabled = false
             // Flag anything at or below the camera's own warning threshold.

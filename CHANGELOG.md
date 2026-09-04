@@ -9,7 +9,22 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.6.2 — current
+## 0.6.3 — current
+
+- **"on AC" no longer hides a draining onboard battery.** The receiver used
+  to suppress time-to-empty whenever a camera reported mains power, assuming
+  an idle pack. Wrong: accessories can draw from the onboard battery while
+  the camera runs on AC, and that is precisely the case worth flagging — a
+  pack quietly emptying behind a reassuring "AC". If the gauge is actually
+  falling the estimate is shown (`95% AC~40m`); only a genuinely static pack
+  shows a bare `95% AC`.
+
+- Bridge and menu bar now report **both rails** — the onboard pack and the
+  input feeding the camera (`Bat2` is the AC/Pwr rail, not a battery; its
+  0 % is the tell). Local only, no extra airtime: the packet over LoRa still
+  carries just the battery, since the handheld's job is battery warnings.
+
+## 0.6.2
 
 - **Gateway is now a runtime role of the universal node sketch.** One
   firmware, two jobs, never both at once: a "Role" selector in the config
