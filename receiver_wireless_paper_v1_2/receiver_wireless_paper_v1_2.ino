@@ -427,6 +427,12 @@ uint32_t displaySignature() {
 // Three signal bars of increasing height; filled = active, outline = empty.
 // Charging bolt, ~7x12 px from two triangles, sized to sit beside the 9pt
 // header text. (x, y) is its top-left.
+//
+// Deliberately STEADY, not blinking: flashing is this UI's "needs attention"
+// signal (a LOST node), and charging is a benign state lasting hours — a
+// blinking bolt would dilute what a flashing screen means, and would hold the
+// panel in fast-refresh mode (~7200 refreshes/hour) the entire time it is
+// plugged in. Considered and rejected 2026-09-03.
 void drawBolt(int x, int y, uint16_t color) {
   display.fillTriangle(x + 5, y,     x,     y + 7, x + 4, y + 7, color);
   display.fillTriangle(x + 2, y + 6, x + 6, y + 6, x + 1, y + 12, color);
