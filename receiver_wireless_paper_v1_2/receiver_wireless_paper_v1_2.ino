@@ -22,7 +22,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
 
-#define FW_VERSION "0.6.4"
+#define FW_VERSION "0.6.5"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
@@ -376,12 +376,20 @@ void updateBattery() {
   battVoltage = readReceiverBattery();
   if (battEMA == 0) battEMA = battVoltage;        // seed
 #if VBUS_PIN < 0
-  // No VBUS pin wired: "+" only while the cell is actually rising. No absolute-
-  // voltage clause, because a full battery reads ~4.2V whether on the charger or
-  // just unplugged — so the only honest signal is whether it's climbing.
+  // No VBUS pin wired, so "charging" has to be inferred from the cell rising.
+  // There is no absolute-voltage clause because a full battery reads ~4.2V
+  // whether it is on the charger or just came off it.
+  //
+  // The reference average MUST be slow. A 3000mAh cell charging 3.7->4.2V over
+  // ~4h rises only ~0.5mV per 15s sample; an EMA at alpha=0.2 lags a steady
+  // ramp by 4 samples (~2mV) and never crosses the 12mV threshold — the old
+  // alpha=0.2 made this test dead code, firing only on the step when USB is
+  // first plugged in. At alpha=0.02 the lag is ~49 samples (~25mV), which
+  // clears the threshold with 2x margin while still dropping out promptly on
+  // unplug (the cell steps DOWN, so the test goes false immediately).
   battCharging = (battVoltage > battEMA + 0.012f);
 #endif
-  battEMA = battEMA * 0.8f + battVoltage * 0.2f;
+  battEMA = battEMA * 0.98f + battVoltage * 0.02f;
 }
 
 Tier tierOf(const NodeState& n) {

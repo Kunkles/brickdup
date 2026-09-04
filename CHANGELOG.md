@@ -9,7 +9,23 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.6.4 — current
+## 0.6.5 — current
+
+- **Charging detection actually works now.** The trend test could never fire
+  at a real charge rate: a 3000 mAh cell rising 3.7→4.2 V over ~4 h moves
+  ~0.5 mV per 15 s sample, and the reference EMA at α=0.2 lags a steady ramp
+  by only 4 samples (~2 mV) against a 12 mV threshold — off by 6×. It fired
+  only on the voltage step when USB was first plugged in, then went dark, so
+  the indicator (and the `"+"` before it) was effectively dead code. The
+  reference average is now α=0.02: ~49 samples of lag (~25 mV), which clears
+  the threshold with 2× margin and still drops out immediately on unplug,
+  since the cell steps *down*.
+
+  Still inherent without hardware: the bolt means "the cell is climbing", so
+  it goes dark once the battery tops off with USB still connected — a full
+  cell reads ~4.2 V either way. Wire `VBUS_PIN` for "the cable is in".
+
+## 0.6.4
 
 - Receiver header shows a **charging bolt** beside its own battery voltage
   instead of a `"+"` prefix.
