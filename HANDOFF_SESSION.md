@@ -482,6 +482,19 @@ launched-but-invisible.
    Changing R1 would cost 4S resolution to fix an unreachable case. Revisit
    only if a tappable battery above 25.2 V ever shows up.
 
+   Reinforced by a safety point (Ryan, 2026-09-03): **a P-tap implies 12 V**
+   by convention, so a 26 V P-tap would be dangerous — someone plugs a 12 V
+   accessory in and destroys it. brickdup's input being a **LEMO, not a
+   P-tap**, is what makes a 6S/25.2 V source safe to accept: no convention is
+   implied, nothing invites a 12 V load. Keep it that way. Tappable sources
+   are therefore 4S via P-tap (16.8 V) and 6S block via LEMO (25.2 V) —
+   both inside the divider's range.
+
+   If a block-battery pigtail gets built: same LEMO at the node end, but make
+   the SOURCE end visually distinct from the 4S cables (colour, label). The
+   node cannot tell which battery it is on, and the wrong cable at wrap is a
+   plausible mistake.
+
    **Consequence worth holding onto:** for 26 V onboards the camera bridge is
    not a convenience, it is the ONLY way to see those batteries. That makes
    the bridge load-bearing rather than supplementary — and strengthens the
