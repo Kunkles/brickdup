@@ -102,6 +102,15 @@ STALE_AFTER = 30.0        # no fresh data for this long -> stop transmitting
 POLL_TIMEOUT = 20         # long-poll timeout; update.cgi blocks until change
 RECONNECT_WAIT = 3.0      # after a network error (the link does blip)
 DISCOVER_EVERY = 60.0     # re-run discovery this often, to catch late power-ups
+# A camera the handheld has never heard of shows up only when a packet lands.
+# At the normal cadence that means waiting for its stagger slot AND surviving
+# the ~30% packet loss on a shared channel -- a minute or more before it
+# appears, which reads as broken. Send the first few close together so it
+# registers promptly, then settle into the steady interval. The burst is a
+# handful of packets once per appearance: negligible airtime, unlike simply
+# running a shorter interval forever.
+FAST_START_PACKETS = 3
+FAST_START_GAP = 5.0
 MDNS_SERVICE = "_cap._tcp"    # ARRI Camera Access Protocol
 
 # Variables we care about. Everything else in the ~1360-variable model is
@@ -751,9 +760,16 @@ def main():
             # STAGGER: one camera per slot across the interval. Emitting them
             # back to back would hold the channel for N x ~288 ms straight and
             # stomp on any node transmitting in that window.
+            # Spread the FIRST transmits only a couple of seconds apart, not
+            # across the whole interval: a camera that has never been heard
+            # should register in seconds, and 2 s is already far more than the
+            # ~288 ms a packet occupies, so nothing collides. They settle into
+            # the steady cadence from their own send times afterwards.
             now = time.monotonic()
+            spread = min(2.0, args.interval / max(1, len(cams)))
             for i, c in enumerate(cams.values()):
-                c.next_tx = now + i * args.interval / len(cams)
+                if c.sent == 0:
+                    c.next_tx = now + i * spread
             log(airtime_report(len(cams), args.interval))
 
     def dedupe():
@@ -843,7 +859,14 @@ def main():
                 if now >= c.next_tx:
                     # A camera still fetching its first snapshot shouldn't
                     # forfeit a whole interval — retry it shortly instead.
-                    c.next_tx = now + (args.interval if emit(c) else 1.0)
+                    if emit(c):
+                        # Newly-appeared camera: get it on the handheld fast,
+                        # then fall back to the normal cadence.
+                        c.next_tx = now + (FAST_START_GAP
+                                           if c.sent < FAST_START_PACKETS
+                                           else args.interval)
+                    else:
+                        c.next_tx = now + 1.0
 
             if LIVE:
                 render(cams, args.interval, gw_state)
