@@ -763,6 +763,24 @@ def main():
     # notices a gateway that goes away mid-session.
     ack_state = {"last_ok": time.monotonic() if gw_state else 0.0}
 
+    def keepalive():
+        """Confirm the gateway even when there is nothing to broadcast.
+
+        Liveness rides on transmit acks, which works only while packets are
+        flowing. With no camera reporting a pack nothing is sent, no acks come
+        back, and the gateway gets declared missing though it is fine — the
+        menu bar showed an alert triangle for a perfectly healthy link. A
+        PING is answered with [SKIP] and costs no airtime, so use it to keep
+        the link confirmed while idle.
+        """
+        if not port:
+            return
+        if time.monotonic() - ack_state["last_ok"] < args.interval:
+            return
+        ok, _ = port.probe_gateway()
+        if ok:
+            ack_state["last_ok"] = time.monotonic()
+
     def note_acks():
         if not port:
             return
@@ -802,6 +820,7 @@ def main():
                 last_discovery = now
 
             dedupe()
+            keepalive()
             for c in list(cams.values()):
                 if now >= c.next_tx:
                     # A camera still fetching its first snapshot shouldn't
