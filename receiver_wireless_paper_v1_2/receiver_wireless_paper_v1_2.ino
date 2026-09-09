@@ -22,7 +22,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/TomThumb.h>          // tiny 3x5 font for the version corner
 
-#define FW_VERSION "0.6.7"
+#define FW_VERSION "0.6.8"
 
 // ── LoRa pins (same as Heltec V3) ────────────────────────────────────────────
 #define LORA_CS    8
@@ -105,6 +105,9 @@ struct NodeState {
                         // from a pack voltage that swings ~400mV under load.
   int8_t   onAC;        // A: 1=running on mains (battery idle), 0=on battery,
                         // -1=not reported
+  float    otherV;      // W: the OTHER power rail's volts (0 = not reported).
+                        // Shown in place of a percentage when the source
+                        // cannot gauge itself.
   float    socRate;     // %/min, smoothed; negative = depleting (0 = unknown)
   float    socAtCalc;   // soc at the last rate calculation
   uint32_t lastRateMs;  // when the rate was last recomputed
@@ -311,7 +314,8 @@ int findOrCreateNode(const char* permId, const char* type) {
 
 bool parsePacket(const char* buf, char* type, char* permId, size_t permLen,
                  float* voltage, uint8_t* status, float* lipo,
-                 char* name, size_t nameLen, float* repPct, int8_t* onAC) {
+                 char* name, size_t nameLen, float* repPct, int8_t* onAC,
+                 float* otherV) {
   // Format: T:<type>,I:<permId>,V:<voltage>,S:<status>
   //         [,B:<lipo>][,M:<name>][,P:<percent>][,A:<0|1>]
   // Fields are matched by prefix, so order doesn't matter and unknown fields
@@ -326,6 +330,7 @@ bool parsePacket(const char* buf, char* type, char* permId, size_t permLen,
                     // type that omits either would have inherited stale values
   *repPct   = -1;
   *onAC     = -1;
+  *otherV   = 0;
 
   char* p = strtok(tmp, ",");
   while (p) {
@@ -337,6 +342,7 @@ bool parsePacket(const char* buf, char* type, char* permId, size_t permLen,
     else if (strncmp(p, "M:", 2) == 0) strncpy(name, p + 2, nameLen - 1);
     else if (strncmp(p, "P:", 2) == 0) *repPct  = atof(p + 2);
     else if (strncmp(p, "A:", 2) == 0) *onAC    = (int8_t)atoi(p + 2);
+    else if (strncmp(p, "W:", 2) == 0) *otherV  = atof(p + 2);
     p = strtok(nullptr, ",");
   }
   return (permId[0] != '\0');
@@ -571,6 +577,15 @@ void updateDisplay() {
     } else if (t == FRESH) {
       char info[20];
       int eta = etaMinutes(n);
+      // No reported percentage: show the other rail's volts instead of a
+      // gauge we do not have. The main voltage is already right-aligned, so
+      // the row ends up carrying both.
+      if (isCam(n.type) && n.repPct < 0) {
+        if (n.otherV > 1) snprintf(info, sizeof(info), "%.1fV in", n.otherV);
+        else              snprintf(info, sizeof(info), "volts only");
+        display.setCursor(infoX, y);
+        display.print(info);
+      } else {
       // On AC the pack is usually idle, so a time-to-empty would be
       // meaningless -- BUT accessories can draw from the onboard battery even
       // while the camera runs on mains. If the gauge is actually falling, that
@@ -587,6 +602,7 @@ void updateDisplay() {
       else                  snprintf(info, sizeof(info), "%.0f%% ~%dm", n.soc, eta);
       display.setCursor(infoX, y);
       display.print(info);
+      }
     }
 
     // Right-aligned readout. LOST/DEAD use a smaller bold font so they don't clip.
@@ -927,10 +943,11 @@ void handlePacket() {
     char name[20] = {};
     float repPct = -1;
     int8_t onAC = -1;
+    float otherV = 0;
 
     if (parsePacket(received.c_str(), type, permId, sizeof(permId),
                     &voltage, &status, &lipo, name, sizeof(name),
-                    &repPct, &onAC)) {
+                    &repPct, &onAC, &otherV)) {
       int idx = findOrCreateNode(permId, type);
       if (idx >= 0) {
         NodeState& nd = nodes[idx];
@@ -947,13 +964,19 @@ void handlePacket() {
         // and don't poison the depletion rate.
         nd.repPct = repPct;
         nd.onAC   = onAC;
+        nd.otherV = otherV;
 
         if (status != STATUS_NOSRC) {
           // A source that gauges itself (a camera) is authoritative: its
           // percent is filtered, matches what the crew reads off the body,
           // and doesn't jitter the way a curve fed by loaded pack voltage
           // would. Fall back to the curve for everything else.
-          nd.soc = (repPct >= 0) ? repPct : socFor(nd.type, voltage);
+          // A camera that reports no percentage cannot gauge itself — its
+          // feed may be a block, a plate output, or mains, and running that
+          // voltage through a Li-ion curve would invent a number. Leave the
+          // gauge alone and let the display show volts instead.
+          if (repPct >= 0)        nd.soc = repPct;
+          else if (!isCam(nd.type)) nd.soc = socFor(nd.type, voltage);
           uint32_t now = millis();
           if (nd.lastRateMs == 0) {               // first sample: seed
             nd.socAtCalc = nd.soc;

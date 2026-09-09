@@ -638,16 +638,34 @@ def packet_for(cam):
     volt = s.get("Bat1LevelVolt")
     if serial is None or volt is None:
         return None
-    if not has_pack(s):
-        return None            # no pack reading -> say nothing, never "0%"
+    # No pack reading does NOT mean nothing to report: on a plate running off
+    # its external feed, that feed IS the battery carrying the camera, and it
+    # depletes. Report it by voltage. What must never happen is claiming a
+    # percentage we do not have — that is what produced phantom 0% CRITs.
+    pack_ok = has_pack(s)
+    ext = s.get("Bat2LevelVolt")
+    if not pack_ok and not (ext and ext >= MIN_REAL_PACK_V):
+        return None            # genuinely nothing measurable
 
-    pct = s.get("Bat1LevelPercent")
-    st = status_for(pct, volt,
-                    s.get("Bat1WarnLevelPercent"), s.get("Bat1WarnLevelVolt"))
+    pct = s.get("Bat1LevelPercent") if pack_ok else None
+    # V: is whatever is actually carrying the camera.
+    main_v = volt if pack_ok else ext
+    st = (status_for(pct, main_v,
+                     s.get("Bat1WarnLevelPercent"), s.get("Bat1WarnLevelVolt"))
+          if pack_ok else 0)
+    # Without a percentage we have no honest basis for WARN/CRIT: the camera's
+    # own Bat2 warn level is set for a 12V accessory feed (13.5V), nonsense
+    # against a 28V block. Report S:0 and let the number speak — a guessed
+    # threshold is how false alarms get made.
 
-    fields = [f"T:CAM", f"I:CAM-{serial}", f"V:{volt:.3f}"]
+    fields = [f"T:CAM", f"I:CAM-{serial}", f"V:{main_v:.3f}"]
     if pct is not None:
         fields.append(f"P:{pct}")
+    # W: the OTHER rail, so the handheld can show both when there is no
+    # percentage to show instead.
+    other = ext if pack_ok else (volt if (volt or 0) >= MIN_REAL_PACK_V else None)
+    if other and other >= MIN_REAL_PACK_V:
+        fields.append(f"W:{other:.2f}")
     fields.append(f"S:{st}")
 
     # On AC the battery is idle: V is a resting reading and the pack is not

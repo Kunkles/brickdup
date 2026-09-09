@@ -9,7 +9,36 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.6.7 — current
+## 0.6.8 — current
+
+- **Voltage fallback when a source cannot gauge itself.** On a plate running
+  off an external feed with the onboard idle, the camera reports no
+  percentage — the feed may be a block, a plate output or mains, and it does
+  not know which. Previously the bridge sent nothing at all, so those cameras
+  were invisible on the handheld while the batteries carrying them depleted
+  unwatched.
+
+  The bridge now reports them by voltage: `V:` is whatever is actually
+  carrying the camera, and a new `W:` field carries the other rail when a
+  camera has both. Without a percentage it sends `S:0` — the camera's own
+  `Bat2WarnLevelVolt` is 13.5 V, set for a 12 V accessory feed and nonsense
+  against a 28 V block, so using it would manufacture alarms.
+
+  The receiver no longer derives a gauge for a camera that reports no
+  percentage. It was about to run 28 V through a 7S Li-ion curve and show a
+  confident number for a supply it knows nothing about — the same invention
+  as the phantom 0% CRITs, just more plausible-looking. Those rows now show
+  volts where the percentage would go.
+
+- Menu bar headline falls back to the lowest external voltage when no pack
+  reports, instead of showing `–` while the relevant number was being
+  measured and discarded.
+
+- An idle gateway stays confirmed via a periodic PING. Liveness rode on
+  transmit acks, so with nothing to send the link was declared dead and the
+  menu bar showed an alert triangle over a healthy gateway.
+
+## 0.6.7
 
 - Gateway screen now shows the firmware version. Without it there was no way
   to confirm a flash had taken in the role you actually care about — and its
