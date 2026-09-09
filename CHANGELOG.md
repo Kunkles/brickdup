@@ -9,7 +9,25 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.6.5 — current
+## 0.6.6 — current
+
+- **Gateway now works on a Heltec V4 as well as a V3.** The two boards expose
+  USB differently: the V3's connector goes through a CP2102 to UART0, while
+  the V4's goes to the ESP32-S3's own USB Serial/JTAG unit. Both build with
+  `cdc_on_boot=0`, so `Serial` is UART0 on both — right for the V3, and on a
+  V4 it meant the relay was writing to physical pins nobody was connected to,
+  so the bridge saw no gateway at all.
+
+  The relay now watches BOTH interfaces and answers on whichever the host
+  actually used, so one firmware covers either board and a board can be moved
+  without a rebuild. (This is the same class of bug, inverted, as the earlier
+  V3 case where the gateway talked on native USB while the cable was on the
+  CP2102 — watching both retires the category.)
+
+  Note the V4's app partition is far smaller: the same binary is 33% of flash
+  on a V3 but **84% on a V4**. Watch headroom when adding features.
+
+## 0.6.5
 
 - **Charging detection actually works now.** The trend test could never fire
   at a real charge rate: a 3000 mAh cell rising 3.7→4.2 V over ~4 h moves

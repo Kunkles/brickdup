@@ -5,6 +5,7 @@
 // Hardware: Heltec WiFi LoRa 32 V3 (ESP32-S3 + SX1262, 915 MHz)
 // Universal voltage divider: R1=200kΩ (2×100k), R2=22kΩ on GPIO7 (25.2V → ~2.5V)
 
+#include <stdarg.h>
 #include <RadioLib.h>
 #include "HT_SSD1306Wire.h"   // bundled with the Heltec ESP32 board package
 #include <WiFi.h>
@@ -20,7 +21,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.6.5" // shown small in the OLED corner
+#define FW_VERSION "0.6.6" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -165,6 +166,47 @@ char        gwLastInfo[16] = "";
 // Battery type → broadcast string and thresholds
 const char* g_type() { return g_mode ? "BL" : "OB"; }
 bool isGateway() { return g_role == ROLE_GATEWAY; }
+
+// GATEWAY HOST PORT — the board's USB connector is not the same interface on
+// every model, and picking wrong means the relay talks to nobody:
+//   V3: USB goes to a CP2102 bridge  -> the host is on UART0 (`Serial`)
+//   V4: USB goes to the ESP32-S3's own USB Serial/JTAG unit -> not UART0 at all
+// Both build with cdc_on_boot=0, so `Serial` is UART0 on both and a V4 gateway
+// would write to physical pins nobody is connected to. Rather than guess per
+// board, watch BOTH and answer on whichever the host actually used.
+#if SOC_USB_SERIAL_JTAG_SUPPORTED
+  #include "HWCDC.h"
+  #ifdef HWCDC_SERIAL_IS_DEFINED
+    #define GW_USB HWCDCSerial          // core already instantiated it
+  #else
+    HWCDC gwUsbHost;                    // cdc_on_boot=0: make our own
+    #define GW_USB gwUsbHost
+  #endif
+  #define GW_HAVE_USB 1
+#else
+  #define GW_HAVE_USB 0
+#endif
+
+// Which interface the line under construction arrived on, so the ack goes back
+// the same way.
+bool gwFromUsb = false;
+
+void gwReplyLine(const char* s);      // fwd decl
+
+void gwReplyf(const char* fmt, ...) {
+  char buf[160];
+  va_list ap; va_start(ap, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, ap);
+  va_end(ap);
+  gwReplyLine(buf);
+}
+
+void gwReplyLine(const char* s) {
+#if GW_HAVE_USB
+  if (gwFromUsb) { GW_USB.println(s); return; }
+#endif
+  Serial.println(s);
+}
 float warnV() {
 #if USB_TEST_MODE
   return TEST_WARN_V;
@@ -293,7 +335,7 @@ void gwHandleLine() {
   if (gwLine[0] == '#') return;                     // host comment
 
   if (strncmp(gwLine, "T:", 2) != 0 || strstr(gwLine, "I:") == nullptr) {
-    Serial.printf("[SKIP] not a packet: %s\n", gwLine);
+    gwReplyf("[SKIP] not a packet: %s", gwLine);
     return;
   }
 
@@ -304,18 +346,20 @@ void gwHandleLine() {
   if (state == RADIOLIB_ERR_NONE) {
     gwSent++; gwLastTxMs = millis();
     gwSummarize(gwLine);
-    Serial.printf("[OK] %lu %s\n", (unsigned long)gwSent, gwLine);
+    gwReplyf("[OK] %lu %s", (unsigned long)gwSent, gwLine);
   } else {
     gwErrs++;
-    Serial.printf("[ERR] tx %d\n", state);
+    gwReplyf("[ERR] tx %d", state);
   }
   drawGatewayOLED();
 }
 
-void gwPollSerial() {
-  while (Serial.available()) {
-    int ch = Serial.read();
+// Feed bytes from one interface into the line buffer.
+static void gwFeed(Stream& in, bool fromUsb) {
+  while (in.available()) {
+    int ch = in.read();
     if (ch < 0) break;
+    gwFromUsb = fromUsb;
     if (ch == '\n') {
       gwHandleLine();
       gwLineLen = 0;
@@ -323,10 +367,17 @@ void gwPollSerial() {
       gwLine[gwLineLen++] = (char)ch;
     } else {
       gwLineLen = 0;                                // drop, don't truncate
-      Serial.println("[SKIP] line too long");
-      while (Serial.available() && Serial.peek() != '\n') Serial.read();
+      gwReplyLine("[SKIP] line too long");
+      while (in.available() && in.peek() != '\n') in.read();
     }
   }
+}
+
+void gwPollSerial() {
+  gwFeed(Serial, false);          // UART0 — V3 via its CP2102
+#if GW_HAVE_USB
+  gwFeed(GW_USB, true);           // native USB Serial/JTAG — V4
+#endif
 }
 
 void drawOLED(float voltage, int status, float lipo) {
@@ -779,6 +830,9 @@ void setup() {
   Serial.println("[RADIO] OK");
 
   if (isGateway()) {
+#if GW_HAVE_USB
+    GW_USB.begin();     // native USB host link (V4); harmless on V3
+#endif
     Serial.println("[RADIO] OK — GATEWAY: send packet lines, one per line");
     drawGatewayOLED();
     lastTx = millis();
