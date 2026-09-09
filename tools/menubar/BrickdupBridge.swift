@@ -249,8 +249,16 @@ final class Controller: NSObject, NSApplicationDelegate {
             add(running ? "Searching for cameras…" : "—", enabled: false)
         }
         for c in cameras {
-            let pct = (c.link == "no pack") ? "—" : (c.pct.map { "\($0)%" } ?? "—")
-            let v = c.volts.map { String(format: "%.2fV", $0) } ?? ""
+            let hasPack = (c.link != "no pack")
+            let pct = hasPack ? (c.pct.map { "\($0)%" } ?? "—") : "—"
+            // Both rails, each labelled. "pack" is the battery on the mount;
+            // "in" is whatever is feeding the camera. A camera can be on mains
+            // and still draining its pack through accessories, so neither
+            // number alone tells the story.
+            let packV = (hasPack && c.volts != nil)
+                ? String(format: "%.2fV", c.volts!) : "—"
+            let inV = (c.inVolts ?? 0) > 1
+                ? String(format: "%.2fV", c.inVolts!) : "—"
             let state: String
             switch c.link {
             case "on_ac":     state = "on AC"
@@ -261,12 +269,9 @@ final class Controller: NSObject, NSApplicationDelegate {
             case "duplicate": state = "duplicate"
             default:          state = c.link
             }
-            // Show BOTH rails: the onboard pack and the input feeding the
-            // camera. "on AC" alone can hide a pack draining via accessories.
-            let inV = (c.inVolts ?? 0) > 1
-                ? String(format: "  (in %.1fV)", c.inVolts!) : ""
-            let row = String(format: "%@   %@   %@   %@%@",
-                             c.label, pct, state, v, inV)
+            let row = String(format: "%@   %-5@ %-11@  pack %-8@  in %@",
+                             c.label, pct as NSString, state as NSString,
+                             packV as NSString, inV as NSString)
             let mi = NSMenuItem(title: row, action: nil, keyEquivalent: "")
             mi.isEnabled = false
             // Flag anything at or below the camera's own warning threshold.
