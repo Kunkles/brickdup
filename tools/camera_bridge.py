@@ -114,9 +114,19 @@ WATCH = (
     "Bat1LevelVolt", "Bat1LevelPercent",
     "Bat1WarnLevelVolt", "Bat1WarnLevelPercent",
     "PowerInputBatInUse", "PowerInputPwrPresent",
-    "Bat2LevelVolt",           # the AC/Pwr INPUT rail, not a battery
-    "SystemCameraSerial", "CameraIndexDual",
+    "Bat2LevelVolt", "Bat1State", "Bat2State",
+    "SystemCameraSerial", "CameraIndexDual", "CameraIndex",
+    "SystemCameraType",
 )
+
+# NOT every ARRI publishes the same model. Tested against two bodies:
+#   ALEXA 35    (type 4, ~1360 vars): CameraIndexDual, PowerInputPwrPresent,
+#                                     PowerInputBatInUse all present
+#   ALEXA Mini LF (type 3, ~1007 vars): none of those exist
+# So prefer the explicit flags where a body offers them and fall back to the
+# Bat1/Bat2 rails, which both models do publish. State 0 = present, 2 = absent
+# (proved on a 35 by pulling AC: Bat2State went 0 -> 2).
+BAT_ABSENT = 2
 
 # A mounted, reporting pack never reads this low. Below it the camera is
 # telling us nothing — no battery fitted, or (as seen 2026-09-09) the body is
@@ -128,8 +138,37 @@ MIN_REAL_PACK_V = 5.0
 
 
 def has_pack(st):
+    if st.get("Bat1State") == BAT_ABSENT:
+        return False
     v = st.get("Bat1LevelVolt")
     return v is not None and v >= MIN_REAL_PACK_V
+
+
+def on_mains(st):
+    """Is the camera being fed from its AC input rather than the pack?
+
+    The battery plate switches over by itself — pull AC and it rolls to the
+    onboard instantly — so "AC present" IS "running on AC". Bodies that expose
+    PowerInputPwrPresent/BatInUse are believed directly; the rest are judged
+    on the Bat2 (input) rail.
+    """
+    if st.get("PowerInputPwrPresent") is not None:
+        return bool(st.get("PowerInputPwrPresent")) and not st.get("PowerInputBatInUse")
+    if st.get("Bat2State") == BAT_ABSENT:
+        return False
+    v = st.get("Bat2LevelVolt")
+    return v is not None and v >= MIN_REAL_PACK_V
+
+
+def cam_label(st):
+    """A/B/C…  CameraIndexDual on a 35 ("A_"), CameraIndex elsewhere."""
+    dual = st.get("CameraIndexDual")
+    if dual:
+        return str(dual).replace("_", "").strip() or "?"
+    idx = st.get("CameraIndex")
+    if isinstance(idx, int) and 0 <= idx < 26:
+        return chr(ord("A") + idx)
+    return "?"
 
 
 # ------------------------------------------------------------- serial output --
@@ -296,12 +335,12 @@ def status_dict(cams, args, port, gw_state):
             link = "stale"
         elif not has_pack(st):
             link = "no pack"          # asleep, or no battery fitted
-        elif st.get("PowerInputPwrPresent") and not st.get("PowerInputBatInUse"):
+        elif on_mains(st):
             link = "on_ac"
         else:
             link = "battery"
         out.append({
-            "label":  (st.get("CameraIndexDual") or "?").replace("_", ""),
+            "label":  cam_label(st),
             "host":   c.host,
             "serial": st.get("SystemCameraSerial"),
             "link":   link,
@@ -376,7 +415,9 @@ def render(cams, interval, gateway=None):
             link_txt, link_col = "● offline", "red"
         elif not fresh:
             link_txt, link_col = "● stale", "yel"
-        elif st.get("PowerInputPwrPresent") and not st.get("PowerInputBatInUse"):
+        elif not has_pack(st):
+            link_txt, link_col = "● no pack", "dim"
+        elif on_mains(st):
             link_txt, link_col = "● on AC", "cyn"
         else:
             link_txt, link_col = "● battery", "grn"
@@ -390,7 +431,7 @@ def render(cams, interval, gateway=None):
             batt_col = ("red" if pct is not None and pct <= max(1, warn // 2)
                         else "yel" if pct is not None and pct <= warn else "grn")
 
-        label = (st.get("CameraIndexDual") or "?").replace("_", "")
+        label = cam_label(st)
         serial = str(st.get("SystemCameraSerial") or "—")
         age_txt = f"{age:.1f}s" if age is not None else "—"
         nxt_txt = "—" if c.dup_of else f"{max(0, c.next_tx - now):.1f}s"
@@ -606,13 +647,11 @@ def packet_for(cam):
     # On AC the battery is idle: V is a resting reading and the pack is not
     # draining. Sent so the handheld can distinguish "low but parked on AC"
     # (hot-swap isn't ready) from "low and actively discharging" (act now).
-    on_ac = s.get("PowerInputPwrPresent") and not s.get("PowerInputBatInUse")
-    if s.get("PowerInputPwrPresent") is not None:
-        fields.append(f"A:{1 if on_ac else 0}")
+    fields.append(f"A:{1 if on_mains(s) else 0}")
 
     # "A_" -> "A"; the trailing underscore is the dual-camera slot separator
-    label = (s.get("CameraIndexDual") or "").replace("_", "").strip()
-    if label:
+    label = cam_label(s)
+    if label and label != "?":
         fields.append(f"M:{label}")
     return ",".join(fields)
 
