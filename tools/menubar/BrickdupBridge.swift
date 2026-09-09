@@ -186,23 +186,34 @@ final class Controller: NSObject, NSApplicationDelegate {
     // MARK: - UI
 
     func redraw() {
-        // The glanceable number is the LOWEST camera battery — that is the one
-        // that decides when someone has to go swap something.
-        // Only cameras actually reporting a pack count toward the headline
-        // number; a sleeping body must not read as 0%.
-        let live = cameras.filter { $0.link == "on_ac" || $0.link == "battery" }
-        let lowest = live.compactMap { $0.pct }.min()
+        // The glanceable number is whichever reading actually tells you when
+        // someone has to go swap something. Prefer a real pack percentage;
+        // when nothing reports a pack — a plate running off its external feed
+        // with the onboard idle — fall back to the lowest EXTERNAL voltage,
+        // because that is the battery carrying the camera. Showing "–" there
+        // was worse than useless: the number that mattered was being measured
+        // and just not displayed.
+        let reporting = cameras.filter {
+            $0.link == "on_ac" || $0.link == "battery" || $0.link == "external"
+        }
+        let lowestPct = cameras
+            .filter { $0.link == "on_ac" || $0.link == "battery" }
+            .compactMap { $0.pct }.min()
+        let lowestVolts = reporting.compactMap { c -> Double? in
+            let v = (c.link == "external") ? c.inVolts : c.volts
+            return (v ?? 0) > 1 ? v : nil
+        }.min()
 
-        // An SF Symbol reads as an app icon at a glance; bare text glyphs get
-        // lost in a crowded menu bar. State is carried by BOTH the symbol and
-        // the number, so it survives being squeezed.
         let symbol: String, label: String
         if !running {
             symbol = "antenna.radiowaves.left.and.right.slash"; label = ""
         } else if !gatewayOK {
             symbol = "exclamationmark.triangle.fill"; label = ""
-        } else if let p = lowest {
+        } else if let p = lowestPct {
             symbol = "antenna.radiowaves.left.and.right"; label = " \(p)%"
+        } else if let v = lowestVolts {
+            symbol = "antenna.radiowaves.left.and.right"
+            label = String(format: " %.1fV", v)
         } else {
             symbol = "antenna.radiowaves.left.and.right"; label = " –"
         }
@@ -213,11 +224,10 @@ final class Controller: NSObject, NSApplicationDelegate {
             btn.image = img
             btn.imagePosition = .imageLeading
             btn.title = label
-            // Never leave the item with nothing to draw — an empty button is
-            // invisible and looks like the app failed to launch.
             if img == nil && label.isEmpty { btn.title = "BD" }
-            if let p = lowest, let minWarn = live.compactMap({ $0.warn }).min(),
-               p <= minWarn {
+            // Only a pack we can actually read gets the low-battery tint.
+            if let p = lowestPct,
+               let minWarn = cameras.compactMap({ $0.warn }).min(), p <= minWarn {
                 btn.contentTintColor = .systemRed
             } else if !gatewayOK && running {
                 btn.contentTintColor = .systemOrange
