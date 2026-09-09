@@ -249,33 +249,33 @@ final class Controller: NSObject, NSApplicationDelegate {
             add(running ? "Searching for cameras…" : "—", enabled: false)
         }
         for c in cameras {
-            let hasPack = (c.link != "no pack")
-            let pct = hasPack ? (c.pct.map { "\($0)%" } ?? "—") : "—"
-            // Both rails, each labelled. "pack" is the battery on the mount;
-            // "in" is whatever is feeding the camera. A camera can be on mains
-            // and still draining its pack through accessories, so neither
-            // number alone tells the story.
-            let packV = (hasPack && c.volts != nil)
-                ? String(format: "%.2fV", c.volts!) : "—"
-            let inV = (c.inVolts ?? 0) > 1
+            // "external" = running off the input feed with the onboard idle.
+            // That is the normal rig, NOT a fault, so it must not be coloured
+            // like a low battery. The camera reports an idle onboard exactly
+            // like an empty slot, so we simply do not claim to know.
+            let hasPack = (c.link != "external")
+            let onboard = (hasPack && c.volts != nil)
+                ? String(format: "%.2fV", c.volts!) + (c.pct.map { " \($0)%" } ?? "")
+                : "idle/none"
+            let external = (c.inVolts ?? 0) > 1
                 ? String(format: "%.2fV", c.inVolts!) : "—"
-            let state: String
+            let source: String
             switch c.link {
-            case "on_ac":     state = "on AC"
-            case "battery":   state = "on battery"
-            case "no pack":   state = "no battery"
-            case "stale":     state = "STALE"
-            case "offline":   state = "OFFLINE"
-            case "duplicate": state = "duplicate"
-            default:          state = c.link
+            case "external":  source = "external"
+            case "on_ac":     source = "external"
+            case "battery":   source = "onboard"
+            case "stale":     source = "STALE"
+            case "offline":   source = "OFFLINE"
+            case "duplicate": source = "duplicate"
+            default:          source = c.link
             }
-            let row = String(format: "%@   %-5@ %-11@  pack %-8@  in %@",
-                             c.label, pct as NSString, state as NSString,
-                             packV as NSString, inV as NSString)
+            let row = String(format: "%@   on %-9@  onboard %-14@  ext %@",
+                             c.label, source as NSString,
+                             onboard as NSString, external as NSString)
             let mi = NSMenuItem(title: row, action: nil, keyEquivalent: "")
             mi.isEnabled = false
             // Flag anything at or below the camera's own warning threshold.
-            if let p = c.pct, let w = c.warn, p <= w {
+            if hasPack, let p = c.pct, let w = c.warn, p <= w {
                 mi.attributedTitle = NSAttributedString(
                     string: row,
                     attributes: [.foregroundColor: NSColor.systemRed])

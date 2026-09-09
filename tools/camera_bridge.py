@@ -128,12 +128,16 @@ WATCH = (
 # (proved on a 35 by pulling AC: Bat2State went 0 -> 2).
 BAT_ABSENT = 2
 
-# A mounted, reporting pack never reads this low. Below it the camera is
-# telling us nothing — no battery fitted, or (as seen 2026-09-09) the body is
-# in standby publishing only its power subsystem, with Bat1/CameraIndexDual
-# and the power flags all absent. Either way 0 V is NOT a flat battery, and
-# must never be broadcast as one: the handheld would show 0% and raise CRIT
-# for a camera that is simply asleep.
+# A supplying pack never reads this low.
+#
+# IMPORTANT: Bat1State == 2 / 0 V does NOT mean "no battery fitted". On a rig
+# where a plate holds an onboard AND takes an external feed, the onboard sits
+# idle until the external source quits — and while idle the camera reports it
+# exactly like an empty slot. The camera cannot distinguish "onboard present
+# but not supplying" from "nothing there", so neither can we, and neither
+# state is an error. Running on the external feed with an idle reserve is the
+# NORMAL configuration. What must never happen is broadcasting 0 V as a flat
+# battery: the handheld would raise CRIT for a perfectly healthy camera.
 MIN_REAL_PACK_V = 5.0
 
 
@@ -334,7 +338,9 @@ def status_dict(cams, args, port, gw_state):
         elif not fresh:
             link = "stale"
         elif not has_pack(st):
-            link = "no pack"          # asleep, or no battery fitted
+            # Running from the external input; the onboard (if any) is idle.
+            # Normal, not a fault.
+            link = "external"
         elif on_mains(st):
             link = "on_ac"
         else:
@@ -416,7 +422,7 @@ def render(cams, interval, gateway=None):
         elif not fresh:
             link_txt, link_col = "● stale", "yel"
         elif not has_pack(st):
-            link_txt, link_col = "● no pack", "dim"
+            link_txt, link_col = "● external", "cyn"
         elif on_mains(st):
             link_txt, link_col = "● on AC", "cyn"
         else:
