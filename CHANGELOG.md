@@ -9,7 +9,14 @@ cutting a release and add an entry here.
 > first deliberate bump and rolls up everything below. Numbers are approximate
 > by design; this is pre-hardware-validation firmware.
 
-## 0.6.6 — current
+## 0.6.7 — current
+
+- Gateway screen now shows the firmware version. Without it there was no way
+  to confirm a flash had taken in the role you actually care about — and its
+  absence was itself a useful tell: a board showing a version in the corner
+  is in NODE mode, since a fresh flash has no role in NVS and defaults there.
+
+## 0.6.6
 
 - **Gateway now works on a Heltec V4 as well as a V3.** The two boards expose
   USB differently: the V3's connector goes through a CP2102 to UART0, while

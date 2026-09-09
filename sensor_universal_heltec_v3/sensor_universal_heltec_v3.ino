@@ -21,7 +21,7 @@
 // you flip the battery type), is the WiFi network name, and is what the receiver
 // tracks by. The battery type (OB/BL) is broadcast separately, so toggling it
 // updates the node in place instead of spawning a new one.
-#define FW_VERSION "0.6.6" // shown small in the OLED corner
+#define FW_VERSION "0.6.7" // shown small in the OLED corner
 
 // ── WiFi config portal ────────────────────────────────────────────────────────
 #define AP_PASSWORD      "brickdup" // password for the node's WiFi network
@@ -303,6 +303,9 @@ void drawGatewayOLED() {
   else              { oled.drawString(0, 0, g_permId.c_str()); }
   oled.setTextAlignment(TEXT_ALIGN_RIGHT);
   oled.drawString(128, 0, "GATEWAY");
+  // Version belongs on this screen too: without it there is no way to confirm
+  // a flash took in the role you actually care about.
+  oled.drawString(128, 53, "v" FW_VERSION);
 
   oled.setTextAlignment(TEXT_ALIGN_LEFT);
   char l[32];
