@@ -188,6 +188,8 @@ final class Controller: NSObject, NSApplicationDelegate {
     func redraw() {
         // The glanceable number is the LOWEST camera battery — that is the one
         // that decides when someone has to go swap something.
+        // Only cameras actually reporting a pack count toward the headline
+        // number; a sleeping body must not read as 0%.
         let live = cameras.filter { $0.link == "on_ac" || $0.link == "battery" }
         let lowest = live.compactMap { $0.pct }.min()
 
@@ -247,12 +249,13 @@ final class Controller: NSObject, NSApplicationDelegate {
             add(running ? "Searching for cameras…" : "—", enabled: false)
         }
         for c in cameras {
-            let pct = c.pct.map { "\($0)%" } ?? "—"
+            let pct = (c.link == "no pack") ? "—" : (c.pct.map { "\($0)%" } ?? "—")
             let v = c.volts.map { String(format: "%.2fV", $0) } ?? ""
             let state: String
             switch c.link {
             case "on_ac":     state = "on AC"
             case "battery":   state = "on battery"
+            case "no pack":   state = "no battery"
             case "stale":     state = "STALE"
             case "offline":   state = "OFFLINE"
             case "duplicate": state = "duplicate"

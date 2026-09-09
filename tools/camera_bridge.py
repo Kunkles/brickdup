@@ -115,9 +115,21 @@ WATCH = (
     "Bat1WarnLevelVolt", "Bat1WarnLevelPercent",
     "PowerInputBatInUse", "PowerInputPwrPresent",
     "Bat2LevelVolt",           # the AC/Pwr INPUT rail, not a battery
-
     "SystemCameraSerial", "CameraIndexDual",
 )
+
+# A mounted, reporting pack never reads this low. Below it the camera is
+# telling us nothing — no battery fitted, or (as seen 2026-09-09) the body is
+# in standby publishing only its power subsystem, with Bat1/CameraIndexDual
+# and the power flags all absent. Either way 0 V is NOT a flat battery, and
+# must never be broadcast as one: the handheld would show 0% and raise CRIT
+# for a camera that is simply asleep.
+MIN_REAL_PACK_V = 5.0
+
+
+def has_pack(st):
+    v = st.get("Bat1LevelVolt")
+    return v is not None and v >= MIN_REAL_PACK_V
 
 
 # ------------------------------------------------------------- serial output --
@@ -282,6 +294,8 @@ def status_dict(cams, args, port, gw_state):
             link = "offline"
         elif not fresh:
             link = "stale"
+        elif not has_pack(st):
+            link = "no pack"          # asleep, or no battery fitted
         elif st.get("PowerInputPwrPresent") and not st.get("PowerInputBatInUse"):
             link = "on_ac"
         else:
@@ -577,6 +591,8 @@ def packet_for(cam):
     volt = s.get("Bat1LevelVolt")
     if serial is None or volt is None:
         return None
+    if not has_pack(s):
+        return None            # no pack reading -> say nothing, never "0%"
 
     pct = s.get("Bat1LevelPercent")
     st = status_for(pct, volt,
