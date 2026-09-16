@@ -67,6 +67,13 @@ for k in 0..<(w*h) {
     if bg[k] { px[i] = 0; px[i+1] = 0; px[i+2] = 0; px[i+3] = 0; cleared += 1; continue }
     if dist[k] <= BAND {
         let c = (Double(px[i]), Double(px[i+1]), Double(px[i+2]))
+        // Only un-mix pixels that look like the (near-neutral) icon body
+        // blended with white. Coloured artwork that runs out to the rim --
+        // e.g. a green wire ending at the edge -- is not a body/white blend,
+        // and un-mixing it against the body colour turns it muddy and
+        // translucent. Leave those pixels exactly as drawn.
+        let chroma = max(c.0, c.1, c.2) - min(c.0, c.1, c.2)
+        if chroma > 40 { continue }
         let a0 = (255 - c.0) / max(1, 255 - fill.0)
         let a1 = (255 - c.1) / max(1, 255 - fill.1)
         let a2 = (255 - c.2) / max(1, 255 - fill.2)
