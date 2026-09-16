@@ -14,7 +14,7 @@ batteries) and broadcast readings to a handheld receiver with an e-ink display.
 The user (Ryan) is a film-industry tech (DIT-adjacent) building this for real
 on-set use.
 
-- **Repo:** https://github.com/Kunkles/brickdup (local: `~/Documents/brickwatch/`)
+- **Repo:** https://github.com/Kunkles/brickdup (local: `~/Developer/brickwatch/` — moved out of iCloud-synced Documents 2026-09-16)
 - **Active branch: `carrier-v02`** (all current work; pushed). `psu-pcb` =
   v0.1 board PR (#1, open). `main` is behind both.
 - **Firmware version:** v0.5.9 (`FW_VERSION` in each sketch; CHANGELOG.md)

@@ -11,8 +11,21 @@
 import AppKit
 import Foundation
 
-let bridgeScript = ProcessInfo.processInfo.environment["BRICKDUP_BRIDGE"]
-    ?? "\(NSHomeDirectory())/Documents/brickwatch/tools/camera_bridge.py"
+/// Where camera_bridge.py lives, in priority order:
+///   1. $BRICKDUP_BRIDGE, if set
+///   2. next to this app when it's run from the repo (tools/menubar/X.app ->
+///      tools/camera_bridge.py) -- survives the repo being moved
+///   3. the usual checkout location, ~/Developer/brickwatch
+let bridgeScript: String = {
+    let fm = FileManager.default
+    if let env = ProcessInfo.processInfo.environment["BRICKDUP_BRIDGE"] { return env }
+    let besideApp = Bundle.main.bundleURL
+        .deletingLastPathComponent()          // tools/menubar
+        .deletingLastPathComponent()          // tools
+        .appendingPathComponent("camera_bridge.py").path
+    if fm.fileExists(atPath: besideApp) { return besideApp }
+    return "\(NSHomeDirectory())/Developer/brickwatch/tools/camera_bridge.py"
+}()
 
 struct Camera {
     var label = "?", host = "", link = ""
